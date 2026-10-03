@@ -5,3 +5,4 @@ __pycache__/
 ~$*.pptx
 node_modules/
 dev/graphify/
+dev/ppt-workspace/
