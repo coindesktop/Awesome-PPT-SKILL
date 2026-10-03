@@ -87,7 +87,9 @@ def load_design(name: str) -> dict:
 
 def _pick_design(prof: dict, brief: dict) -> str:
     explicit = brief.get("design") or brief.get("tone") or prof.get("design") or prof.get("tone")
-    if explicit and explicit in design_paths():
+    if explicit:
+        if explicit not in design_paths():  # never fall back silently to another look
+            raise SystemExit(f"design '{explicit}' not found. available: {', '.join(design_paths())}")
         return explicit
     purpose, industry = brief.get("purpose", ""), prof.get("industry", "")
     if industry == "public":

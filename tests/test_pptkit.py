@@ -78,6 +78,35 @@ def test_map_read_patch_on_a_foreign_deck():
     assert "2026Q3" in edit.read(d / "r.pptx", [5])
 
 
+def test_p1_patterns_build_clean():
+    out = Path(tempfile.mkdtemp()) / "p1.pptx"
+    rep = render.build(ROOT / "examples/p1-patterns/deck.md", out)
+    assert rep.startswith("OK 12 slides") and "WARN" not in rep, rep
+    assert qa.check(out) == []
+
+
+def test_style_extract_then_build_on_the_template():
+    from pptx.dml.color import RGBColor
+    from pptx.enum.shapes import MSO_SHAPE
+    from pptx.util import Inches
+    from pptkit import style
+    d = Path(tempfile.mkdtemp())
+    prs = render.new_deck(persona.load_design("executive"))
+    tmp = prs.slides.add_slide(prs.slide_layouts[6])
+    logo = tmp.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(11.6), Inches(0.3), Inches(1.2), Inches(0.4))
+    logo.fill.solid()
+    logo.fill.fore_color.rgb = RGBColor(0xC8, 0x10, 0x2E)
+    prs.slide_master.shapes._spTree.append(logo._element)  # brand mark on the master
+    prs.save(d / "corp.pptx")
+    rep = style.extract(d / "corp.pptx", "corp")
+    assert "accent C8102E" in rep and "template linked" in rep, rep
+    out = d / "deck.pptx"
+    assert "design=corp" in render.build(ROOT / "examples/sales-report/deck.md", out, design="corp")
+    built = Presentation(out)
+    assert len(built.slides) == 18 and any(s.shape_type == 1 for s in built.slide_master.shapes)
+    assert qa.check(out) == []
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

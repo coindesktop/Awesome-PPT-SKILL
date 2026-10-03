@@ -72,6 +72,28 @@ class Ctx:
         self.c, self.ty = tone["colors"], tone["type"]
         self.warnings, self.page, self.charts, self.tables = [], 0, 0, 0
         self.section = meta.get("eyebrow", "")
+        self.template = bool(tone.get("template"))
+        self.footer_y = H - 0.5
+        if self.template:  # keep footer text clear of master/layout artwork (logo bars, rules) near the bottom
+            tops = [sh.top / 914400 for owner in [prs.slide_master, *prs.slide_layouts] for sh in owner.shapes
+                    if not sh.is_placeholder and sh.top is not None and sh.top / 914400 > H - 0.75]
+            if tops:
+                self.footer_y = min(tops) - 0.34
+
+    def layout(self, kind):
+        """kind: cover | content. Default deck: built-in layouts 0/5. Template: match by name, then by placeholders."""
+        lays = list(self.prs.slide_layouts)
+        if not self.template:
+            return lays[0 if kind == "cover" else 5]
+        names = {"cover": ("title slide", "제목 슬라이드"), "content": ("title only", "제목만")}[kind]
+        for lay in lays:
+            if lay.name.strip().lower() in names:
+                return lay
+        def score(lay):
+            types = [ph.placeholder_format.type for ph in lay.placeholders]
+            has_title = any(t in (1, 3) for t in types)  # TITLE, CENTER_TITLE
+            return (not has_title, -len(types) if kind == "cover" else len(types))
+        return sorted(lays, key=score)[0]
 
     def warn(self, msg):
         self.warnings.append(f"S{self.page} {msg}")
@@ -111,7 +133,9 @@ def hline(slide, x, y, w, color, pt=0.75):
     return ln
 
 
-def bg(slide, color):
+def bg(slide, color, ctx=None):
+    if ctx is not None and ctx.template:
+        return  # keep the template master's background (logos, artwork)
     slide.background.fill.solid()
     slide.background.fill.fore_color.rgb = rgb(color)
 
@@ -169,13 +193,26 @@ def _s(v):
 # ---------- theme / deck setup ----------
 
 def new_deck(tone) -> Presentation:
+    if tone.get("template"):
+        prs = Presentation(tone["template"])
+        if abs(prs.slide_width - Inches(W)) > Inches(0.02) or abs(prs.slide_height - Inches(H)) > Inches(0.02):
+            raise SystemExit("template must be 16:9 widescreen (13.33x7.5in); its colors/fonts are still in the design")
+        lst = prs.slides._sldIdLst
+        for sid in list(lst):  # start from the template's masters only
+            prs.part.drop_rel(sid.rId)
+            lst.remove(sid)
+        return prs
     prs = Presentation()
     ratio = Inches(W) / prs.slide_width
     prs.slide_width, prs.slide_height = Inches(W), Inches(H)
     for owner in [prs.slide_master, *prs.slide_layouts]:  # default template is 4:3; widen placeholders
         for sh in owner.placeholders:
-            if sh.left is not None:
-                sh.left, sh.width = int(sh.left * ratio), int(sh.width * ratio)
+            xfrm = sh._element.spPr.find(qn("a:xfrm"))
+            if xfrm is None:
+                continue  # inherits the (already widened) master position
+            off, ext = xfrm.find(qn("a:off")), xfrm.find(qn("a:ext"))
+            off.set("x", str(int(int(off.get("x")) * ratio)))
+            ext.set("cx", str(int(int(ext.get("cx")) * ratio)))
     _apply_theme(prs, tone)
     return prs
 
@@ -200,38 +237,40 @@ def _apply_theme(prs, tone):
     part._blob = etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
 
 
-def content_slide(ctx, spec, layout=5):
+def content_slide(ctx, spec):
     """Header rhythm on every content slide: eyebrow -> title -> message -> body -> source + page."""
     ctx.page += 1
     c, ty = ctx.c, ctx.ty
-    slide = ctx.prs.slides.add_slide(ctx.prs.slide_layouts[layout])
-    bg(slide, c["bg"])
-    eyebrow = spec.get("eyebrow", ctx.section)
-    if eyebrow:
-        text(ctx, slide, MX, 0.38, 9, 0.32, [eyebrow], ty["eyebrow"], c["accent"], bold=True)
+    slide = ctx.prs.slides.add_slide(ctx.layout("content"))
+    bg(slide, c["bg"], ctx)
     title = slide.shapes.title
-    title.left, title.top, title.width, title.height = Inches(MX), Inches(0.68), Inches(W - 2 * MX), Inches(0.72)
-    text(ctx, slide, 0, 0, W - 2 * MX, 0.72, [spec["title"]], ty["title"], c["ink"], bold=True,
+    if not ctx.template:
+        title.left, title.top, title.width, title.height = Inches(MX), Inches(0.68), Inches(W - 2 * MX), Inches(0.72)
+    t_top, t_h = title.top / 914400, title.height / 914400
+    eyebrow = spec.get("eyebrow", ctx.section)
+    if eyebrow and t_top >= 0.6:
+        text(ctx, slide, MX, t_top - 0.3, 9, 0.32, [eyebrow], ty["eyebrow"], c["accent"], bold=True)
+    text(ctx, slide, 0, 0, title.width / 914400, t_h, [spec["title"]], ty["title"], c["ink"], bold=True,
          anchor=MSO_ANCHOR.MIDDLE, shape=title, min_pt=18, align=PP_ALIGN.LEFT)
-    y = 1.6
+    y = t_top + t_h + 0.2
     if spec.get("message"):
         if ctx.tone.get("message_box"):
-            b = box(slide, MX, 1.5, W - 2 * MX, 0.6, fill=c["card"])
+            b = box(slide, MX, y - 0.1, W - 2 * MX, 0.6, fill=c["card"])
             text(ctx, slide, 0, 0, W - 2 * MX, 0.6, [spec["message"]], ty["message"], c["ink"], bold=True,
                  anchor=MSO_ANCHOR.MIDDLE, shape=b)
             b.text_frame.margin_left = Inches(0.25)
-            y = 2.3
+            y += 0.7
         else:
-            text(ctx, slide, MX, 1.42, W - 2 * MX, 0.45, [spec["message"]], ty["message"], c["body"])
-            y = 2.0
+            text(ctx, slide, MX, y - 0.18, W - 2 * MX, 0.45, [spec["message"]], ty["message"], c["body"])
+            y += 0.4
     src = spec.get("source") or (ctx.meta.get("source") if _has_data(spec) else None)
     if src:
         label = "자료" if ctx.tone["name"] == "public" else "출처"
-        text(ctx, slide, MX, H - 0.5, 9, 0.3, [f"{label}: {src}"], ty["small"], c["muted"], min_pt=8)
-    text(ctx, slide, W - MX - 1, H - 0.5, 1, 0.3, [str(ctx.page)], ty["small"], c["muted"], align=PP_ALIGN.RIGHT)
+        text(ctx, slide, MX, ctx.footer_y, 9, 0.3, [f"{label}: {src}"], ty["small"], c["muted"], min_pt=8)
+    text(ctx, slide, W - MX - 1, ctx.footer_y, 1, 0.3, [str(ctx.page)], ty["small"], c["muted"], align=PP_ALIGN.RIGHT)
     if spec.get("notes"):
         slide.notes_slide.notes_text_frame.text = str(spec["notes"])
-    return slide, (MX, y, W - 2 * MX, H - 0.75 - y)
+    return slide, (MX, y, W - 2 * MX, ctx.footer_y - 0.25 - y)
 
 
 def _has_data(spec):
@@ -240,6 +279,8 @@ def _has_data(spec):
 
 def _dark_slide(ctx, kind):
     """Background for cover/section/closing per design: dark | light | tint."""
+    if ctx.template:
+        return ctx.c["bg"]  # the template paints these slides; assume a light ground
     return {"dark": ctx.c["dark"], "light": ctx.c["bg"], "tint": ctx.c["card"]}[kind]
 
 
@@ -248,12 +289,14 @@ def _dark_slide(ctx, kind):
 def p_cover(ctx, spec):
     ctx.page += 1
     c, ty, cov = ctx.c, ctx.ty, ctx.tone["cover"]
-    slide = ctx.prs.slides.add_slide(ctx.prs.slide_layouts[0])
+    slide = ctx.prs.slides.add_slide(ctx.layout("cover"))
     fill = _dark_slide(ctx, cov["bg"])
-    bg(slide, fill)
+    bg(slide, fill, ctx)
     dark = dark_color(fill)
     fg, sub, meta_c = ("FFFFFF", mix(fill, "FFFFFF", 0.75), mix(fill, "FFFFFF", 0.55)) if dark else (c["ink"], c["body"], c["muted"])
-    if cov.get("decor") == "circles":
+    if ctx.template:
+        pass  # the template's own cover art stays
+    elif cov.get("decor") == "circles":
         ring = mix(fill, c["accent"], 0.45 if dark else 0.25)
         cx = W - 2.5
         for r in (0.8, 1.45, 2.1):
@@ -261,15 +304,22 @@ def p_cover(ctx, spec):
         box(slide, cx - 0.16, H / 2 - 0.16, 0.32, 0.32, fill=c["accent"], shape=MSO_SHAPE.OVAL)
     elif cov.get("decor") == "rule":
         box(slide, 0.9, 1.95, 0.9, 0.05, fill=c["accent"])
+    ttl = slide.shapes.title
     if spec.get("eyebrow") or ctx.meta.get("eyebrow"):
-        text(ctx, slide, 0.9, 2.15, 8, 0.4, [spec.get("eyebrow") or ctx.meta["eyebrow"]], 14, c["accent"], bold=True)
-    ttl, st = slide.shapes.title, slide.placeholders[1]
-    for ph, (x, y, w, h) in ((ttl, (0.9, 2.55, 7.6, 1.9)), (st, (0.9, 4.55, 7.6, 0.8))):
-        ph.left, ph.top, ph.width, ph.height = Inches(x), Inches(y), Inches(w), Inches(h)
-    text(ctx, slide, 0, 0, 7.6, 1.9, [spec["title"]], ty["cover"], fg, bold=True, anchor=MSO_ANCHOR.TOP, shape=ttl,
+        ey = 2.15 if not ctx.template else ttl.top / 914400 - 0.45
+        if ey > 0.2:
+            text(ctx, slide, 0.9 if not ctx.template else ttl.left / 914400, ey, 8, 0.4,
+                 [spec.get("eyebrow") or ctx.meta["eyebrow"]], 14, c["accent"], bold=True)
+    st = next((ph for ph in slide.placeholders if ph.placeholder_format.idx == 1), None)
+    if st is None:
+        st = slide.shapes.add_textbox(Inches(0.9), Inches(4.55), Inches(7.6), Inches(0.8))
+    if not ctx.template:
+        for ph, (x, y, w, h) in ((ttl, (0.9, 2.55, 7.6, 1.9)), (st, (0.9, 4.55, 7.6, 0.8))):
+            ph.left, ph.top, ph.width, ph.height = Inches(x), Inches(y), Inches(w), Inches(h)
+    text(ctx, slide, 0, 0, ttl.width / 914400, ttl.height / 914400, [spec["title"]], ty["cover"], fg, bold=True, anchor=MSO_ANCHOR.TOP, shape=ttl,
          min_pt=28, align=PP_ALIGN.LEFT, spacing=1.05)
     if spec.get("subtitle"):
-        text(ctx, slide, 0, 0, 7.6, 0.8, [spec["subtitle"]], 18, sub, shape=st, align=PP_ALIGN.LEFT)
+        text(ctx, slide, 0, 0, st.width / 914400, st.height / 914400, [spec["subtitle"]], 18, sub, shape=st, align=PP_ALIGN.LEFT)
     else:
         st._element.getparent().remove(st._element)
     meta = " · ".join(str(v) for v in (spec.get("date") or ctx.meta.get("date"),
@@ -281,9 +331,9 @@ def p_cover(ctx, spec):
 def p_section(ctx, spec):
     ctx.page += 1
     c = ctx.c
-    slide = ctx.prs.slides.add_slide(ctx.prs.slide_layouts[5])
+    slide = ctx.prs.slides.add_slide(ctx.layout("content"))
     fill = _dark_slide(ctx, ctx.tone["section"])
-    bg(slide, fill)
+    bg(slide, fill, ctx)
     fg = "FFFFFF" if dark_color(fill) else c["ink"]
     n = int(spec.get("number", 0) or 0)
     tag = (ROMAN[n - 1] if ctx.tone.get("section_numerals") == "roman" else f"{n:02d}") if n else ""
@@ -331,17 +381,18 @@ def p_exec_summary(ctx, spec):
             cy = y + i * (th + gap)
             cx = x + w * 0.64
             card(ctx, slide, cx, cy, w * 0.36, th)
-            text(ctx, slide, cx + 0.3, cy + 0.12, w * 0.36 - 0.6, th * 0.55, [str(n["value"])], ty["metric"],
-                 c["accent"], bold=True, anchor=MSO_ANCHOR.BOTTOM, min_pt=22)
-            text(ctx, slide, cx + 0.3, cy + th * 0.62, w * 0.36 - 0.6, th * 0.33, [n["label"]], 13, c["muted"])
+            vh = th * 0.56  # value then label, stacked by construction so they never overlap
+            text(ctx, slide, cx + 0.3, cy + 0.08, w * 0.36 - 0.6, vh, [str(n["value"])], ty["metric"],
+                 c["accent"], bold=True, anchor=MSO_ANCHOR.BOTTOM, min_pt=20)
+            text(ctx, slide, cx + 0.3, cy + 0.08 + vh, w * 0.36 - 0.6, th - vh - 0.12, [n["label"]], 13, c["muted"], min_pt=10)
 
 
 def p_closing(ctx, spec):
     ctx.page += 1
     c = ctx.c
-    slide = ctx.prs.slides.add_slide(ctx.prs.slide_layouts[5])
+    slide = ctx.prs.slides.add_slide(ctx.layout("content"))
     fill = _dark_slide(ctx, ctx.tone["closing"])
-    bg(slide, fill)
+    bg(slide, fill, ctx)
     dark = dark_color(fill)
     fg = "FFFFFF" if dark else c["ink"]
     sub = mix(fill, fg, 0.7)
@@ -442,11 +493,16 @@ def p_matrix(ctx, spec):
     lbl = text(ctx, slide, ox - 0.25 - side / 2, oy + side / 2 - 0.18, side, 0.36, [f"{spec.get('y_axis', '')} →"], 12,
                c["muted"], align=PP_ALIGN.RIGHT)
     lbl.rotation = 270
+    band = 0.6 / side  # keep dots out of the quadrant-name bands at the top and bottom edges
     for it in spec.get("items", []):
-        px, py = ox + float(it["x"]) * side, oy + (1 - float(it["y"])) * side
+        fx = min(max(float(it["x"]), 0.05), 0.95)
+        fy = min(max(float(it["y"]), band + 0.03), 1 - band - 0.03)
+        px, py = ox + fx * side, oy + (1 - fy) * side
         box(slide, px - 0.11, py - 0.11, 0.22, 0.22, fill=c["accent"], shape=MSO_SHAPE.OVAL)
         lw = min(2.6, text_width(it["label"], 12) / 0.92 + 0.2)
-        text(ctx, slide, px + 0.15, py - 0.18, lw, 0.36, [it["label"]], 12, c["ink"], bold=True)
+        lx = px + 0.15 if fx <= 0.7 else px - 0.15 - lw
+        text(ctx, slide, lx, py - 0.18, lw, 0.36, [it["label"]], 12, c["ink"], bold=True,
+             align=PP_ALIGN.LEFT if fx <= 0.7 else PP_ALIGN.RIGHT)
     if notes:
         _callout(ctx, slide, x + w * 0.64, y, w * 0.36, h, spec.get("callout_title", "시사점"), notes)
 
@@ -871,6 +927,10 @@ def build(md_path, out=None, sample=False, design=None):
             raise SystemExit(f"unknown pattern '{spec['pattern']}' on '{spec['title']}'. known: {', '.join(PATTERNS)}")
         first_page = ctx.page + 1
         fn(ctx, spec)
+        for sl in list(ctx.prs.slides)[first_page - 1:]:  # template layouts may carry unused placeholders
+            for ph in list(sl.placeholders):
+                if ph.has_text_frame and not ph.text_frame.text.strip():
+                    ph._element.getparent().remove(ph._element)
         saved, ctx.page = ctx.page, first_page
         lint(ctx, spec)
         ctx.page = saved
@@ -878,3 +938,6 @@ def build(md_path, out=None, sample=False, design=None):
     ctx.prs.save(out)
     head = f"OK {ctx.page} slides, {ctx.charts} charts, {ctx.tables} tables, design={tone['name']} -> {out}"
     return "\n".join([head] + [f"WARN {w}" for w in ctx.warnings])
+
+
+from . import patterns_p1  # noqa: E402,F401  (registers the P1 patterns)

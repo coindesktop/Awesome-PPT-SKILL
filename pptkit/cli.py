@@ -36,6 +36,11 @@ def main(argv=None):
 
     sub.add_parser("design", help="list designs (DESIGN.md files; user ones in ~/.pptkit/designs override)")
 
+    p = sub.add_parser("style", help="learn a personal design from a deck the user already made")
+    p.add_argument("action", choices=["extract"])
+    p.add_argument("pptx")
+    p.add_argument("--name", help="design name (default: file name)")
+
     p = sub.add_parser("build", help="deck.md -> pptx")
     p.add_argument("deck")
     p.add_argument("-o", "--out")
@@ -89,6 +94,9 @@ def main(argv=None):
         if a.out:
             pv.to_csv(a.out, encoding="utf-8-sig")
             print(f"-> {a.out}")
+    elif a.cmd == "style":
+        from . import style
+        print(style.extract(a.pptx, a.name))
     elif a.cmd == "design":
         for name in persona.design_paths():
             d = persona.load_design(name)
