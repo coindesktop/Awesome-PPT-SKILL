@@ -1,76 +1,65 @@
 # Awesome-PPT-SKILL
 
-원하는 **내용 · 템플릿 · 톤앤매너**로 PowerPoint를 생성하는 Claude Code 스킬.
-자주 쓰는 도표 양식을 카탈로그로 미리 정의해 두고, 통계 데이터와 피벗테이블을 네이티브 차트와 표로 보기 좋게 넣는다. 토큰 절감을 1급 목표로 둔다.
+**사람을 먼저 파악하고, 그 사람에게 맞는 톤앤매너로 PPT를 만들고 고치는 Claude 스킬 + CLI(`pptkit`).**
 
-## 설치
+- Claude는 짧은 텍스트 파일(`brief.yaml`, `deck.md`, `ops.yaml`)만 씁니다. 렌더링, 피벗, 검증, 편집은 미리 만든 CLI가 합니다. 그래서 토큰이 적게 들고, 같은 입력에서 같은 덱이 나옵니다.
+- 차트와 표는 PowerPoint 네이티브 객체라서 "데이터 편집"으로 숫자를 고칠 수 있습니다. 사진은 넣지 않습니다.
+- 디자인은 DESIGN.md 파일 하나로 정의합니다. 기본 4종(executive, signal, forest, public)이 있고, 예전에 만든 덱에서 개인 디자인을 추출할 수도 있습니다.
 
-```bash
-git clone https://github.com/coindesktop/Awesome-PPT-SKILL.git && cd Awesome-PPT-SKILL
-./scripts/setup.sh   # python-pptx, markitdown, pandas, pptxgenjs 등. 이미 있으면 건너뜀
-```
-
-이 폴더에서 `claude`를 실행하면 `.claude/skills/`의 스킬이 자동으로 로드된다.
-Claude Code 클라우드 세션에서는 SessionStart 훅(`.claude/settings.json`)이 `setup.sh`를 자동으로 실행한다.
-
-Anthropic 공식 `pptx` 스킬(네이티브 차트 규칙과 `validate.py`)도 함께 쓰려면 다음을 실행한다. 독점 라이선스라 레포에는 넣지 않았다.
+## 설치 (Windows · macOS · Linux)
 
 ```bash
-claude plugin marketplace add anthropics/skills
-claude plugin install document-skills@anthropic-agent-skills
+uv tool install git+https://github.com/coindesktop/Awesome-PPT-SKILL   # Python이 없어도 uv가 준비합니다
+pptkit install-skill                                                  # ~/.claude/skills/ppt 에 스킬 복사
 ```
 
-## pptkit 빠른 사용
+개발용: `git clone` 후 `./scripts/setup.sh` (의존성, `pip install -e .`, 렌더 확인용 LibreOffice·한국어 폰트).
 
-```bash
-pip install -e .            # 또는: uv tool install git+https://github.com/coindesktop/Awesome-PPT-SKILL
-pptkit install-skill        # ~/.claude/skills/ppt 로 스킬 복사 (전역 사용)
+## 쓰는 법
 
-pptkit profile              # 나는 누구인가 (없으면 빈 항목만 질문 목록으로 출력)
-pptkit tone --brief brief.yaml
-pptkit data data.csv        # 원본 대신 요약만 출력
-pptkit build deck.md --sample   # 톤 시안 2장
-pptkit build deck.md && pptkit qa deck.pptx
-```
+Claude Code에서 "이 CSV로 본부장 보고용 PPT 8장 만들어줘"처럼 요청하면 `ppt` 스킬이 아래 순서로 진행합니다.
 
-예제: [`examples/sales-report/`](examples/sales-report/deck.md) (P0 패턴 15개를 모두 쓰는 17장 덱). 테스트: `python tests/test_pptkit.py`
-
-## 설치된 것
-
-| 구분 | 이름 | 용도 |
+| 단계 | 명령 | Claude가 읽는 양 |
 |---|---|---|
-| 스킬 | `pptx-profile` | 내 .pptx 템플릿을 레이아웃 카탈로그와 `config.json`으로 변환 (템플릿당 1회) |
-| 스킬 | `pptx-author` | `[HINT: 레이아웃]`이 붙은 `slides.md` 작성과 lint |
-| 스킬 | `pptx-from-layouts` | `slides.md`를 템플릿 레이아웃에 채워 `.pptx`로 렌더하고 검증 |
-| CLI | `markitdown` | `.pptx`/`.xlsx`를 텍스트로 추출 (토큰이 적은 읽기 방식) |
-| Python | `python-pptx`, `pandas`, `openpyxl`, `matplotlib` | 렌더, 피벗, 차트 |
-| Python | `wbgapi`, `PublicDataReader` | World Bank / KOSIS·공공데이터포털 통계 수집 |
-| npm | `pptxgenjs` | 네이티브 차트 생성 (Anthropic pptx 스킬 방식) |
-| 시스템 | `soffice`, `pdftoppm` | 렌더 QA (슬라이드 → 이미지) |
+| 사람 파악 (한 번만) | `pptkit profile` / `pptkit style extract old.pptx` | 한 줄 또는 빈 항목 목록 |
+| 이번 덱 파악 | `brief.yaml` 작성 → `pptkit tone --brief brief.yaml` | 디자인·문체·규칙 3줄 |
+| 데이터 | `pptkit data file.csv` / `pptkit pivot ...` / `pptkit fetch wb ...` | 요약 약 100토큰 |
+| 톤 시안 | `pptkit build deck.md --sample` | 한 줄 |
+| 생성·점검 | `pptkit build deck.md` → `pptkit qa deck.pptx [--com]` | 한 줄, 문제만 |
+| 기존 덱 수정 | `pptkit map` → `pptkit read -s 3,5` → `pptkit patch deck.pptx ops.yaml` | 장당 한 줄 + 필요한 장만 |
 
-## 빠른 확인
+전체 명령: `pptkit -h`. 스킬 문서: [`.claude/skills/ppt/SKILL.md`](.claude/skills/ppt/SKILL.md), 덱 문법: [`deck-spec.md`](.claude/skills/ppt/references/deck-spec.md), 편집 문법: [`editing.md`](.claude/skills/ppt/references/editing.md).
 
-```bash
-python3 .claude/skills/pptx-from-layouts/scripts/generate.py examples/q1-strategy-outline.md -o out.pptx --validate
-# → Score: 100/100 ✓ PASS
-```
+## 들어 있는 것
+
+| 구분 | 내용 |
+|---|---|
+| 개인화 | Profile(사람) × Brief(이번 덱) → 디자인·문체·밀도·업종 관례. 프로필은 `~/.pptkit/`에 저장되어 다시 묻지 않음 |
+| 디자인 | `pptkit/designs/*.md` 4종 + 사용자 DESIGN.md(`~/.pptkit/designs/`), 회사 템플릿 위 렌더링(마스터·로고 유지) |
+| 장표 패턴 | 28종: 구조(표지·목차·섹션·요약·결론), 메시지, 비교(compare, compare-table, before-after, swot, matrix-2x2, logic-tree), 흐름(process, timeline, roadmap, gantt, funnel), 데이터(chart-takeaway, chart-table, chart-pair, pivot, heatmap, kpi-tiles, big-number, market-size) |
+| 차트 | column-trend, line-trend, bar-ranked, stacked, stacked-share (검증된 팔레트, 단일 강조색, 이중 축 없음) |
+| 데이터 | CSV/XLSX, KOSIS 다운로드 형식 자동 정리, 피벗(합계·상위 N+기타·가중 평균) |
+| 통계 | World Bank(키 없음), KOSIS(사용자 키, 터미널에서 직접 등록), 캐시와 출처 자동 각주 |
+| 편집 | 아무 .pptx나 map/read/patch: 텍스트·위치·차트 데이터·표·일괄 치환·겹침 정리·노트 |
+| 점검 | 겹침·넘침·이탈·잔여 placeholder, Windows에서는 PowerPoint로 글자 높이 실측(`--com`) |
+
+## 검증
+
+- 테스트: `python tests/test_pptkit.py`
+- 평가: [`evals/evals.json`](evals/evals.json) 5개 시나리오, 채점 [`evals/grade.py`](evals/grade.py), 결과 [`docs/evals/`](docs/evals/)
 
 ## 문서
 
-- [`docs/plan/01-spec.md`](docs/plan/01-spec.md): 기획 v0.2 (결정 사항, 실행 흐름, CLI, 토큰 예산, 마일스톤)
-- [`docs/plan/02-slide-patterns.md`](docs/plan/02-slide-patterns.md): 장표 패턴 카탈로그
-- [`docs/plan/03-data-sources.md`](docs/plan/03-data-sources.md): 통계 데이터 연결 설계
-- [`docs/plan/04-personalization.md`](docs/plan/04-personalization.md): 개인화 사전 조사 설계 (Profile → Brief → Tone)
-- [`evals/`](evals/evals.json): 평가 케이스 5개와 가상 데이터
-- [`docs/research/landscape.md`](docs/research/landscape.md): 공개 PPT 스킬 9종 비교와 토큰 절감 설계 원칙
-- [`references/`](references/README.md): 참고용 MIT 스킬 원본 (비활성)
+- 기획: [`docs/plan/01-spec.md`](docs/plan/01-spec.md), [장표 패턴](docs/plan/02-slide-patterns.md), [통계 연결](docs/plan/03-data-sources.md), [개인화](docs/plan/04-personalization.md)
+- 조사: [`docs/research/landscape.md`](docs/research/landscape.md), 레퍼런스: [`references/`](references/README.md)
 
-## 로드맵
+## 저장소 구성
 
-1. ~~조사와 레퍼런스 확보~~
-2. ~~기존 스킬과 CLI 설치~~
-3. ~~M1: 개인화 사전 조사 + build(패턴 15개, 차트 3종, 피벗) + 톤 3종 + qa~~
-4. M2: map / read / patch + Windows COM 실측
-5. M3: P1 패턴, 기존 자료 스타일 추출, 사용자 템플릿
-6. M4: 통계 fetch (키 없는 공개 API)
-7. M5: 평가 루프, description 최적화, 패키징
+```
+pptkit/                CLI (render, patterns_p1, edit, qa, data, persona, style, sources) + designs/ + catalog.yaml
+.claude/skills/ppt/    배포되는 스킬 (pptkit install-skill 이 복사)
+examples/              예제 덱 (sales-report: 18장, p1-patterns: 12장)
+evals/                 평가 시나리오, 가상 데이터, 채점기
+references/            참고한 MIT 스킬·DESIGN.md 원본 (비활성)
+.claude/skills/        개발 세션용 스킬들 (ppt 외에는 개발 보조용)
+```

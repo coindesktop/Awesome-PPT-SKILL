@@ -184,10 +184,10 @@ top: 6
 |---|---|---|
 | M0 | 기획 확정, 평가 케이스, 가상 데이터 | 이 문서 v0.2 ✓ |
 | M1 ✓ | 사전 조사(`profile`, `tone`) + `build`(P0 패턴 15개, 차트 3종, 피벗·히트맵) + 톤 3종 + 기본 qa | 예제 17장 덱 qa OK, 테스트 5개 통과. 측정값: deck.md 17장 약 1,390토큰, 도구 결과 합계 약 250토큰 |
-| M2 | `map` / `read` / `patch` / `qa` + Windows COM 실측 | 평가 3 토큰 목표 달성 |
-| M3 | P1 패턴, `style extract`, `template add` | 평가 4 통과 |
-| M4 | `fetch` T1 어댑터, `key` 관리, T2 인터페이스 | 평가 5 통과 |
-| M5 | `SKILL.md` 다듬기, description 최적화, 전역 설치 패키징 | 트리거 평가의 test 세트 점수 |
+| M2 ✓ | `map` / `read` / `patch` / `qa --slides` + Windows COM 실측 | 외부 덱(review.pptx) 패치 후 qa OK, 손대지 않은 장 불변 (테스트) |
+| M3 ✓ | P1 패턴 11종, `style extract`, 회사 템플릿 위 렌더링 | P1 예제 12장 qa OK, 템플릿 마스터 유지 (테스트) |
+| M4 ✓ | `fetch wb`(키 없음), `fetch kosis`(사용자 키), `key`, `sources`, 캐시, 출처 자동 각주 | 합성 응답 픽스처로 전체 경로 테스트. 실제 호출은 네트워크 허용 환경에서 확인 필요 |
+| M5 ✓ | `SKILL.md`·editing.md·deck-spec 갱신, `uv tool install` 검증, `.skill` 패키징 | 격리 환경 설치 후 다른 폴더에서 빌드·qa OK |
 
 ## 11. 환경 이슈
 

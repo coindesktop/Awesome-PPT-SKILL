@@ -38,6 +38,17 @@ paths are relative to deck.md. Unknown keys and overlong text produce `WARN` lin
 | `pivot-table` | `data`, `rows`, `cols`, `val`, `agg`, `weight`, `top`, `where`, `unit`, `max_rows` | totals + 기타 for sum |
 | `heatmap-table` | same as pivot-table | needs `pattern: heatmap-table` |
 | `closing` | `ask`, `support`, `next: [{t, who, when}]` | the request + up to 4 next steps |
+| `two-column` | `columns: [{title, items}, {title, items}]` | must set `pattern: two-column` (else `compare`) |
+| `before-after` | `before: {title, items}`, `after: {title, items}` | |
+| `problem-solution` | `problems: [..]`, `solutions: [..]`, `problem_title`, `solution_title` | |
+| `compare-table` | `options: [A, B, C]`, `criteria: [{label, values: [..]}]`, `recommend: 3`, `corner` | values: ●/◐/○ or short text |
+| `swot` | `swot: {S: [..], W: [..], O: [..], T: [..]}` | |
+| `logic-tree` | `root`, `branches: [{label, leaves: [..]}]` | issue tree / cause breakdown |
+| `roadmap` | `phases: [..]`, `lanes: [{name, cells: [..]}]`, `now: 1` | phases × workstreams |
+| `gantt` | `tasks: [{name, start, end, owner}]` or `data:` csv with those columns | dates `2026-10-01`; must set `pattern: gantt` with data |
+| `funnel` | `stages: [{label, value}]`, `callout` | conversion % computed |
+| `big-number` | `figure`, `label`, `support` | one headline number |
+| `market-size` | `tam/sam/som: {value, label}` | |
 
 ## Chart keys
 

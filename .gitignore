@@ -6,3 +6,4 @@ __pycache__/
 node_modules/
 dev/graphify/
 dev/ppt-workspace/
+dist/
