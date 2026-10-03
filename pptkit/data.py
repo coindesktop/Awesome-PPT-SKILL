@@ -11,7 +11,10 @@ def load(path) -> pd.DataFrame:
         return _tidy(pd.read_excel(path, header=None))
     for enc in ("utf-8-sig", "cp949"):  # Korean Windows exports are often cp949
         try:
-            return _tidy(pd.read_csv(path, header=None, encoding=enc, dtype=str))
+            head = path.read_text(encoding=enc)[:200]
+            skip = 4 if head.lstrip('"').startswith("Data Source") else 0  # World Bank web download: 4 meta lines
+            raw = pd.read_csv(path, header=None, encoding=enc, dtype=str, skiprows=skip)
+            return _tidy(raw.dropna(axis=1, how="all"))
         except UnicodeDecodeError:
             continue
     raise ValueError(f"cannot decode {path}")
@@ -41,8 +44,12 @@ def summary(path) -> str:
     out = [f"{Path(path).name}: {len(df)} rows x {len(df.columns)} cols"]
     for c in df.columns:
         s = df[c]
-        if pd.api.types.is_numeric_dtype(s):
+        year_like = pd.api.types.is_numeric_dtype(s) and (s.dropna() % 1 == 0).all() and is_time(s.dropna().unique())
+        if pd.api.types.is_numeric_dtype(s) and not year_like:
             out.append(f"  {c} num {s.min():g}..{s.max():g} sum={s.sum():g}")
+        elif is_time(s.dropna().unique()):
+            u = sorted(map(str, s.dropna().unique()))
+            out.append(f"  {c} time {len(u)}: {u[0]}..{u[-1]}" + (f" ({','.join(u[-3:])})" if len(u) > 3 else ""))
         else:
             top = s.value_counts().index[:6].tolist()
             out.append(f"  {c} cat {s.nunique()}: {','.join(map(str, top))}{' …' if s.nunique() > 6 else ''}")
@@ -74,19 +81,61 @@ def aggregate(df, x, y, series=None, agg="sum", where=None, weight=None):
     return df.groupby(x)[ys].agg(agg).sort_index()
 
 
-def pivot(df, rows, cols, val, agg="sum", top=None, where=None, total="합계", other="기타", weight=None):
+TIME = re.compile(r"^(19|20)\d{2}([-./]?(Q[1-4]|H[12]|\d{1,2}))?$|^(19|20)\d{2}년")
+
+
+def is_time(values) -> bool:
+    """Years, quarters (2026Q3), months (2026-01): keep chronological order instead of sorting by size."""
+    vals = [str(v).strip() for v in values]
+    return bool(vals) and all(TIME.match(v) for v in vals)
+
+
+def pivot(df, rows, cols=None, val=None, agg="sum", top=None, where=None, total="합계", other="기타", weight=None,
+          pct=None):
+    """rows x cols table (cols optional). Time-like rows stay chronological; others sort by size.
+    Totals are sums, or weighted means for wmean. pct: row | col (shares) | growth (vs previous period)."""
     df = _filter(df, where)
+    keys = [rows, cols] if cols else [rows]
     if agg == "wmean":
-        p = _wmean(df, [rows, cols], val, weight).unstack(cols)
-    else:
+        p = _wmean(df, keys, val, weight)
+        p = p.unstack(cols) if cols else p.to_frame(val)
+    elif cols:
         p = df.pivot_table(index=rows, columns=cols, values=val, aggfunc=agg)
-    p = p.loc[p.sum(axis=1).sort_values(ascending=False).index]
-    if agg != "sum":  # totals and an "other" row are only meaningful for sums
-        return p.iloc[:top] if top else p
-    if top and len(p) > top:
+    else:
+        p = df.groupby(rows)[[val]].agg(agg)
+    if cols and is_time(p.columns):
+        p = p[sorted(p.columns, key=str)]
+    timed = is_time(p.index)
+    p = p.sort_index() if timed else p.loc[p.sum(axis=1).sort_values(ascending=False).index]
+    if top and len(p) > top and agg == "sum":
         rest = p.iloc[top:].sum().rename(other)
         p = pd.concat([p.iloc[:top], rest.to_frame().T])
-    p[total] = p.sum(axis=1)
-    p.loc[total] = p.sum()
+    elif top:
+        p = p.iloc[:top]
+    if pct in ("row", "col") and agg == "sum":
+        p = p.div(p.sum(axis=1), axis=0) * 100 if pct == "row" else p.div(p.sum(axis=0), axis=1) * 100
+    elif pct == "growth":
+        p = (p.pct_change(axis=0 if timed or not cols or not is_time(p.columns) else 1) * 100)
+    elif agg == "sum" and cols:
+        p[total] = p.sum(axis=1)
+        p.loc[total] = p.sum()
+    elif agg == "wmean":
+        if cols:
+            p[total] = _wmean(df, [rows], val, weight)
+            p.loc[total] = list(_wmean(df, [cols], val, weight).reindex(p.columns[:-1])) + \
+                [(df[val] * df[weight]).sum() / df[weight].sum()]
+        else:
+            p.loc[total] = (df[val] * df[weight]).sum() / df[weight].sum()
+    elif agg == "sum":
+        p.loc[total] = p.sum()
     p.index.name, p.columns.name = rows, None
     return p
+
+
+def cagr(p):
+    """Compound annual growth of each column from the first to the last time-like row (None if not time-like)."""
+    idx = [i for i in p.index if is_time([i])]
+    if len(idx) < 2:
+        return None
+    a, b = p.loc[idx[0]], p.loc[idx[-1]]
+    return ((b / a) ** (1 / (len(idx) - 1)) - 1) * 100

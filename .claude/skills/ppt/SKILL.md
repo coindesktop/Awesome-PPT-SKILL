@@ -38,18 +38,22 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
    ```
    `ask` and `mode` drive quality most. If you cannot infer them, ask (bundle with step 1 questions).
 3. **Tone** - `pptkit tone --brief brief.yaml`. It picks a DESIGN (look) and prints `VOICE` and `RULES`;
-   obey them in every sentence you write. A `BRIEF MISSING` block means ask first.
-4. **Data** - `pptkit data <file>` for a summary (KOSIS-style downloads are normalized automatically).
-   For numbers in your messages use `pptkit pivot <file> --rows .. --cols .. --val ..`; weighted averages
-   (e.g. revenue-weighted margin) use `--agg wmean --weight <col>`.
+   obey them in every sentence you write (`friendly` overrides the profile's report shorthand for this deck).
+   A `BRIEF MISSING` block means ask first.
+4. **Data** - `pptkit data <file>` for a summary (KOSIS and World Bank web downloads are normalized automatically).
+   Every number in a title or bullet comes from `pptkit pivot <file> --rows .. [--cols ..] --val ..`: totals and
+   CAGR are printed; `--pct row|col` gives shares, `--pct growth` the change vs the previous period;
+   `--agg wmean --weight <col>` gives weighted averages (e.g. revenue-weighted margin) with weighted totals.
+   Do not do arithmetic on pivot output yourself.
 5. **Deck** - write `deck.md` per [references/deck-spec.md](references/deck-spec.md). Titles are conclusion
    sentences backed by numbers you got from pptkit. Pick patterns by the order below and vary them; when a
    slide holds one chart, prefer `chart-table` or `chart-pair` if a second view adds information.
 6. **Tone sample** - `pptkit build deck.md --sample` → give the user `deck.sample.pptx` (cover + one data
    slide) and ask if the look and voice fit. Compare looks with `--design <name>`. Lasting preferences go to
    `pptkit profile set ...` (e.g. `design=forest`, `brand=0B5E7A`, `dislikes=..`); deck-only ones to `brief.yaml`.
-7. **Build** - `pptkit build deck.md`. Fix every `WARN` by editing deck.md, rebuild, then
-   `pptkit qa deck.pptx` until it prints `OK` (on Windows with PowerPoint, `--com` measures text exactly).
+7. **Build** - `pptkit build deck.md`. Its `WARN` lines are about content (keys, length, voice); `pptkit qa
+   deck.pptx` is about layout (overflow, overlap, `sparse`). Fix both by editing deck.md and rebuilding until
+   neither reports anything (on Windows with PowerPoint, `qa --com` measures text exactly).
 8. **Deliver** the .pptx path (in a cloud/app session, send the file).
 
 ## Edit an existing deck (any .pptx, ours or not)
@@ -82,5 +86,6 @@ Only put numbers on slides that come from the user's files or from pptkit (`data
 fill a chart with figures from memory or loose web snippets: they differ run to run. Public statistics:
 `pptkit fetch wb <indicator> --country KOR,JPN --years 2021-2025` needs no key (World Bank); if it reports the
 network is unreachable, ask the user to download the table as CSV (KOSIS, e-나라지표, 한국은행) and use
-`pptkit data`. KOSIS API needs the user's own key: they run `pptkit key set kosis` themselves; never ask for a
+`pptkit data` (fetch prints the download page). If the user said where a slide goes ("맨 앞"), put it right
+after the cover. KOSIS API needs the user's own key: they run `pptkit key set kosis` themselves; never ask for a
 key in chat. `fetch` writes provenance that becomes the slide footnote; mark provisional years "(잠정)".

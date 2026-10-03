@@ -52,13 +52,28 @@ def _short(t, n=28):
 
 
 def _hash(slide):
-    return hashlib.md5(etree.tostring(slide._element)).hexdigest()[:10]
+    """Slide XML plus the parts it points to that edits change: chart data and speaker notes."""
+    h = hashlib.md5(etree.tostring(slide._element))
+    for s in slide.shapes:
+        if getattr(s, "has_chart", False) and s.has_chart:
+            h.update(etree.tostring(s.chart_part._element))
+    if slide.has_notes_slide:
+        h.update(slide.notes_slide.notes_text_frame.text.encode())
+    return h.hexdigest()[:10]
+
+
+def _map_cache(path):
+    """Kept in ~/.pptkit/maps, not next to the deck."""
+    from . import persona
+    d = persona.home() / "maps"
+    d.mkdir(parents=True, exist_ok=True)
+    return d / (hashlib.md5(str(Path(path).resolve()).encode()).hexdigest()[:16] + ".json")
 
 
 def deck_map(path, changed=False) -> str:
     """One line per slide plus the recommended read level. With changed=True only slides edited since last map."""
     prs = Presentation(path)
-    cache = Path(str(path) + ".map.json")
+    cache = _map_cache(path)
     old = json.loads(cache.read_text()) if changed and cache.exists() else {}
     issues = qa.check(path)
     by_slide = {}
@@ -207,7 +222,14 @@ def patch(path, ops_path, out=None) -> str:
             touched.update(range(1, len(prs.slides) + 1))
             continue
         touched.add(n)
-        if op.get("fix") == "overlap":
+        if "stack" in op:
+            ids = [_shape(slide, i) for i in op["stack"]]
+            top, gap = ids[0].top, Inches(op.get("gap", 0.2))
+            for s in ids:
+                s.left, s.width, s.top = ids[0].left, ids[0].width, top
+                top += s.height + gap
+            done.append(f"S{n} stack " + " ".join(f"#{s.shape_id}" for s in ids))
+        elif op.get("fix") == "overlap":
             done.append(f"S{n} fix overlap " + (", ".join(_fix_overlap(slide, sh_in)) or "none found"))
         elif "notes" in op:
             slide.notes_slide.notes_text_frame.text = str(op["notes"])

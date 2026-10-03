@@ -111,9 +111,10 @@ def resolve_tone(brief: dict) -> tuple[dict, str]:
     mode = brief.get("mode", "balanced")
     tone["density"] = dict(CATALOG["density"].get(mode, CATALOG["density"]["balanced"]))
     voice = brief.get("voice") or prof.get("org_culture", "gaejosik")
-    if brief.get("formality") == "friendly" and voice == "gaejosik":
-        voice = "formal"  # friendly decks read better in ~합니다/~해요 than in report shorthand
+    if brief.get("formality") == "friendly" and voice in ("gaejosik", "formal"):
+        voice = "friendly"  # friendly decks read better in ~합니다/~해요 than in report shorthand
     tone["voice"] = voice
+    tone["callout_title"] = CATALOG["callout_titles"].get(voice, "시사점")
     conv = CATALOG["conventions"].get(prof.get("industry", "default"), {})
     tone["unit"] = brief.get("unit") or conv.get("unit", "")
     rules = CATALOG["conventions"]["default"]["rules"] + conv.get("rules", [])

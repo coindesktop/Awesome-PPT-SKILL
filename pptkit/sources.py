@@ -118,7 +118,12 @@ def fetch(source, out_dir=".", refresh=False, **kw):
     out_dir = Path(out_dir)
     if source == "wb":
         url = wb_url(kw["indicator"], kw["countries"], kw["years"])
-        body, cached = _get_json(url, url, refresh)
+        try:
+            body, cached = _get_json(url, url, refresh)
+        except SystemExit as e:
+            web = f"https://data.worldbank.org/indicator/{kw['indicator']}?locations={'-'.join(c[:2] for c in kw['countries'])}"
+            raise SystemExit(f"{e}\nWeb download (CSV button, then `pptkit data <file>`; keep only your countries with "
+                             f"`where: {{Country Code: [{', '.join(kw['countries'])}]}}`): {web}")
         df, meta = wb_parse(body)
         stem = f"wb_{kw['indicator']}"
     elif source == "kosis":

@@ -11,6 +11,13 @@ voices:
   gaejosik: "개조식: 불릿은 '~함/~임/명사형'으로 끝내고 서술어 '~다'를 쓰지 않음"
   formal: "경어체: '~합니다/~입니다'로 끝냄"
   spoken: "발표형: 짧은 구어 문장, 청중에게 말하듯 씀"
+  friendly: "친근한 경어체: '~합니다/~해요'로 끝내고 청중을 주어로 씀(예: '~하실 수 있습니다'), 명사형 종결 피함"
+
+callout_titles:  # default heading of callout boxes; override per slide with callout_title
+  gaejosik: 시사점
+  formal: 시사점
+  friendly: 핵심
+  spoken: 핵심
 
 conventions:
   default:

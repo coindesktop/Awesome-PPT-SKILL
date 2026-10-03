@@ -32,7 +32,7 @@ def test_profile_then_tone_personalizes():
     persona.set_profile(["industry=startup"])
     assert persona.resolve_tone({"purpose": "ir", "ask": "투자", "mode": "present"})[0]["name"] == "signal"
     friendly, s2 = persona.resolve_tone({"purpose": "proposal", "ask": "파일럿", "mode": "present", "formality": "friendly"})
-    assert friendly["name"] == "forest" and friendly["voice"] == "formal" and "notes:" in s2
+    assert friendly["name"] == "forest" and friendly["voice"] == "friendly" and "notes:" in s2
 
 
 def test_weighted_mean_matches_manual():
@@ -135,6 +135,43 @@ def test_fetch_parsers_and_cached_pipeline_offline():
     assert "World Bank WDI" in edit.read(d / "deck.pptx", [1])
     if not os.environ.get("KOSIS_API_KEY"):
         assert sources.key_cmd("status").startswith("kosis: not set")
+
+
+def test_pivot_one_way_time_order_shares_and_weighted_totals():
+    df = data.load(ROOT / "evals/data/sales.csv")
+    one = data.pivot(df, "year", None, "revenue_100m_krw")
+    assert list(one.index) == [2022, 2023, 2024, 2025, 2026, "합계"]  # chronological, not by size
+    assert abs(data.cagr(one.drop(index="합계")).iloc[0] - 12.7) < 0.1
+    share = data.pivot(df, "year", "channel", "revenue_100m_krw", pct="row")
+    assert abs(share.sum(axis=1) - 100).max() < 1e-6
+    wm = data.pivot(df, "year", "category", "gross_margin", agg="wmean", weight="revenue_100m_krw")
+    overall = (df.gross_margin * df.revenue_100m_krw).sum() / df.revenue_100m_krw.sum()
+    assert abs(wm.loc["합계", "합계"] - overall) < 1e-9
+
+
+def test_world_bank_web_csv_is_normalized():
+    f = Path(tempfile.mkdtemp()) / "wb.csv"
+    f.write_text('"Data Source","World Development Indicators",\n\n"Last Updated Date","2026-07-01",\n\n'
+                 '"Country Name","Country Code","Indicator Name","Indicator Code","2023","2024",\n'
+                 '"Korea, Rep.","KOR","GDP growth","X","1.4","2.0",\n', encoding="utf-8")
+    df = data.load(f)
+    assert list(map(str, df["year"])) == ["2023", "2024"] and list(df["value"]) == [1.4, 2.0]
+
+
+def test_stack_op_and_changed_map_sees_notes():
+    d = Path(tempfile.mkdtemp())
+    prs = Presentation()
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    for x, y in ((1, 1), (3, 1.5)):
+        s.shapes.add_textbox(*(int(v * 914400) for v in (x, y, 4, 1))).text_frame.text = "box"
+    deck = d / "d.pptx"
+    prs.save(deck)
+    edit.deck_map(deck)
+    (d / "ops.yaml").write_text("- {slide: 1, stack: [2, 3], gap: 0.2}\n- {slide: 1, notes: hi}\n", encoding="utf-8")
+    edit.patch(deck, d / "ops.yaml")
+    a, b = Presentation(deck).slides[0].shapes
+    assert a.left == b.left and b.top == a.top + a.height + int(0.2 * 914400)
+    assert "S1" in edit.deck_map(deck, changed=True) and not list(d.glob("*.map.json"))
 
 
 if __name__ == "__main__":

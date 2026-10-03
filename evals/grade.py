@@ -55,6 +55,8 @@ def primary_fill(prs):
 
 def material(issue):
     """pptkit qa is tuned to pptkit's own geometry; for decks from other tools keep only clear failures."""
+    if " sparse:" in issue:
+        return False  # a layout hint, not a defect
     m = re.search(r"needs ([\d.]+)in > ([\d.]+)in", issue)
     if m:
         return float(m[1]) > 1.25 * float(m[2])

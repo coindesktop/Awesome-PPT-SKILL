@@ -7,3 +7,4 @@ node_modules/
 dev/graphify/
 dev/ppt-workspace/
 dist/
+examples/*/deck.pptx

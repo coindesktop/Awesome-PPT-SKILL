@@ -27,8 +27,9 @@ def main(argv=None):
     p = sub.add_parser("pivot", help="pivot a csv/xlsx")
     p.add_argument("file")
     p.add_argument("--rows", required=True)
-    p.add_argument("--cols", required=True)
+    p.add_argument("--cols", help="optional: omit for one total per row")
     p.add_argument("--val", required=True)
+    p.add_argument("--pct", choices=["row", "col", "growth"], help="shares within row/col, or %% change vs previous period")
     p.add_argument("--agg", default="sum", help="sum | mean | count | wmean (needs --weight)")
     p.add_argument("--weight", help="weight column for --agg wmean")
     p.add_argument("--top", type=int)
@@ -106,8 +107,13 @@ def main(argv=None):
     elif a.cmd == "data":
         print(data.summary(a.file))
     elif a.cmd == "pivot":
-        pv = data.pivot(data.load(a.file), a.rows, a.cols, a.val, a.agg, a.top, weight=a.weight)
-        print(pv.round(3 if a.agg in ("mean", "wmean") else 1).to_string(max_rows=15))
+        pv = data.pivot(data.load(a.file), a.rows, a.cols, a.val, a.agg, a.top, weight=a.weight, pct=a.pct)
+        if a.pct:
+            print(f"% ({'change vs previous period' if a.pct == 'growth' else a.pct + ' shares'})")
+        print(pv.round(1 if a.pct else 3 if a.agg in ("mean", "wmean") else 1).to_string(max_rows=15, na_rep="-"))
+        g = data.cagr(pv.drop(index="합계", errors="ignore")) if a.agg == "sum" and not a.pct else None
+        if g is not None:
+            print("CAGR % " + "  ".join(f"{k}={v:.1f}" for k, v in g.round(1).items()))
         if a.out:
             pv.to_csv(a.out, encoding="utf-8-sig")
             print(f"-> {a.out}")

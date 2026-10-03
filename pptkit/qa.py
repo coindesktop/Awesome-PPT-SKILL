@@ -8,7 +8,7 @@ import tempfile
 from pptx import Presentation
 from pptx.util import Emu
 
-from .render import text_height
+from .render import bulleted, extent, text_height
 
 PLACEHOLDER = re.compile(r"lorem|ipsum|\bTODO\b|\[insert|x{3,}|클릭하여", re.I)
 
@@ -47,10 +47,13 @@ def check(path, slides=None) -> list[str]:
                     continue
                 tf = s.text_frame
                 sa = tf.paragraphs[0].space_after
-                need = text_height(paras, w - (0.22 if _bulleted(s) else 0), max(sizes), gap_pt=sa.pt if sa is not None else 4,
+                need = text_height(paras, w - (0.22 if bulleted(s) else 0), max(sizes), gap_pt=sa.pt if sa is not None else 4,
                                    pad=_in((tf.margin_top or 0) + (tf.margin_bottom or 0)))
                 if need > h + 0.05:
                     issues.append(f"S{n} overflow '{label}' needs {need:.2f}in > {h:.2f}in")
+        sparse = _sparse(slide, sh)
+        if sparse:
+            issues.append(f"S{n} sparse: lower {sparse}% of the body is empty (add content, enlarge, or merge slides)")
         for i, a in enumerate(boxes):  # partial overlap between text boxes; containment is intended layering
             for b in boxes[i + 1:]:
                 ix = min(a[0] + a[2], b[0] + b[2]) - max(a[0], b[0])
@@ -60,13 +63,22 @@ def check(path, slides=None) -> list[str]:
     return issues
 
 
+def _sparse(slide, sh):
+    """Percent of the body (below the title, above the footer band) left empty, if it is more than 40%."""
+    title = slide.shapes.title
+    if title is None or title.top is None or _in(title.top) > 1.6 or _in(title.height) > 1.6:
+        return 0  # cover, section and closing slides are meant to be airy
+    top, foot = _in(title.top + title.height), sh - 0.6
+    body = [extent(s) for s in slide.shapes if s.shape_id != title.shape_id and s.top is not None
+            and top - 0.05 <= _in(s.top) < foot]
+    if not body:
+        return 0
+    empty = (foot - max(b for _, b in body)) / (foot - top)
+    return round(empty * 100) if empty > 0.4 else 0
+
+
 def _contains(a, b):
     return a[0] <= b[0] + 0.01 and a[1] <= b[1] + 0.01 and a[0] + a[2] >= b[0] + b[2] - 0.01 and a[1] + a[3] >= b[1] + b[3] - 0.01
-
-
-def _bulleted(s):
-    return any(p._p.pPr is not None and p._p.pPr.find(
-        "{http://schemas.openxmlformats.org/drawingml/2006/main}buChar") is not None for p in s.text_frame.paragraphs)
 
 
 # PowerPoint measures the real text height (installed fonts, real line breaking). Read-only, no window.

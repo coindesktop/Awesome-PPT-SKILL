@@ -46,6 +46,47 @@ def text_height(paras, width_in, pt, spacing=1.2, gap_pt=4, pad=0.1):
     return lines * pt * spacing / 72 + max(len(paras) - 1, 0) * gap_pt / 72 + pad
 
 
+def bulleted(sh):
+    return any(p._p.pPr is not None and p._p.pPr.find(qn("a:buChar")) is not None for p in sh.text_frame.paragraphs)
+
+
+def extent(sh):
+    """(top, bottom) in inches. An unfilled, top-anchored text box ends where its text ends (estimated)."""
+    t = sh.top / 914400
+    b = t + sh.height / 914400
+    if not sh.has_text_frame or sh._element.tag != qn("p:sp") or sh.text_frame.vertical_anchor not in (None, MSO_ANCHOR.TOP):
+        return t, b
+    sp = sh._element.spPr
+    if sp.find(qn("a:solidFill")) is not None or sp.find(qn("a:gradFill")) is not None:
+        return t, b
+    paras = [p.text for p in sh.text_frame.paragraphs if p.text.strip()]
+    sizes = [r.font.size.pt for p in sh.text_frame.paragraphs for r in p.runs if r.font.size]
+    if not paras or not sizes:
+        return t, b
+    tf = sh.text_frame
+    sa = tf.paragraphs[0].space_after
+    need = text_height(paras, sh.width / 914400 - (0.22 if bulleted(sh) else 0), max(sizes),
+                       gap_pt=sa.pt if sa is not None else 4, pad=((tf.margin_top or 0) + (tf.margin_bottom or 0)) / 914400)
+    return t, min(b, t + need)
+
+
+def balance(ctx):
+    """Short content leaves the lower body empty: move the body down so the space splits top/bottom (4:6)."""
+    slide, start, top, bottom = ctx.body
+    shapes = list(slide.shapes)[start:]
+    if not shapes:
+        return
+    ext = [extent(sh) for sh in shapes]
+    empty = bottom - max(b for _, b in ext)
+    if empty < 0.8 or empty < 0.28 * (bottom - top):
+        return
+    dy = min(empty * 0.4, 1.2)
+    for sh, (t, b) in zip(shapes, ext):
+        if t + sh.height / 914400 + dy > bottom:  # declared box would cross the footer: trim to its text
+            sh.height = Inches(max(b - t + 0.12, bottom - t - dy))
+        sh.top = Inches(t + dy)
+
+
 def text_width(s, pt):
     return sum(_cw(c) for c in s) * pt / 72
 
@@ -266,10 +307,12 @@ def content_slide(ctx, spec):
     src = spec.get("source") or _meta_source(ctx, spec) or (ctx.meta.get("source") if _has_data(spec) else None)
     if src:
         label = "자료" if ctx.tone["name"] == "public" else "출처"
+        src = re.sub(r"^\s*(자료|출처|source)\s*[:：]\s*", "", str(src), flags=re.I)  # the label is added here
         text(ctx, slide, MX, ctx.footer_y, 9, 0.3, [f"{label}: {src}"], ty["small"], c["muted"], min_pt=8)
     text(ctx, slide, W - MX - 1, ctx.footer_y, 1, 0.3, [str(ctx.page)], ty["small"], c["muted"], align=PP_ALIGN.RIGHT)
     if spec.get("notes"):
         slide.notes_slide.notes_text_frame.text = str(spec["notes"])
+    ctx.body = (slide, len(slide.shapes), y, ctx.footer_y - 0.25)
     return slide, (MX, y, W - 2 * MX, ctx.footer_y - 0.25 - y)
 
 
@@ -407,7 +450,8 @@ def p_closing(ctx, spec):
     dark = dark_color(fill)
     fg = "FFFFFF" if dark else c["ink"]
     sub = mix(fill, fg, 0.7)
-    text(ctx, slide, 0.9, 0.9, 6.4, 0.4, [spec.get("eyebrow", "요청 사항")], 14, c["accent"], bold=True)
+    label = spec.get("eyebrow") or (spec["title"] if spec.get("ask") and len(spec["title"]) <= 24 else "요청 사항")
+    text(ctx, slide, 0.9, 0.9, 6.4, 0.4, [label], 14, c["accent"], bold=True)
     ttl = slide.shapes.title
     ttl.left, ttl.top, ttl.width, ttl.height = Inches(0.9), Inches(1.35), Inches(6.4), Inches(2.6)
     text(ctx, slide, 0, 0, 6.4, 2.6, [spec.get("ask") or spec["title"]], 32, fg, bold=True, shape=ttl, min_pt=22,
@@ -456,9 +500,12 @@ def p_bullets_callout(ctx, spec):
     slide, (x, y, w, h) = content_slide(ctx, spec)
     pt = ctx.tone["density"]["body_pt"] + 3
     bw = w * 0.6 if spec.get("callout") else w
+    items = list(map(_s, spec.get("bullets", [])))
+    while pt < ctx.tone["density"]["body_pt"] + 7 and text_height(items, bw - 0.22, pt + 1, gap_pt=(pt + 1) * 0.9) < h * 0.45:
+        pt += 1  # few short bullets: larger type instead of an empty lower half
     text(ctx, slide, x, y + 0.05, bw, h - 0.1, spec.get("bullets", []), pt, ctx.c["ink"], bullets=True, gap=pt * 0.9)
     if spec.get("callout"):
-        _callout(ctx, slide, x + w * 0.64, y, w * 0.36, h, spec.get("callout_title", "시사점"), spec["callout"])
+        _callout(ctx, slide, x + w * 0.64, y, w * 0.36, h, spec.get("callout_title", ctx.tone.get("callout_title", "시사점")), spec["callout"])
 
 
 # ---------- comparison / structure ----------
@@ -515,7 +562,7 @@ def p_matrix(ctx, spec):
         text(ctx, slide, lx, py - 0.18, lw, 0.36, [it["label"]], 12, c["ink"], bold=True,
              align=PP_ALIGN.LEFT if fx <= 0.7 else PP_ALIGN.RIGHT)
     if notes:
-        _callout(ctx, slide, x + w * 0.64, y, w * 0.36, h, spec.get("callout_title", "시사점"), notes)
+        _callout(ctx, slide, x + w * 0.64, y, w * 0.36, h, spec.get("callout_title", ctx.tone.get("callout_title", "시사점")), notes)
 
 
 def p_process(ctx, spec):
@@ -579,7 +626,7 @@ def p_kpi(ctx, spec):
         if k.get("note"):
             text(ctx, slide, cx + 0.28, y + 2.2, tw - 0.56, th - 2.3, [k["note"]], 12, c["muted"])
     if spec.get("callout"):
-        _callout(ctx, slide, x, y + th + 0.3, w, h - th - 0.3, spec.get("callout_title", "시사점"), spec["callout"])
+        _callout(ctx, slide, x, y + th + 0.3, w, h - th - 0.3, spec.get("callout_title", ctx.tone.get("callout_title", "시사점")), spec["callout"])
 
 
 # ---------- data patterns ----------
@@ -590,7 +637,7 @@ def p_chart(ctx, spec):
     cw = w * 0.63 if tk else w
     _chart(ctx, slide, x, y, cw, h, spec)
     if tk:
-        _callout(ctx, slide, x + w * 0.66, y, w * 0.34, h, spec.get("callout_title", "시사점"), tk)
+        _callout(ctx, slide, x + w * 0.66, y, w * 0.34, h, spec.get("callout_title", ctx.tone.get("callout_title", "시사점")), tk)
 
 
 def p_chart_table(ctx, spec):
@@ -616,9 +663,14 @@ def p_chart_pair(ctx, spec):
     cw = (w - gap) / 2
     for i, sub in enumerate(charts):
         cx = x + i * (cw + gap)
-        sub = {**{k: v for k, v in spec.items() if k in ("data", "unit", "labels")}, **sub}
+        shared = ("data", "labels") if _is_share(sub) else ("data", "unit", "labels")  # % charts keep their own unit
+        sub = {**{k: v for k, v in spec.items() if k in shared}, **sub}
         text(ctx, slide, cx, y, cw, 0.4, [sub.get("subtitle", "")], 15, ctx.c["ink"], bold=True)
         _chart(ctx, slide, cx, y + 0.45, cw, h - 0.45, sub)
+
+
+def _is_share(spec):
+    return spec.get("chart") == "stacked-share" or spec.get("fmt") == "pct"
 
 
 def _numfmt(vals, spec):
@@ -658,7 +710,7 @@ def _chart(ctx, slide, x, y, w, h, spec):
         wide = wide.sort_values(wide.columns[0]).tail(spec.get("top", 10))  # ascending: largest drawn on top
     if kind == "stacked-share":
         wide = wide.div(wide.sum(axis=1), axis=0)  # shares per category, labelled as %
-    unit = spec.get("unit", ctx.tone.get("unit"))
+    unit = spec.get("unit", "%" if _is_share(spec) else ctx.tone.get("unit"))
     if unit:
         text(ctx, slide, x, y - 0.05, w, 0.3, [f"단위: {unit}"], 11, c["muted"], align=PP_ALIGN.RIGHT)
     cd = CategoryChartData()
@@ -902,6 +954,9 @@ def lint(ctx, spec):
     unknown = set(spec) - COMMON - KEYS.get(spec["pattern"], set())
     if unknown:
         ctx.warn(f"unknown key(s) {sorted(unknown)} for {spec['pattern']} (ignored). see deck-spec.md")
+    if spec["pattern"] == "closing" and spec.get("ask") and len(spec["title"]) > 24 and not spec.get("eyebrow"):
+        ctx.warn("closing: the headline is `ask`; a long `# title` is not shown. Use a short label like "
+                 "`# 요청 사항` (shown above the ask) or move the sentence into `support`")
     for key in ("bullets", "callout", "takeaways", "points"):
         items = spec.get(key)
         if not isinstance(items, list):
@@ -937,7 +992,10 @@ def build(md_path, out=None, sample=False, design=None):
         if not fn:
             raise SystemExit(f"unknown pattern '{spec['pattern']}' on '{spec['title']}'. known: {', '.join(PATTERNS)}")
         first_page = ctx.page + 1
+        ctx.body = None
         fn(ctx, spec)
+        if ctx.body and ctx.body[0] is ctx.prs.slides[-1]:
+            balance(ctx)
         for sl in list(ctx.prs.slides)[first_page - 1:]:  # template layouts may carry unused placeholders
             for ph in list(sl.placeholders):
                 if ph.has_text_frame and not ph.text_frame.text.strip():

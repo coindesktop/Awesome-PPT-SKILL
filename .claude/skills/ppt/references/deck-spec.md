@@ -3,7 +3,7 @@
 ```markdown
 ---
 brief: brief.yaml            # design/voice/density come from profile x brief (or set design: forest)
-source: "통계청 KOSIS, 2026"   # footer on data slides (slide-level source: overrides)
+source: "통계청 KOSIS, 2026"   # footer on data slides, without "자료:"/"출처:" (the design adds it)
 date: 2026-10-03
 author: 사업기획팀
 eyebrow: 사업본부 월간 보고    # label above titles until the first section slide
@@ -31,13 +31,13 @@ paths are relative to deck.md. Unknown keys and overlong text produce `WARN` lin
 | `matrix-2x2` | `quadrants: [TL, TR, BL, BR]`, `x_axis`, `y_axis`, `items: [{label, x, y}]` 0..1, `callout` | |
 | `process` | `steps: [{title, desc}]`, `highlight: 3` | 3-5 steps |
 | `timeline` | `events: [{when, label, now: true}]` | 4-7 events |
-| `kpi-tiles` | `kpis: [{label, value, delta, good: down, note}]`, `callout` | delta "-0.2%p" → ▼ |
+| `kpi-tiles` | `kpis: [{label, value, delta, good: down, note}]`, `callout`, `callout_title` | delta "-0.2%p" → ▼ |
 | `chart-takeaway` | chart keys + `takeaways: [..]` | |
 | `chart-table` | chart keys + `growth: true`, `takeaways` | chart left, same numbers as a table right |
-| `chart-pair` | `charts: [{subtitle, chart keys}, {...}]`, shared `data`/`unit` | two views side by side |
+| `chart-pair` | `charts: [{subtitle, chart keys}, {...}]`, shared `data`/`unit` | two views side by side; % charts keep `%` |
 | `pivot-table` | `data`, `rows`, `cols`, `val`, `agg`, `weight`, `top`, `where`, `unit`, `max_rows` | totals + 기타 for sum |
 | `heatmap-table` | same as pivot-table | needs `pattern: heatmap-table` |
-| `closing` | `ask`, `support`, `next: [{t, who, when}]` | the request + up to 4 next steps |
+| `closing` | `ask`, `support`, `next: [{t, who, when}]` | headline is `ask`; write a short `# 요청 사항` label (shown above it) |
 | `two-column` | `columns: [{title, items}, {title, items}]` | must set `pattern: two-column` (else `compare`) |
 | `before-after` | `before: {title, items}`, `after: {title, items}` | |
 | `problem-solution` | `problems: [..]`, `solutions: [..]`, `problem_title`, `solution_title` | |
@@ -62,6 +62,10 @@ paths are relative to deck.md. Unknown keys and overlong text produce `WARN` lin
 | `bar-ranked` | ranking categories | `top: 10`, `highlight: 서울` |
 | `stacked` | totals with composition | needs `series` |
 | `stacked-share` | composition in % | needs `series`; shares computed for you |
+
+Callout boxes are headed `시사점` (report voices) or `핵심` (friendly); set `callout_title` per slide.
+`stacked-share` and `fmt: pct` charts show `단위: %` unless they set their own `unit`. Body content that is
+shorter than the slide is moved down to balance the space; `qa` reports `sparse` when half the body is still empty.
 
 Rules baked in: no dual axis (two measures → `chart-pair` or `kpi-tiles`), one accent color for single-series
 charts, values labeled, recessive axes and grid.
