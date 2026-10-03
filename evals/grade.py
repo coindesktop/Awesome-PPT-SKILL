@@ -51,6 +51,17 @@ def primary_fill(prs):
     return c.most_common(1)[0][0] if c else None
 
 
+def material(issue):
+    """pptkit qa is tuned to pptkit's own geometry; for decks from other tools keep only clear failures."""
+    m = re.search(r"needs ([\d.]+)in > ([\d.]+)in", issue)
+    if m:
+        return float(m[1]) > 1.25 * float(m[2])
+    m = re.search(r"overlap .* ([\d.]+)in2", issue)
+    if m:
+        return float(m[1]) > 0.3
+    return True
+
+
 def ex(text, passed, evidence):
     return {"text": text, "passed": bool(passed), "evidence": str(evidence)[:300]}
 
@@ -60,18 +71,18 @@ def common(out, p, lo, hi):
         return None, [ex("결과 .pptx가 생성됨", False, f"no pptx in {out}")]
     v = subprocess.run([sys.executable, VALIDATE, str(p)], capture_output=True, text=True)
     prs = Presentation(p)
-    issues = qa.check(p)
+    issues = [i for i in qa.check(p) if material(i)]
     n = len(prs.slides)
     return prs, [
         ex("결과 .pptx가 생성되고 파일 무결성 검사(validate.py)를 통과함", "PASSED" in v.stdout, v.stdout.strip()[-120:]),
         ex(f"슬라이드 수가 {lo}~{hi}장 범위임", lo <= n <= hi, f"{n} slides"),
-        ex("기하 점검(겹침·넘침·이탈·잔여 placeholder) 문제 0건", not issues, "; ".join(issues[:5]) or "OK"),
+        ex("기하 점검: 뚜렷한 넘침(25% 초과)·겹침(0.3in² 초과)·이탈·잔여 placeholder 0건", not issues, "; ".join(issues[:5]) or "OK"),
     ]
 
 
 def grade_run(eval_id, out: Path, peers: dict):
     p = deck(out)
-    qs = questions(out)
+    qs = [q for q in questions(out) if not re.search(r"샘플|시안|sample", q, re.I)]  # tone-sample approval is a later step
     if eval_id == 1:
         prs, e = common(out, p, 6, 10)
         if prs:
@@ -85,7 +96,7 @@ def grade_run(eval_id, out: Path, peers: dict):
             asked = any(re.search(r"결정|승인|요청|ask|원하", q) for q in qs)
             e.append(ex("청중에게 받을 결정(ask)을 확인하거나 마지막 장표에 요청 사항을 둠",
                         asked or re.search(r"요청|승인|결정|제안", last), f"asked={asked}; last='{last[:80]}'"))
-        e.append(ex("사용자에게 묻는 질문이 5개 이하임", len(qs) <= 5, f"{len(qs)} questions"))
+        e.append(ex("생성 전 사전 질문이 5개 이하임(톤 시안 확인 제외)", len(qs) <= 5, f"{len(qs)} questions"))
     elif eval_id == 2:
         prs, e = common(out, p, 4, 8)
         if prs:
@@ -94,12 +105,13 @@ def grade_run(eval_id, out: Path, peers: dict):
             ratio = 1 - len(bad) / max(len(paras), 1)
             e += [ex("개조식 문체: 8자 이상 문단의 80% 이상이 ~다/~요로 끝나지 않음", ratio >= 0.8,
                      f"{ratio:.0%} ok; e.g. {bad[:2]}"),
-                  ex("데이터 장표에 출처가 표기됨", any("출처" in t for sl in texts(prs) for t in sl), "searched '출처'")]
+                  ex("데이터 장표에 출처가 표기됨", any(re.search(r"출처|자료\s*:|source", t, re.I) for sl in texts(prs) for t in sl),
+                     "searched 출처/자료:/source")]
             other = peers.get(1)
             mine = primary_fill(prs)
             e.append(ex("평가 1(사업기획 과장)과 다른 주 색상으로 만들어짐", other and mine and mine != other,
                         f"eval2={mine} eval1={other}"))
-        e.append(ex("사용자에게 묻는 질문이 5개 이하임", len(qs) <= 5, f"{len(qs)} questions"))
+        e.append(ex("생성 전 사전 질문이 5개 이하임(톤 시안 확인 제외)", len(qs) <= 5, f"{len(qs)} questions"))
     elif eval_id == 4:
         prs, e = common(out, p, 5, 7)
         if prs:

@@ -34,13 +34,14 @@ def _cw(ch):
     return 0.62 if ch.isupper() or ch.isdigit() else 0.52
 
 
-def text_height(paras, width_in, pt, spacing=1.2, gap_pt=4):
-    """Estimated height (in) of paragraphs at pt inside width_in. Char-width heuristic, no font files needed."""
-    usable = max(width_in - 0.1, 0.1) * 0.92  # margins + word-wrap slack
+def text_height(paras, width_in, pt, spacing=1.2, gap_pt=4, pad=0.1):
+    """Estimated height (in) of paragraphs at pt inside width_in. Char-width heuristic, no font files needed.
+    pad = left+right (and top+bottom) insets in inches."""
+    usable = max(width_in - pad, 0.1) * 0.92  # insets + word-wrap slack
     lines = 0
     for p in paras:
         lines += max(1, math.ceil(sum(_cw(c) for c in p) * pt / 72 / usable))
-    return lines * pt * spacing / 72 + len(paras) * gap_pt / 72 + 0.1
+    return lines * pt * spacing / 72 + max(len(paras) - 1, 0) * gap_pt / 72 + pad
 
 
 # ---------- primitives ----------

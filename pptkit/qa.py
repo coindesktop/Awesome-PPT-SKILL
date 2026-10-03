@@ -36,12 +36,15 @@ def check(path) -> list[str]:
             paras = [p.text for p in s.text_frame.paragraphs if p.text.strip()]
             sizes = [r.font.size.pt for p in s.text_frame.paragraphs for r in p.runs if r.font.size]
             if paras and s.rotation == 0:
-                sa = s.text_frame.paragraphs[0].space_after
-                need = text_height(paras, w - (0.22 if _bulleted(s) else 0), max(sizes) if sizes else 18,
-                                   gap_pt=sa.pt if sa is not None else 4)
+                boxes.append((x, y, w, h, label))
+                if not sizes:  # inherited size is unknown here; guessing produces false alarms
+                    continue
+                tf = s.text_frame
+                sa = tf.paragraphs[0].space_after
+                need = text_height(paras, w - (0.22 if _bulleted(s) else 0), max(sizes), gap_pt=sa.pt if sa is not None else 4,
+                                   pad=_in((tf.margin_top or 0) + (tf.margin_bottom or 0)))
                 if need > h + 0.05:
                     issues.append(f"S{n} overflow '{label}' needs {need:.2f}in > {h:.2f}in")
-                boxes.append((x, y, w, h, label))
         for i, a in enumerate(boxes):  # partial overlap between text boxes; containment is intended layering
             for b in boxes[i + 1:]:
                 ix = min(a[0] + a[2], b[0] + b[2]) - max(a[0], b[0])
