@@ -7,6 +7,9 @@ if ! python3 -c "import pptx, pydantic, markitdown, pandas, openpyxl, matplotlib
   python3 -m pip install -q -r requirements.txt
 fi
 
+# graphify 스킬과 PreToolUse 훅이 쓰는 CLI
+command -v graphify >/dev/null || python3 -m pip install -q graphifyy
+
 if ! node -e "require('pptxgenjs')" 2>/dev/null; then
   npm install --silent --no-audit --no-fund
 fi
