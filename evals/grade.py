@@ -13,14 +13,16 @@ from pathlib import Path
 from pptx import Presentation
 from pptx.util import Emu
 
-from pptkit import qa
+from pptkit import edit, qa
+
+ROOT = Path(__file__).resolve().parents[1]
 
 VALIDATE = "/mnt/skills/public/pptx/scripts/office/validate.py"
 REGIONS = ["서울", "경기", "인천", "부산", "대구", "광주", "대전", "울산", "강원", "제주"]
 
 
 def deck(out: Path):
-    files = sorted((p for p in out.rglob("*.pptx") if ".sample" not in p.name and "sample" not in p.stem),
+    files = sorted((p for p in out.rglob("*.pptx") if "sample" not in p.stem and ".bak" not in p.name),
                    key=lambda p: p.stat().st_mtime)
     return files[-1] if files else None
 
@@ -112,6 +114,21 @@ def grade_run(eval_id, out: Path, peers: dict):
             e.append(ex("평가 1(사업기획 과장)과 다른 주 색상으로 만들어짐", other and mine and mine != other,
                         f"eval2={mine} eval1={other}"))
         e.append(ex("생성 전 사전 질문이 5개 이하임(톤 시안 확인 제외)", len(qs) <= 5, f"{len(qs)} questions"))
+    elif eval_id == 3:
+        prs, e = common(out, p, 6, 6)
+        if prs:
+            orig = ROOT / "evals/data/review.pptx"
+            same = [n for n in (1, 2, 4, 6) if edit.read(orig, [n], "L2") == edit.read(p, [n], "L2")]
+            s3 = [i for i in qa.check(p, slides={3}) if "overlap" in i]
+            t3 = " ".join(texts(prs)[2])
+            chart = [s for s in prs.slides[4].shapes if s.has_chart]
+            cats = [str(c) for c in chart[0].chart.plots[0].categories] if chart else []
+            vals = list(chart[0].chart.plots[0].series[0].values) if chart else []
+            e += [ex("손대지 않은 장(1·2·4·6)의 내용과 위치가 그대로임", len(same) == 4, f"unchanged {same}"),
+                  ex("3번 장의 겹침이 0건임", not s3, "; ".join(s3) or "none"),
+                  ex("3번 장의 세 문장이 그대로 남음", all(k in t3 for k in ("온보딩 개편", "결제 페이지 오류", "결제 흐름")), t3[:120]),
+                  ex("5번 차트가 2026Q3까지 데이터 파일 값으로 갱신됨", "2026Q3" in cats and vals and abs(vals[-1] - 637) < 0.5,
+                     f"cats={cats[-3:]} last={vals[-1] if vals else None}")]
     elif eval_id == 4:
         prs, e = common(out, p, 5, 7)
         if prs:
@@ -120,23 +137,27 @@ def grade_run(eval_id, out: Path, peers: dict):
                                     for s in sl.shapes)]
             allt = " ".join(t for sl in texts(prs) for t in sl)
             e += [ex("텍스트만 있는 장표가 2장 이하임 (도형·차트·표로 구성)", len(text_only) <= 2, f"text-only slides {text_only}"),
-                  ex("메모의 핵심 사실(월 49만 원, 2026년 11월 베타)을 반영함", "49" in allt and "11월" in allt,
-                     f"49:{'49' in allt} 11월:{'11월' in allt}")]
+                  ex("메모의 핵심 사실(월 49만 원, 2026년 11월 베타)을 반영함", "49" in allt and ("11월" in allt or "2026.11" in allt),
+                     f"49:{'49' in allt} 11월:{'11월' in allt or '2026.11' in allt}")]
+            paras = [t for sl in texts(prs) for t in sl if len(t) >= 8]
+            soft = [t for t in paras if re.search(r"(니다|요|죠|세요)[.!?]?$", t)]
+            e.append(ex("'너무 딱딱하지 않게'를 문체에 반영함(8자 이상 문장의 40% 이상이 경어체·해요체)",
+                        len(soft) >= 0.4 * max(len(paras), 1), f"{len(soft)}/{len(paras)}"))
     elif eval_id == 5:
         reply = " ".join((out / f).read_text(encoding="utf-8") for f in ("reply.md", "report.md") if (out / f).exists())
         e = [ex("사용자에게 API 키를 요구하지 않음", not any(re.search(r"(API|인증|api)\s*키|api key", q, re.I) for q in qs),
                 f"{len(qs)} questions")]
+        gdp, n_slides = [], 0
         if p:
-            prs = Presentation(p)
-            t = texts(prs)
-            gdp = [i for i, sl in enumerate(t) if any("GDP" in x for x in sl)]
-            e += [ex("기존 17장이 유지되고 GDP 장표가 앞쪽(1~3번째)에 추가됨", len(t) == 18 and gdp and gdp[0] <= 2,
-                     f"{len(t)} slides, GDP at {[g + 1 for g in gdp]}"),
-                  ex("GDP 장표에 출처가 표기됨", gdp and any("출처" in x for x in t[gdp[0]]), "searched '출처' on GDP slide")]
-        else:
-            e += [ex("덱을 만들지 못했다면 CSV를 받아 넣는 대안을 안내함", re.search(r"CSV|다운로드|download", reply), reply[:120])]
-        e.append(ex("수치의 출처(또는 출처를 확인하지 못했다는 사실)를 밝힘",
-                    re.search(r"World Bank|IMF|OECD|출처|source|추정|확인되지|memory|학습", reply, re.I), reply[:160]))
+            t = texts(Presentation(p))
+            n_slides = len(t)
+            gdp = [i for i, sl in enumerate(t) if any("GDP" in x or "성장률" in x and ("일본" in x or "미국" in x) for x in sl)]
+        verified = list(out.rglob("*.meta.json"))  # written by `pptkit fetch` (or an equivalent provenance file)
+        e += [ex("검증되지 않은 수치를 넣지 않음 (GDP 장표가 있으면 수집 메타데이터가 있어야 함)", not gdp or verified,
+                 f"gdp slides {[g + 1 for g in gdp]}, meta files {[m.name for m in verified]}"),
+              ex("사용자에게 다음 행동을 안내함 (CSV 다운로드 또는 fetch)", re.search(r"CSV|다운로드|download|fetch", reply, re.I),
+                 reply[:120]),
+              ex("기존 보고서 장표가 남아 있음 (17장 이상, 또는 덱을 고치지 않음)", not p or n_slides >= 17, f"{n_slides} slides")]
     passed = sum(x["passed"] for x in e)
     return {"expectations": e, "summary": {"passed": passed, "failed": len(e) - passed, "total": len(e),
                                            "pass_rate": round(passed / len(e), 2)}}
