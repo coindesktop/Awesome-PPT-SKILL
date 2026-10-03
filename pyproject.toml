@@ -1,0 +1,19 @@
+[project]
+name = "pptkit"
+version = "0.1.0"
+description = "Personalized, token-lean PowerPoint generation CLI (Claude skill included)"
+requires-python = ">=3.10"
+dependencies = ["python-pptx>=1.0", "pandas>=2", "openpyxl", "pyyaml", "lxml"]
+
+[project.scripts]
+pptkit = "pptkit.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pptkit"]
+
+[tool.hatch.build.targets.wheel.force-include]
+".claude/skills/ppt" = "pptkit/skill"

@@ -20,6 +20,21 @@ claude plugin marketplace add anthropics/skills
 claude plugin install document-skills@anthropic-agent-skills
 ```
 
+## pptkit 빠른 사용
+
+```bash
+pip install -e .            # 또는: uv tool install git+https://github.com/coindesktop/Awesome-PPT-SKILL
+pptkit install-skill        # ~/.claude/skills/ppt 로 스킬 복사 (전역 사용)
+
+pptkit profile              # 나는 누구인가 (없으면 빈 항목만 질문 목록으로 출력)
+pptkit tone --brief brief.yaml
+pptkit data data.csv        # 원본 대신 요약만 출력
+pptkit build deck.md --sample   # 톤 시안 2장
+pptkit build deck.md && pptkit qa deck.pptx
+```
+
+예제: [`examples/sales-report/`](examples/sales-report/deck.md) (P0 패턴 15개를 모두 쓰는 17장 덱). 테스트: `python tests/test_pptkit.py`
+
 ## 설치된 것
 
 | 구분 | 이름 | 용도 |
@@ -54,7 +69,8 @@ python3 .claude/skills/pptx-from-layouts/scripts/generate.py examples/q1-strateg
 
 1. ~~조사와 레퍼런스 확보~~
 2. ~~기존 스킬과 CLI 설치~~
-3. 톤앤매너 프리셋 (`tones/*.yaml`)과 내 템플릿 프로파일링
-4. 차트 카탈로그 (`charts/*.yaml`, 네이티브 차트)와 피벗 표 렌더러
-5. 통계 수집 → CSV → 차트 파이프라인
-6. QA (검증 점수 + 실패 슬라이드만 렌더 확인)
+3. ~~M1: 개인화 사전 조사 + build(패턴 15개, 차트 3종, 피벗) + 톤 3종 + qa~~
+4. M2: map / read / patch + Windows COM 실측
+5. M3: P1 패턴, 기존 자료 스타일 추출, 사용자 템플릿
+6. M4: 통계 fetch (키 없는 공개 API)
+7. M5: 평가 루프, description 최적화, 패키징

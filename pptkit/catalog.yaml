@@ -1,0 +1,67 @@
+# Tones and industry conventions. Edit freely; `pptkit tone` reads this file.
+# Structure colors (primary/ink/muted/tint) style titles and shapes.
+# Series colors are chart data colors, validated with dataviz validate_palette.js (light, all PASS).
+
+tones:
+  consulting-navy:
+    cover: dark
+    primary: "1F3A5F"
+    accent: "E4572E"
+    ink: "1E2329"
+    muted: "6B7480"
+    tint: "EEF2F7"
+    line: "D5DBE3"
+    neutral_series: "C3CAD4"
+    series: ["2A78D6", "EB6834", "1BAF7A", "EDA100"]
+    fonts: {title: "맑은 고딕", body: "맑은 고딕"}
+  corporate-clean:
+    cover: light
+    primary: "0B5E7A"
+    accent: "1BAF7A"
+    ink: "20262D"
+    muted: "6E7781"
+    tint: "EFF6F8"
+    line: "D9E1E6"
+    neutral_series: "C6CDD3"
+    series: ["1BAF7A", "2A78D6", "EB6834", "4A3AA7"]
+    fonts: {title: "맑은 고딕", body: "맑은 고딕"}
+  pitch-bold:
+    cover: dark
+    primary: "241C4A"
+    accent: "EB6834"
+    ink: "17141F"
+    muted: "6F6A80"
+    tint: "F1EEFA"
+    line: "DDD8EC"
+    neutral_series: "CBC6D9"
+    series: ["4A3AA7", "EB6834", "1BAF7A", "E87BA4"]
+    fonts: {title: "맑은 고딕", body: "맑은 고딕"}
+
+# Density presets keyed by brief.mode
+density:
+  present: {max_bullets: 4, max_chars: 35, body_pt: 18}
+  balanced: {max_bullets: 5, max_chars: 45, body_pt: 15}
+  handout: {max_bullets: 6, max_chars: 60, body_pt: 13}
+
+# Writing voice rules shown to the model (it writes the text; pptkit lints it)
+voices:
+  gaejosik: "개조식: 불릿은 '~함/~임/명사형'으로 끝내고 서술어 '~다'를 쓰지 않음"
+  formal: "경어체: '~합니다/~입니다'로 끝냄"
+  spoken: "발표형: 짧은 구어 문장, 청중에게 말하듯 씀"
+
+conventions:
+  default:
+    rules: ["제목은 결론 문장(액션 타이틀)으로 쓴다", "데이터 장표에는 출처와 기준 시점을 쓴다"]
+  finance:
+    unit: "억 원"
+    rules: ["금액은 억 원/조 원 단위", "증감은 %p로 표기", "상승·하락 색 의미를 범례로 명시"]
+  public:
+    rules: ["개조식 보고서체", "출처와 기준 시점 필수", "장식 최소화, 표 선호"]
+  startup:
+    rules: ["한 장에 핵심 숫자 하나", "문제→해결→시장→트랙션→팀→요청 순서"]
+  consulting:
+    rules: ["거버닝 메시지와 시사점 박스 사용", "슬라이드당 차트 1개, 핵심값만 강조"]
+  education:
+    rules: ["한 장에 개념 하나", "글자 크게, 요약 장표 반복"]
+  saas:
+    rules: ["ARR·MAU·전환율·이탈률 등 지표명은 업계 약어 그대로"]
