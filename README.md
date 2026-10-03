@@ -42,6 +42,11 @@ python3 .claude/skills/pptx-from-layouts/scripts/generate.py examples/q1-strateg
 
 ## 문서
 
+- [`docs/plan/01-spec.md`](docs/plan/01-spec.md): 기획 v0.2 (결정 사항, 실행 흐름, CLI, 토큰 예산, 마일스톤)
+- [`docs/plan/02-slide-patterns.md`](docs/plan/02-slide-patterns.md): 장표 패턴 카탈로그
+- [`docs/plan/03-data-sources.md`](docs/plan/03-data-sources.md): 통계 데이터 연결 설계
+- [`docs/plan/04-personalization.md`](docs/plan/04-personalization.md): 개인화 사전 조사 설계 (Profile → Brief → Tone)
+- [`evals/`](evals/evals.json): 평가 케이스 5개와 가상 데이터
 - [`docs/research/landscape.md`](docs/research/landscape.md): 공개 PPT 스킬 9종 비교와 토큰 절감 설계 원칙
 - [`references/`](references/README.md): 참고용 MIT 스킬 원본 (비활성)
 

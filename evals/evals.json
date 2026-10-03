@@ -1,0 +1,40 @@
+{
+  "skill_name": "ppt",
+  "evals": [
+    {
+      "id": 1,
+      "name": "first-run-exec-report",
+      "prompt": "나 B2B SaaS 회사 사업기획팀 과장인데, 첨부한 sales.csv로 다음주 본부장 보고용 PPT 만들어줘. 8장 정도. 지역별 피벗이랑 연도별 추이는 꼭 넣고.",
+      "expected_output": "Profile이 없으므로 온보딩을 먼저 수행한다(추론 가능한 항목은 묻지 않고 질문 5개 이하). Brief에서 ask(본부장에게 받을 결정)와 mode(발표/배포)를 확인한다. 톤 시안 2장을 먼저 보여 준 뒤 8장 덱을 생성한다. 연도별 추이는 네이티브 차트, 지역별 피벗은 네이티브 표로 들어가고 qa를 통과한다.",
+      "files": ["evals/data/sales.csv"]
+    },
+    {
+      "id": 2,
+      "name": "same-data-different-persona",
+      "prompt": "저는 지방자치단체 경제정책과 사무관입니다. sales.csv는 관내 기업 매출을 가정한 자료예요. 이걸로 과장님 보고용 자료 6장 만들어 주세요.",
+      "expected_output": "평가 1과 다른 Profile이 만들어지고, 결과 덱의 문체(개조식 ~함/~임), 밀도, 색, 장표 구성(출처·기준 시점 강조, 장식 최소화)이 평가 1과 뚜렷하게 다르다.",
+      "files": ["evals/data/sales.csv"]
+    },
+    {
+      "id": 3,
+      "name": "targeted-edit",
+      "prompt": "review.pptx 5번 슬라이드 차트를 kpi_quarterly.csv 최신 분기 기준으로 바꾸고, 3번 슬라이드에 겹친 박스 좀 정리해줘. 나머지는 건드리지 마.",
+      "expected_output": "map으로 대상 장만 찾아 필요한 깊이로 읽고 patch로 수정한다. 3번·5번 외 슬라이드 XML은 바이트 단위로 같고, qa에서 겹침 0건이다. review.pptx는 M2에서 겹침을 일부러 넣어 생성한다.",
+      "files": ["evals/data/kpi_quarterly.csv", "evals/data/review.pptx"]
+    },
+    {
+      "id": 4,
+      "name": "no-template-service-intro",
+      "prompt": "템플릿은 없어. service_memo.md 내용으로 잠재 고객사 미팅에서 쓸 서비스 소개 자료 6장 만들어줘. 너무 딱딱하지 않게.",
+      "expected_output": "기본 마스터와 패턴 카탈로그를 사용한다. 피치 성격에 맞춰 problem-solution, compare, process, timeline 등 서로 다른 패턴을 쓴다. placeholder 잔여 문구와 글자 넘침이 0건이다.",
+      "files": ["evals/data/service_memo.md"]
+    },
+    {
+      "id": 5,
+      "name": "public-stats-no-key",
+      "prompt": "아까 만든 보고서 맨 앞에 최근 5년 한국 GDP 성장률이랑 일본, 미국 비교 차트 한 장 넣어줘.",
+      "expected_output": "키가 필요 없는 World Bank 소스(T1)로 데이터를 받아 CSV와 출처 메타데이터를 저장하고, 출처 각주가 달린 네이티브 차트를 추가한다. 네트워크가 막혀 있으면 사용자 키를 요구하지 않고 웹에서 CSV를 받는 방법(T0)을 한 줄로 안내한다.",
+      "files": []
+    }
+  ]
+}
