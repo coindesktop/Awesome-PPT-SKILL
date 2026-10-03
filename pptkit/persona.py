@@ -1,19 +1,19 @@
-"""Profile (who) x Brief (this deck) -> Tone (what the renderer uses)."""
+"""Profile (who) x Brief (this deck) -> Tone = DESIGN.md tokens + density/voice/unit (what the renderer uses)."""
 import os
 from pathlib import Path
 
 import yaml
 
-CATALOG = yaml.safe_load((Path(__file__).with_name("catalog.yaml")).read_text(encoding="utf-8"))
+HERE = Path(__file__).parent
+CATALOG = yaml.safe_load((HERE / "catalog.yaml").read_text(encoding="utf-8"))
 
-# field: (question, default) - shown only for missing fields
-PROFILE_QUESTIONS = {
-    "role": ("어떤 일을 하시나요? (예: 사업기획, 마케팅, 연구, 공공행정, 강사)", None),
-    "industry": ("업종은? finance/public/startup/consulting/education/saas/기타", "default"),
-    "org_culture": ("보고 문체는? gaejosik(~함/~임) / formal(~합니다) / spoken(발표형)", "gaejosik"),
-    "audiences": ("주로 누구에게 보여주나요? (예: 임원, 팀, 고객, 투자자)", "임원"),
-    "brand": ("회사 대표색 HEX가 있나요? (없으면 none)", "none"),
+# Asked only when they cannot be inferred from the request.
+PROFILE_ASK = {
+    "role": "어떤 일을 하시나요? (예: 사업기획, 마케팅, 연구, 공공행정, 강사)",
+    "industry": "업종은? finance/public/startup/consulting/education/saas/기타",
 }
+# Never asked: assume the default and tell the user in one line.
+PROFILE_DEFAULTS = {"org_culture": "gaejosik", "audiences": ["임원"], "brand": "none"}
 BRIEF_REQUIRED = {
     "ask": "이 덱을 본 청중이 무엇을 결정하거나 해야 하나요?",
     "mode": "발표용(present)인가요, 읽는 배포용(handout)인가요? 둘 다면 balanced",
@@ -26,7 +26,7 @@ def home() -> Path:
 
 def load_profile() -> dict:
     p = home() / "profile.yaml"
-    return yaml.safe_load(p.read_text(encoding="utf-8")) or {} if p.exists() else {}
+    return (yaml.safe_load(p.read_text(encoding="utf-8")) or {}) if p.exists() else {}
 
 
 def save_profile(data: dict) -> Path:
@@ -40,22 +40,25 @@ def set_profile(pairs: list[str]) -> dict:
     prof = load_profile()
     for kv in pairs:
         k, _, v = kv.partition("=")
-        v = v.strip()
-        prof[k.strip()] = [s.strip() for s in v.split(",")] if k in ("audiences", "likes", "dislikes") else v
+        k, v = k.strip(), v.strip()
+        prof[k] = [s.strip() for s in v.split(",")] if k in ("audiences", "likes", "dislikes") else v
     save_profile(prof)
     return prof
 
 
 def profile_report() -> str:
-    """One line when complete; otherwise only the missing questions (with defaults)."""
+    """One line when complete; otherwise what to infer/ask and which defaults to state."""
     prof = load_profile()
-    missing = [k for k in PROFILE_QUESTIONS if not prof.get(k)]
-    if not missing:
-        return "PROFILE OK " + " | ".join(f"{k}={_fmt(prof[k])}" for k in PROFILE_QUESTIONS)
-    lines = [f"PROFILE MISSING {len(missing)} (infer from the request first; ask only what you cannot infer)"]
-    for k in missing:
-        q, d = PROFILE_QUESTIONS[k]
-        lines.append(f"- {k}: {q}" + (f" [default: {d}]" if d else ""))
+    missing = [k for k in PROFILE_ASK if not prof.get(k)]
+    assumed = {k: v for k, v in PROFILE_DEFAULTS.items() if not prof.get(k)}
+    if not missing and not assumed:
+        return "PROFILE OK " + " | ".join(f"{k}={_fmt(prof[k])}" for k in [*PROFILE_ASK, *PROFILE_DEFAULTS])
+    lines = []
+    if missing:
+        lines.append("PROFILE MISSING (infer from the request; ask only if you cannot):")
+        lines += [f"- {k}: {PROFILE_ASK[k]}" for k in missing]
+    if assumed:
+        lines.append("ASSUME (do not ask; mention in one line): " + ", ".join(f"{k}={_fmt(v)}" for k, v in assumed.items()))
     lines.append("save: pptkit profile set key=value ...")
     return "\n".join(lines)
 
@@ -64,44 +67,64 @@ def _fmt(v):
     return ",".join(v) if isinstance(v, list) else str(v)
 
 
-def _pick_tone(prof: dict, brief: dict) -> str:
-    if brief.get("tone") or prof.get("tone"):
-        return brief.get("tone") or prof["tone"]
+# ---------- designs (DESIGN.md: YAML front matter = tokens, body = rationale) ----------
+
+def design_paths() -> dict:
+    found = {p.stem: p for p in sorted((HERE / "designs").glob("*.md"))}
+    found.update({p.stem: p for p in sorted((home() / "designs").glob("*.md"))})  # user designs override
+    return found
+
+
+def load_design(name: str) -> dict:
+    paths = design_paths()
+    if name not in paths:
+        raise SystemExit(f"unknown design '{name}'. available: {', '.join(paths)}")
+    text = paths[name].read_text(encoding="utf-8")
+    meta = yaml.safe_load(text.split("---", 2)[1])
+    meta["name"] = name
+    return meta
+
+
+def _pick_design(prof: dict, brief: dict) -> str:
+    explicit = brief.get("design") or brief.get("tone") or prof.get("design") or prof.get("tone")
+    if explicit and explicit in design_paths():
+        return explicit
     purpose, industry = brief.get("purpose", ""), prof.get("industry", "")
-    if purpose in ("pitch", "ir", "sales") or industry == "startup":
-        return "pitch-bold"
-    if purpose in ("report", "proposal") and industry in ("consulting", "finance", "saas", "default", ""):
-        return "consulting-navy"
-    return "corporate-clean"
+    if industry == "public":
+        return "public"
+    if brief.get("formality") == "friendly" or purpose in ("sales", "education"):
+        return "forest"
+    if purpose in ("pitch", "ir", "strategy") or industry == "startup":
+        return "signal"
+    return "executive"
 
 
 def resolve_tone(brief: dict) -> tuple[dict, str]:
-    """Return (tone dict, summary text for the model). Missing brief fields are reported, not guessed."""
+    """Return (tone, summary for the model). Missing brief fields are reported, not guessed."""
     prof = load_profile()
-    name = _pick_tone(prof, brief)
-    tone = {"name": name, **CATALOG["tones"][name]}
+    tone = load_design(_pick_design(prof, brief))
     brand = str(prof.get("brand", "none")).lstrip("#")
     if len(brand) == 6:
-        tone["primary"] = brand.upper()  # brand drives structure only; series stay validated
+        tone["colors"]["accent"] = brand.upper()  # brand drives the accent; chart series stay validated
     mode = brief.get("mode", "balanced")
-    tone["density"] = CATALOG["density"].get(mode, CATALOG["density"]["balanced"])
+    tone["density"] = dict(CATALOG["density"].get(mode, CATALOG["density"]["balanced"]))
     voice = brief.get("voice") or prof.get("org_culture", "gaejosik")
-    if mode == "present" and voice == "gaejosik" and brief.get("purpose") in ("pitch", "education"):
-        voice = "spoken"
+    if brief.get("formality") == "friendly" and voice == "gaejosik":
+        voice = "formal"  # friendly decks read better in ~합니다/~해요 than in report shorthand
     tone["voice"] = voice
-    ind = prof.get("industry", "default")
-    conv = CATALOG["conventions"].get(ind, {})
+    conv = CATALOG["conventions"].get(prof.get("industry", "default"), {})
     tone["unit"] = brief.get("unit") or conv.get("unit", "")
-    tone["frame"] = "plain" if name == "pitch-bold" or brief.get("purpose") == "education" else "kr-report"
     rules = CATALOG["conventions"]["default"]["rules"] + conv.get("rules", [])
     rules += [f"싫어함: {d}" for d in prof.get("dislikes", [])]
+    if mode == "present":
+        rules.append("슬라이드마다 notes:에 발표 멘트 2~3문장")
     d = tone["density"]
-    missing = [f"- {k}: {q}" for k, q in BRIEF_REQUIRED.items() if not brief.get(k)]
     summary = [
-        f"TONE {name} | frame={tone['frame']} | voice={voice} | bullets<={d['max_bullets']} x {d['max_chars']}자 | body {d['body_pt']}pt",
-        "WRITE: " + CATALOG["voices"][voice],
+        f"DESIGN {tone['name']}: {tone['description']}",
+        f"VOICE {voice}: {CATALOG['voices'][voice]} | bullets<={d['max_bullets']} x {d['max_chars']}자",
         "RULES: " + "; ".join(rules),
     ]
+    missing = [f"- {k}: {q}" for k, q in BRIEF_REQUIRED.items() if not brief.get(k)]
     if missing:
         summary.insert(0, "BRIEF MISSING (ask before building):\n" + "\n".join(missing))
     return tone, "\n".join(summary)

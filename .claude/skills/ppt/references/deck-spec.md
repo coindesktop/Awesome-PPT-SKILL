@@ -2,10 +2,11 @@
 
 ```markdown
 ---
-brief: brief.yaml            # or tone: corporate-clean | tone.yaml
+brief: brief.yaml            # design/voice/density come from profile x brief (or set design: forest)
 source: "통계청 KOSIS, 2026"   # footer on data slides (slide-level source: overrides)
 date: 2026-10-03
 author: 사업기획팀
+eyebrow: 사업본부 월간 보고    # label above titles until the first section slide
 labels: {region: 지역, revenue_100m_krw: 매출}   # display names for data columns
 ---
 
@@ -13,15 +14,16 @@ labels: {region: 지역, revenue_100m_krw: 매출}   # display names for data co
 key: value                   # YAML body; `pattern:` optional (inferred from keys)
 ```
 
-Each `# ` line starts a slide. Body is YAML. A bare list body means `bullets`. Common optional keys on any
-content slide: `message:` (governing line under the title, kr-report frame), `source:`, `notes:` (speaker
-notes). Data paths are relative to deck.md. Long text is auto-shrunk; if still too long, build prints WARN.
+Each `# ` line starts a slide. Body is YAML. A bare list body means `bullets`. Quote any sentence that contains
+`: ` or starts with `{`/`[` (build warns when an item parsed as structure). Optional keys on any content
+slide: `message:` (governing line under the title), `eyebrow:`, `source:`, `notes:` (speaker notes). Data
+paths are relative to deck.md. Unknown keys and overlong text produce `WARN` lines.
 
 | pattern | keys (inferred by) | notes |
 |---|---|---|
 | `cover` | `subtitle`, `date`, `author` | must set `pattern: cover` |
 | `agenda` | `items: [..]` | ≤10 |
-| `section` | `number: 1` | must set `pattern: section` |
+| `section` | `number: 1`, `subtitle` | must set `pattern: section`; becomes the eyebrow of later slides |
 | `exec-summary` | `points: [..]`, `numbers: [{value, label}]` ≤3 | |
 | `key-message` | `statement`, `support` | |
 | `bullets-callout` | `bullets: [..]`, `callout: [..]`, `callout_title` | default pattern |
@@ -30,18 +32,31 @@ notes). Data paths are relative to deck.md. Long text is auto-shrunk; if still t
 | `process` | `steps: [{title, desc}]`, `highlight: 3` | 3-5 steps |
 | `timeline` | `events: [{when, label, now: true}]` | 4-7 events |
 | `kpi-tiles` | `kpis: [{label, value, delta, good: down, note}]`, `callout` | delta "-0.2%p" → ▼ |
-| `chart-takeaway` | `chart`, `data`, `x`, `y`, `series`, `where`, `agg`, `highlight`, `top`, `unit`, `fmt: pct`, `takeaways` | see charts |
-| `pivot-table` | `data`, `rows`, `cols`, `val`, `agg`, `top`, `where`, `unit`, `max_rows` | totals + 기타 for sum |
+| `chart-takeaway` | chart keys + `takeaways: [..]` | |
+| `chart-table` | chart keys + `growth: true`, `takeaways` | chart left, same numbers as a table right |
+| `chart-pair` | `charts: [{subtitle, chart keys}, {...}]`, shared `data`/`unit` | two views side by side |
+| `pivot-table` | `data`, `rows`, `cols`, `val`, `agg`, `weight`, `top`, `where`, `unit`, `max_rows` | totals + 기타 for sum |
 | `heatmap-table` | same as pivot-table | needs `pattern: heatmap-table` |
+| `closing` | `ask`, `support`, `next: [{t, who, when}]` | the request + up to 4 next steps |
 
-## Charts (`chart:`)
+## Chart keys
 
-| id | use | data shape |
+`chart`, `data`, `x`, `y`, `series` (long data → one series per value), `where: {year: 2026}`,
+`agg` (sum | mean | count | wmean), `weight` (for wmean), `highlight`, `top`, `unit`, `fmt: pct`.
+
+| chart | use | notes |
 |---|---|---|
-| `column-trend` | change over ≤12 periods | `x` time, `y` one column; `highlight: 2026` = one accent, rest gray |
-| `line-trend` | longer series or several series | `series: channel` splits long data into lines; last point labeled |
-| `bar-ranked` | ranking categories | `x` category, `top: 10`; `highlight: 서울` |
+| `column-trend` | change over ≤12 periods | `highlight: 2026` = one accent, rest gray |
+| `line-trend` | longer series or several series | last point labeled |
+| `bar-ranked` | ranking categories | `top: 10`, `highlight: 서울` |
+| `stacked` | totals with composition | needs `series` |
+| `stacked-share` | composition in % | needs `series`; shares computed for you |
 
-Rules baked in (do not fight them): one chart per slide, no dual axis (two measures → two slides or
-`kpi-tiles`), one accent color, values labeled, axis/grid recessive. `where: {year: 2026}` filters rows;
-`agg` is sum by default (mean/count also work; totals/기타 only for sum).
+Rules baked in: no dual axis (two measures → `chart-pair` or `kpi-tiles`), one accent color for single-series
+charts, values labeled, recessive axes and grid.
+
+## Designs
+
+`pptkit design` lists looks: `executive` (경영 보고), `signal` (전략·IR), `forest` (고객 제안, friendly),
+`public` (공공 보고). A user's own DESIGN.md in `~/.pptkit/designs/<name>.md` (same front-matter tokens as
+`pptkit/designs/executive.md`) is picked up automatically.

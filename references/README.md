@@ -7,6 +7,7 @@
 | 폴더 | 출처 (commit) | 라이선스 | 가져온 것 | 쓸 곳 |
 |---|---|---|---|---|
 | `academic-pptx/` | [Gabberflast/academic-pptx-skill](https://github.com/Gabberflast/academic-pptx-skill) @ `9f2b703` | MIT (`LICENSE`) | `SKILL.md`, `slide_patterns.md`, `content_guidelines.md` | 액션 타이틀, 차트 주석과 출처 규칙 |
+| `design/` | 아래 [design/README.md](design/README.md) 참고 | MIT | 슬라이드·웹 DESIGN.md 8종 | pptkit 디자인 4종의 원본 |
 | `style-presets/` | [zarazhangrui/frontend-slides](https://github.com/zarazhangrui/frontend-slides) @ `9906a34` | MIT (`LICENSE`) | `STYLE_PRESETS.md` | 톤앤매너 프리셋 원안 (HTML/CSS → PPTX 토큰으로 변환 예정) |
 
 ## 반입하지 않은 것

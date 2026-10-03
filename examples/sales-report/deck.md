@@ -3,12 +3,13 @@ brief: brief.yaml
 source: "사내 판매 데이터(가상), 2026"
 date: 2026-10-03
 author: 사업기획팀
+eyebrow: 사업본부 월간 보고
 labels: {region: 지역, category: 품목, channel: 채널, year: 연도, revenue_100m_krw: 매출}
 ---
 
 # 2026 지역별 매출 현황과 영업 인력 운영안
 pattern: cover
-subtitle: 사업본부 월간 보고
+subtitle: 지역·채널·품목 분석과 2027년 영업 인력 증원안
 
 # 목차
 items:
@@ -20,30 +21,41 @@ items:
 
 # 매출은 4년 연속 두 자릿수 성장을 이어감
 points:
-- 2026년 매출 1,920억 원으로 전년 대비 14% 증가함
+- 2026년 매출 1,321억 원으로 전년 대비 12.5% 증가함
 - 수도권 비중 65%로 지역 편중이 지속됨
 - 비수도권은 영업 인력 부족으로 성장 여력이 남아 있음
 numbers:
-- {value: "1,920억", label: 2026년 매출}
-- {value: "+14%", label: 전년 대비 성장률}
+- {value: "1,321억", label: 2026년 매출}
+- {value: "+12.5%", label: 전년 대비 성장률}
 - {value: "65%", label: 수도권 매출 비중}
 
 # 매출 추이
 pattern: section
 number: 1
 
-# 2026년 매출이 처음으로 1,900억 원을 넘어섬
-message: 4년 누적 성장률 63%, 연평균 13% 성장
+# 2026년 매출이 처음으로 1,300억 원을 넘어섬
+message: 4년 누적 성장률 61%, 연평균 13% 성장
+pattern: chart-table
 chart: column-trend
 data: ../../evals/data/sales.csv
 x: year
 y: revenue_100m_krw
 highlight: 2026
+growth: true
 unit: 억 원
 takeaways:
-- 2026년 성장률 14%로 목표를 2%p 초과함
-- 구독 매출 비중이 꾸준히 커짐
-- 성장 속도가 매년 빨라지는 추세임
+- 2026년 성장률 12.5%로 4년 연속 두 자릿수
+- 2025년 성장률 15.5%로 최고치 기록
+
+# 매출의 절반은 솔루션, 구독 비중은 34~35%로 안정적임
+chart: stacked-share
+data: ../../evals/data/sales.csv
+x: year
+y: revenue_100m_krw
+series: category
+takeaways:
+- 구독 이익률 48%로 솔루션보다 15%p 높음
+- 컨설팅 비중은 17%에서 정체
 
 # 온라인 채널이 성장분의 대부분을 차지함
 chart: line-trend
@@ -56,14 +68,11 @@ takeaways:
 - 온라인 매출은 4년간 2배 이상 증가함
 - 오프라인은 정체 구간에 진입함
 
-# 서울·경기가 매출 상위 2개 지역임
-chart: bar-ranked
+# 서울·경기가 매출 상위 2개 지역이고, 이익률은 품목 구성에 좌우됨
 data: ../../evals/data/sales.csv
-x: region
-y: revenue_100m_krw
-where: {year: 2026}
-highlight: 서울
-unit: 억 원
+charts:
+- {subtitle: "2026년 지역별 매출 (억 원)", chart: bar-ranked, x: region, y: revenue_100m_krw, where: {year: 2026}, highlight: 서울}
+- {subtitle: "품목별 매출총이익률 추이", chart: line-trend, x: year, y: gross_margin, series: category, agg: wmean, weight: revenue_100m_krw, fmt: pct}
 
 # 지역별로는 수도권 비중이 절반을 넘음
 message: 연도별 지역 매출 피벗 (상위 6개 지역 + 기타)
@@ -84,12 +93,12 @@ val: revenue_100m_krw
 where: {year: 2026}
 unit: 억 원
 
-# 핵심 지표는 모두 개선 추세임
+# 2026년 3분기 핵심 지표는 모두 개선됨
 kpis:
-- {label: MAU, value: "612천", delta: "+8.1%"}
-- {label: 유료 전환율, value: "3.9%", delta: "+0.3%p"}
+- {label: MAU, value: "637천", delta: "+4.6%"}
+- {label: 유료 전환율, value: "4.2%", delta: "+0.2%p"}
 - {label: 이탈률, value: "4.4%", delta: "-0.2%p", good: down}
-- {label: NPS, value: "33", delta: "+4"}
+- {label: NPS, value: "32", delta: "+2"}
 
 # 비수도권 성장을 막는 요인은 영업 커버리지 부족임
 bullets:

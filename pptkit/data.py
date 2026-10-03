@@ -49,20 +49,37 @@ def summary(path) -> str:
     return "\n".join(out)
 
 
-def aggregate(df, x, y, series=None, agg="sum", where=None):
-    """Long data -> wide frame indexed by x, one column per series (or per y)."""
+def _filter(df, where):
     for k, v in (where or {}).items():
         df = df[df[k].isin(v if isinstance(v, list) else [v])]
+    return df
+
+
+def _wmean(df, keys, val, weight):
+    """Weighted mean of val by weight within groups (e.g. revenue-weighted margin)."""
+    g = df.assign(_vw=df[val] * df[weight]).groupby(keys)[["_vw", weight]].sum()
+    return g["_vw"] / g[weight]
+
+
+def aggregate(df, x, y, series=None, agg="sum", where=None, weight=None):
+    """Long data -> wide frame indexed by x, one column per series (or per y). agg=wmean needs weight."""
+    df = _filter(df, where)
     ys = y if isinstance(y, list) else [y]
+    if agg == "wmean":
+        if series:
+            return _wmean(df, [x, series], ys[0], weight).unstack(series).sort_index()
+        return pd.concat({c: _wmean(df, x, c, weight) for c in ys}, axis=1).sort_index()
     if series:
         return df.pivot_table(index=x, columns=series, values=ys[0], aggfunc=agg).sort_index()
     return df.groupby(x)[ys].agg(agg).sort_index()
 
 
-def pivot(df, rows, cols, val, agg="sum", top=None, where=None, total="합계", other="기타"):
-    for k, v in (where or {}).items():
-        df = df[df[k].isin(v if isinstance(v, list) else [v])]
-    p = df.pivot_table(index=rows, columns=cols, values=val, aggfunc=agg)
+def pivot(df, rows, cols, val, agg="sum", top=None, where=None, total="합계", other="기타", weight=None):
+    df = _filter(df, where)
+    if agg == "wmean":
+        p = _wmean(df, [rows, cols], val, weight).unstack(cols)
+    else:
+        p = df.pivot_table(index=rows, columns=cols, values=val, aggfunc=agg)
     p = p.loc[p.sum(axis=1).sort_values(ascending=False).index]
     if agg != "sum":  # totals and an "other" row are only meaningful for sums
         return p.iloc[:top] if top else p

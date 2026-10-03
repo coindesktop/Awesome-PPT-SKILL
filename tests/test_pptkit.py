@@ -24,20 +24,30 @@ def test_pivot_totals_and_other_row():
 
 
 def test_profile_then_tone_personalizes():
-    assert persona.profile_report().startswith("PROFILE MISSING")
+    rep = persona.profile_report()
+    assert rep.startswith("PROFILE MISSING") and "ASSUME" in rep  # defaults are stated, not asked
     persona.set_profile(["role=사무관", "industry=public", "org_culture=gaejosik", "audiences=과장", "brand=none"])
     tone, summary = persona.resolve_tone({"purpose": "report", "ask": "승인", "mode": "handout"})
-    assert tone["name"] == "corporate-clean" and tone["density"]["max_bullets"] == 6 and "출처" in summary
+    assert tone["name"] == "public" and tone["density"]["max_bullets"] == 6 and "자료:" in summary
     persona.set_profile(["industry=startup"])
-    assert persona.resolve_tone({"purpose": "pitch", "ask": "투자", "mode": "present"})[0]["name"] == "pitch-bold"
+    assert persona.resolve_tone({"purpose": "ir", "ask": "투자", "mode": "present"})[0]["name"] == "signal"
+    friendly, s2 = persona.resolve_tone({"purpose": "proposal", "ask": "파일럿", "mode": "present", "formality": "friendly"})
+    assert friendly["name"] == "forest" and friendly["voice"] == "formal" and "notes:" in s2
+
+
+def test_weighted_mean_matches_manual():
+    df = data.load(ROOT / "evals/data/sales.csv")
+    pv = data.pivot(df, "category", "year", "gross_margin", "wmean", weight="revenue_100m_krw")
+    d = df[(df.category == "구독") & (df.year == 2026)]
+    assert abs(pv.loc["구독", 2026] - (d.gross_margin * d.revenue_100m_krw).sum() / d.revenue_100m_krw.sum()) < 1e-9
 
 
 def test_example_deck_builds_native_and_passes_qa():
     out = Path(tempfile.mkdtemp()) / "deck.pptx"
     report = render.build(ROOT / "examples/sales-report/deck.md", out)
-    assert report.startswith("OK 17 slides, 3 charts, 2 tables") and "WARN" not in report, report
+    assert report.startswith("OK 18 slides, 5 charts, 3 tables") and "WARN" not in report, report
     prs = Presentation(out)
-    assert sum(s.has_chart for sl in prs.slides for s in sl.shapes) == 3
+    assert sum(s.has_chart for sl in prs.slides for s in sl.shapes) == 5
     assert qa.check(out) == []
     sample = render.build(ROOT / "examples/sales-report/deck.md", out.with_name("s.pptx"), sample=True)
     assert sample.startswith("OK 2 slides, 1 charts"), sample
@@ -45,9 +55,10 @@ def test_example_deck_builds_native_and_passes_qa():
 
 def test_lint_flags_wrong_voice_and_density():
     md = Path(tempfile.mkdtemp()) / "d.md"
-    md.write_text("---\ntone: consulting-navy\n---\n# t\n- 첫째 문장입니다.\n- b\n- c\n- d\n- e\n- f\n", encoding="utf-8")
+    md.write_text("---\ndesign: executive\n---\n# t\n- 첫째 문장입니다.\n- b\n- c\n- d\n- e\n- f\n"
+                  "# u\nask: 승인\nsteps: [a]\n", encoding="utf-8")
     rep = render.build(md)
-    assert "bullets 6>5" in rep and "voice" in rep, rep
+    assert "bullets 6>5" in rep and "voice" in rep and "unknown key(s) ['steps'] for closing" in rep, rep
 
 
 if __name__ == "__main__":

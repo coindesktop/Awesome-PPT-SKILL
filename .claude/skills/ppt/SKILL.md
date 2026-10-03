@@ -11,37 +11,43 @@ description: >-
 # ppt
 
 `pptkit` renders everything. **You only write two small files: `brief.yaml` and `deck.md`.** Never write
-Python/JS to draw slides, never read slide XML, never print raw data files. Every pptkit command prints a short
-result written for you; act on it.
+Python/JS to draw slides or to compute numbers, never read slide XML, never print raw data files. Every pptkit
+command prints a short result written for you; act on it. If pptkit cannot do something, say so plainly
+instead of coding around it.
 
 If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awesome-PPT-SKILL`
 (or `pip install -e <repo>`), then `pptkit install-skill`.
 
 ## Flow (personalize first, then build)
 
-1. **Who** - `pptkit profile`. `PROFILE OK` → go on, ask nothing. `PROFILE MISSING` → infer each field from
-   the request and context first; ask only what you cannot infer, with the shown defaults, in one message.
-   Save with `pptkit profile set role=.. industry=.. org_culture=.. audiences=a,b brand=none`.
+1. **Who** - `pptkit profile`. `PROFILE OK` → ask nothing. `PROFILE MISSING` → infer each field from the
+   request first; ask only what you cannot infer. `ASSUME` fields are never asked: use them and mention them in
+   one line. Save with `pptkit profile set role=.. industry=.. org_culture=.. audiences=a,b brand=none`.
 2. **What** - write `brief.yaml` in the work folder:
    ```yaml
-   purpose: report        # report | proposal | pitch | education | review
+   purpose: report        # report | proposal | pitch | ir | sales | education | review
    audience: 사업본부장
    ask: 영업 인력 2명 증원 승인   # what the audience must decide/do after this deck
    mode: balanced         # present | balanced | handout
+   formality: formal      # formal | neutral | friendly ("딱딱하지 않게", "친근하게" → friendly)
    length: 8
+   # design: forest       # optional override; `pptkit design` lists them
    ```
    `ask` and `mode` drive quality most. If you cannot infer them, ask (bundle with step 1 questions).
-3. **Tone** - `pptkit tone --brief brief.yaml`. Obey its `WRITE:` and `RULES:` lines in every sentence
-   you write. A `BRIEF MISSING` block means ask first.
+3. **Tone** - `pptkit tone --brief brief.yaml`. It picks a DESIGN (look) and prints `VOICE` and `RULES`;
+   obey them in every sentence you write. A `BRIEF MISSING` block means ask first.
 4. **Data** - `pptkit data <file>` for a summary (KOSIS-style downloads are normalized automatically).
-   Use `pptkit pivot <file> --rows .. --cols .. --val ..` only to get numbers for your messages.
+   For numbers in your messages use `pptkit pivot <file> --rows .. --cols .. --val ..`; weighted averages
+   (e.g. revenue-weighted margin) use `--agg wmean --weight <col>`.
 5. **Deck** - write `deck.md` per [references/deck-spec.md](references/deck-spec.md). Titles are conclusion
-   sentences. Pick patterns by the selection order below; vary them.
+   sentences backed by numbers you got from pptkit. Pick patterns by the order below and vary them; when a
+   slide holds one chart, prefer `chart-table` or `chart-pair` if a second view adds information.
 6. **Tone sample** - `pptkit build deck.md --sample` → give the user `deck.sample.pptx` (cover + one data
-   slide) and ask if the look and voice fit. Lasting preferences go to `pptkit profile set ...`
-   (e.g. `dislikes=아이콘 남발`, `tone=corporate-clean`, `brand=0B5E7A`); deck-only ones go to `brief.yaml`.
-7. **Build** - `pptkit build deck.md`. Fix every `WARN` by editing deck.md (shorten, split, re-voice),
-   rebuild, then `pptkit qa deck.pptx` until it prints `OK`.
+   slide) and ask if the look and voice fit. To compare looks: `pptkit build deck.md --sample --design <name>`.
+   Lasting preferences go to `pptkit profile set ...` (e.g. `design=forest`, `brand=0B5E7A`,
+   `dislikes=아이콘 남발`); deck-only ones go to `brief.yaml`.
+7. **Build** - `pptkit build deck.md`. Fix every `WARN` by editing deck.md, rebuild, then
+   `pptkit qa deck.pptx` until it prints `OK`.
 8. **Deliver** the .pptx path (in a cloud/app session, send the file).
 
 Edits to a pptkit deck: change `deck.md` and rebuild; it is cheaper than editing the .pptx. Look at rendered
@@ -50,14 +56,17 @@ images only if `qa` reports something you cannot resolve from its message.
 ## Pattern selection order
 
 1. sequence → `process` (dates → `timeline`) 2. alternatives → `compare` 3. two-axis judgment → `matrix-2x2`
-4. data file → time series `chart-takeaway`, category × category `heatmap-table`/`pivot-table`
+4. data file → time series `chart-takeaway`/`chart-table`, composition `chart: stacked-share`,
+   category × category `heatmap-table`/`pivot-table`, two related views `chart-pair`
 5. 3-4 headline numbers → `kpi-tiles` 6. one sentence → `key-message` 7. otherwise `bullets-callout`
-Structure: `cover`, `agenda`, `section`, `exec-summary` (report page 1), `closing` (the ask + next steps).
+Structure: `cover`, `agenda`, `section` (sets the eyebrow of following slides), `exec-summary`, `closing`.
 
 Default orders by purpose - report: cover, exec-summary, data slides, closing. proposal: cover, key-message,
 compare, process/timeline, closing. pitch: cover, key-message (problem), compare, kpi-tiles, timeline, closing.
 
-## Statistics
+## Numbers you did not compute
 
-No API key is ever needed. Prefer files the user downloads (KOSIS, e-나라지표, 한국은행 web pages → CSV) and
-`pptkit data`. Do not ask for or handle API keys. Put the provider and reference date in `source:`.
+Only put numbers on slides that come from the user's files or from pptkit. Never fill a chart with figures from
+memory or loose web snippets: they differ run to run. If the user wants public statistics, ask them to download
+the table (KOSIS, e-나라지표, 한국은행 web pages → CSV) and use `pptkit data`. Do not ask for API keys. Put the
+provider and reference date in `source:`; mark provisional years as "(잠정)".

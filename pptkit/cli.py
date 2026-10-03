@@ -29,14 +29,18 @@ def main(argv=None):
     p.add_argument("--rows", required=True)
     p.add_argument("--cols", required=True)
     p.add_argument("--val", required=True)
-    p.add_argument("--agg", default="sum")
+    p.add_argument("--agg", default="sum", help="sum | mean | count | wmean (needs --weight)")
+    p.add_argument("--weight", help="weight column for --agg wmean")
     p.add_argument("--top", type=int)
-    p.add_argument("-o", "--out")
+    p.add_argument("-o", "--out", help="also save the pivot as csv (nothing is written without it)")
+
+    sub.add_parser("design", help="list designs (DESIGN.md files; user ones in ~/.pptkit/designs override)")
 
     p = sub.add_parser("build", help="deck.md -> pptx")
     p.add_argument("deck")
     p.add_argument("-o", "--out")
     p.add_argument("--sample", action="store_true", help="cover + one slide, for tone approval")
+    p.add_argument("--design", help="override the design for this build (compare looks quickly)")
 
     p = sub.add_parser("qa", help="failures only")
     p.add_argument("pptx")
@@ -63,12 +67,17 @@ def main(argv=None):
     elif a.cmd == "data":
         print(data.summary(a.file))
     elif a.cmd == "pivot":
-        pv = data.pivot(data.load(a.file), a.rows, a.cols, a.val, a.agg, a.top)
-        out = Path(a.out or Path(a.file).with_suffix(".pivot.csv"))
-        pv.to_csv(out, encoding="utf-8-sig")
-        print(pv.round(1).to_string(max_rows=15) + f"\n-> {out}")
+        pv = data.pivot(data.load(a.file), a.rows, a.cols, a.val, a.agg, a.top, weight=a.weight)
+        print(pv.round(3 if a.agg in ("mean", "wmean") else 1).to_string(max_rows=15))
+        if a.out:
+            pv.to_csv(a.out, encoding="utf-8-sig")
+            print(f"-> {a.out}")
+    elif a.cmd == "design":
+        for name in persona.design_paths():
+            d = persona.load_design(name)
+            print(f"{name:10} [{d.get('formality', '')}] {d['description']}")
     elif a.cmd == "build":
-        print(render.build(a.deck, a.out, a.sample))
+        print(render.build(a.deck, a.out, a.sample, a.design))
     elif a.cmd == "qa":
         issues = qa.check(a.pptx)
         print("\n".join(issues) if issues else "OK")
