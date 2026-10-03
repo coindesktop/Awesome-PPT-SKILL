@@ -75,7 +75,7 @@ def deck_map(path, changed=False) -> str:
     prs = Presentation(path)
     cache = _map_cache(path)
     old = json.loads(cache.read_text()) if changed and cache.exists() else {}
-    issues = qa.check(path)
+    issues = [i for i in qa.check(path) if " sparse:" not in i]  # layout hints are for decks you build
     by_slide = {}
     for i in issues:
         n = int(i.split()[0][1:])
@@ -97,7 +97,8 @@ def deck_map(path, changed=False) -> str:
         notes = " | notes" if slide.has_notes_slide and slide.notes_slide.notes_text_frame.text.strip() else ""
         lines.append(f'S{n} "{_short(_title(slide))}" | {shown}{warn}{notes} | read={level}')
     cache.write_text(json.dumps(hashes))
-    head = f"{Path(path).name}: {len(prs.slides)} slides" + (" (changed only)" if changed else "")
+    size = f"{Emu(prs.slide_width).inches:.2f}x{Emu(prs.slide_height).inches:.2f}in"
+    head = f"{Path(path).name}: {len(prs.slides)} slides, {size}" + (" (changed only)" if changed else "")
     return "\n".join([head] + (lines or ["no changes"]))
 
 
@@ -225,8 +226,10 @@ def patch(path, ops_path, out=None) -> str:
         if "stack" in op:
             ids = [_shape(slide, i) for i in op["stack"]]
             top, gap = ids[0].top, Inches(op.get("gap", 0.2))
+            ref = max(ids, key=lambda s: s.width) if op.get("width") == "max" else ids[0]
+            left, width = ref.left, ref.width
             for s in ids:
-                s.left, s.width, s.top = ids[0].left, ids[0].width, top
+                s.left, s.width, s.top = left, width, top
                 top += s.height + gap
             done.append(f"S{n} stack " + " ".join(f"#{s.shape_id}" for s in ids))
         elif op.get("fix") == "overlap":
@@ -271,8 +274,17 @@ def patch(path, ops_path, out=None) -> str:
                     cd.categories = [str(c) for c in spec["categories"]]
                     for name, vals in spec["series"].items():
                         cd.add_series(str(name), vals)
+                def points():  # (category, series position) -> value; series names often change (MAU vs mau_k)
+                    pl = s.chart.plots[0]
+                    return {(str(c), k): v for k, sr in enumerate(pl.series) for c, v in zip(pl.categories, sr.values)}
+                old = points()
                 s.chart.replace_data(cd)
-                done.append(f"S{n} chart #{s.shape_id} {len(cd.categories)} cats")
+                new = points()
+                diff = [f"{c} {o:g}→{new[(c, sn)]:g}" for (c, sn), o in old.items()
+                        if (c, sn) in new and o is not None and new[(c, sn)] is not None and abs(o - new[(c, sn)]) > 1e-9]
+                cats = list(dict.fromkeys(c for c, _ in new))
+                done.append(f"S{n} chart #{s.shape_id} {cats[0]}..{cats[-1]} ({len(cats)} cats)"
+                            + (f"; existing points changed: {', '.join(diff[:6])}" if diff else ""))
     out = Path(out or path)
     if out == path:
         bak = path.with_suffix(".bak.pptx")

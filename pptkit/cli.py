@@ -29,6 +29,8 @@ def main(argv=None):
     p.add_argument("--rows", required=True)
     p.add_argument("--cols", help="optional: omit for one total per row")
     p.add_argument("--val", required=True)
+    p.add_argument("--where", action="append", default=[], help="keep rows: col=v1,v2 (repeatable)")
+    p.add_argument("--group", action="append", default=[], help="merge row labels: 수도권=서울,경기 (repeatable)")
     p.add_argument("--pct", choices=["row", "col", "growth"], help="shares within row/col, or %% change vs previous period")
     p.add_argument("--agg", default="sum", help="sum | mean | count | wmean (needs --weight)")
     p.add_argument("--weight", help="weight column for --agg wmean")
@@ -107,11 +109,17 @@ def main(argv=None):
     elif a.cmd == "data":
         print(data.summary(a.file))
     elif a.cmd == "pivot":
-        pv = data.pivot(data.load(a.file), a.rows, a.cols, a.val, a.agg, a.top, weight=a.weight, pct=a.pct)
+        df = data.load(a.file)
+        where = {k: [data.coerce(df[k], v) for v in vs.split(",")] for k, _, vs in (w.partition("=") for w in a.where)}
+        for g in a.group:
+            name, _, members = g.partition("=")
+            df[a.rows] = df[a.rows].where(~df[a.rows].astype(str).isin(members.split(",")), name)
+        pv = data.pivot(df, a.rows, a.cols, a.val, a.agg, a.top, where=where, weight=a.weight, pct=a.pct)
         if a.pct:
             print(f"% ({'change vs previous period' if a.pct == 'growth' else a.pct + ' shares'})")
         print(pv.round(1 if a.pct else 3 if a.agg in ("mean", "wmean") else 1).to_string(max_rows=15, na_rep="-"))
-        g = data.cagr(pv.drop(index="합계", errors="ignore")) if a.agg == "sum" and not a.pct else None
+        g = data.cagr(pv.drop(columns="합계", errors="ignore")) \
+            if a.agg == "sum" and not a.pct else None
         if g is not None:
             print("CAGR % " + "  ".join(f"{k}={v:.1f}" for k, v in g.round(1).items()))
         if a.out:

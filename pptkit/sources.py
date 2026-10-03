@@ -14,6 +14,10 @@ from . import persona
 
 TTL = 7 * 24 * 3600  # cached responses are reused for a week: respects provider rate limits
 KEY_ENV = {"kosis": "KOSIS_API_KEY"}
+ISO2 = {"KOR": "KR", "JPN": "JP", "USA": "US", "CHN": "CN", "DEU": "DE", "GBR": "GB", "FRA": "FR", "TWN": "TW",
+        "IND": "IN", "VNM": "VN", "SGP": "SG", "CAN": "CA", "AUS": "AU", "ITA": "IT", "ESP": "ES", "NLD": "NL",
+        "IDN": "ID", "THA": "TH", "MYS": "MY", "PHL": "PH", "BRA": "BR", "MEX": "MX", "RUS": "RU", "TUR": "TR",
+        "SAU": "SA", "CHE": "CH", "SWE": "SE", "OED": "OE", "WLD": "1W", "EUU": "EU"}
 OFFLINE = ("network unreachable ({err}). No key is needed for the fallback: download the table as CSV from the "
            "provider's web page and run `pptkit data <file>`")
 
@@ -121,9 +125,10 @@ def fetch(source, out_dir=".", refresh=False, **kw):
         try:
             body, cached = _get_json(url, url, refresh)
         except SystemExit as e:
-            web = f"https://data.worldbank.org/indicator/{kw['indicator']}?locations={'-'.join(c[:2] for c in kw['countries'])}"
-            raise SystemExit(f"{e}\nWeb download (CSV button, then `pptkit data <file>`; keep only your countries with "
-                             f"`where: {{Country Code: [{', '.join(kw['countries'])}]}}`): {web}")
+            web = f"https://data.worldbank.org/indicator/{kw['indicator']}?locations={'-'.join(ISO2.get(c.upper(), c) for c in kw['countries'])}"
+            raise SystemExit(f"{e}\nWeb download (CSV button gives a .zip: `pptkit data <the .zip>` reads it; keep "
+                             f"your countries with `where: {{Country Code: [{', '.join(kw['countries'])}]}}` and set "
+                             f"`source: World Bank WDI` on the slide): {web}")
         df, meta = wb_parse(body)
         stem = f"wb_{kw['indicator']}"
     elif source == "kosis":

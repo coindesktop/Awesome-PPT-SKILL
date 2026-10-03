@@ -615,7 +615,10 @@ def p_kpi(ctx, spec):
         cx = x + i * (tw + gap)
         card(ctx, slide, cx, y, tw, th)
         text(ctx, slide, cx + 0.28, y + 0.25, tw - 0.56, 0.4, [k["label"]], 13, c["muted"], bold=True)
-        text(ctx, slide, cx + 0.28, y + 0.7, tw - 0.56, 1.0, [str(k["value"])], ty["metric"], c["accent"], bold=True, min_pt=22)
+        vpt = ty["metric"]
+        while vpt > 20 and text_width(str(k["value"]), vpt) > (tw - 0.56) * 0.9:
+            vpt -= 2  # a value stays on one line: shrink it rather than wrap "월 49만 원"
+        text(ctx, slide, cx + 0.28, y + 0.7, tw - 0.56, 1.0, [str(k["value"])], vpt, c["accent"], bold=True, min_pt=vpt)
         if k.get("delta"):
             d = str(k["delta"])
             down = d.startswith(("-", "▼"))
@@ -911,7 +914,7 @@ KEYS = {
 }
 KEYS["heatmap-table"] = KEYS["pivot-table"]
 # key present in a slide -> pattern, when `pattern:` is omitted
-INFER = [("charts", "chart-pair"), ("chart", "chart-takeaway"), ("rows", "pivot-table"), ("kpis", "kpi-tiles"),
+INFER = [("charts", "chart-pair"), ("growth", "chart-table"), ("chart", "chart-takeaway"), ("rows", "pivot-table"), ("kpis", "kpi-tiles"),
          ("ask", "closing"), ("steps", "process"), ("events", "timeline"), ("columns", "compare"),
          ("quadrants", "matrix-2x2"), ("points", "exec-summary"), ("statement", "key-message"), ("items", "agenda")]
 
@@ -954,6 +957,9 @@ def lint(ctx, spec):
     unknown = set(spec) - COMMON - KEYS.get(spec["pattern"], set())
     if unknown:
         ctx.warn(f"unknown key(s) {sorted(unknown)} for {spec['pattern']} (ignored). see deck-spec.md")
+    if spec["pattern"] not in ("cover", "section", "closing", "key-message") and \
+            text_width(spec["title"], ctx.ty["title"]) > (W - 2 * MX) * 0.92:
+        ctx.warn(f"title wraps to 2 lines ({len(spec['title'])}자): shorten it, move detail into `message:`")
     if spec["pattern"] == "closing" and spec.get("ask") and len(spec["title"]) > 24 and not spec.get("eyebrow"):
         ctx.warn("closing: the headline is `ask`; a long `# title` is not shown. Use a short label like "
                  "`# 요청 사항` (shown above the ask) or move the sentence into `support`")
@@ -970,7 +976,7 @@ def lint(ctx, spec):
         if long:
             ctx.warn(f"{key} {len(long)} item(s) >{d['max_chars']}자")
         if voice == "gaejosik":
-            bad = [i for i in map(_s, items) if re.search(r"(다|요)[.!]?$", i.strip())]
+            bad = [i for i in map(_s, items) if re.search(r"(다|(어|아|해|에|예|세|지|네|게|래|까|죠)요)[.!]?$", i.strip())]
             if bad:
                 ctx.warn(f"{key} voice: {len(bad)} item(s) end with ~다/~요, use ~함/~임")
 

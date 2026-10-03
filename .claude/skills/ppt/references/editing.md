@@ -20,7 +20,7 @@ A YAML list; each item is one operation. Paths are relative to ops.yaml.
 - {slide: 3, shape: 4, paras: ["첫 줄", "둘째 줄"]}   # several paragraphs, same formatting
 - {slide: 3, shape: 5, move: [0.8, 3.1, null, null]}  # x, y, w, h in inches; null keeps the value
 - {slide: 3, fix: overlap}                           # push partially overlapping text boxes apart (vertical only)
-- {slide: 3, stack: [3, 4, 5], gap: 0.2}             # same left/width as #3, stacked top to bottom: tidy rows
+- {slide: 3, stack: [3, 4, 5], gap: 0.2}             # same left/width as #3 (width: max → widest), stacked top to bottom
 - {slide: 5, shape: 3, chart: {data: kpi.csv, x: quarter, y: mau_k, labels: {mau_k: MAU}}}
 - {slide: 5, shape: 3, chart: {data: kpi.csv, x: quarter, y: mau_k, last: 6}}   # only the latest 6 rows
 - {slide: 5, shape: 3, chart: {categories: [Q1, Q2], series: {매출: [10, 12]}}}  # inline values

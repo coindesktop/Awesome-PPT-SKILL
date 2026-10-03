@@ -7,6 +7,16 @@ import pandas as pd
 
 def load(path) -> pd.DataFrame:
     path = Path(path)
+    if path.suffix.lower() == ".zip":  # World Bank / OECD downloads: the data file, not the metadata files
+        import tempfile
+        import zipfile
+        with zipfile.ZipFile(path) as z:
+            names = [n for n in z.namelist() if n.lower().endswith((".csv", ".xlsx")) and "metadata" not in n.lower()]
+            if not names:
+                raise SystemExit(f"{path.name}: no data csv/xlsx inside")
+            out = Path(tempfile.mkdtemp()) / Path(names[0]).name
+            out.write_bytes(z.read(names[0]))
+        return load(out)
     if path.suffix.lower() in (".xlsx", ".xls"):
         return _tidy(pd.read_excel(path, header=None))
     for enc in ("utf-8-sig", "cp949"):  # Korean Windows exports are often cp949
@@ -49,11 +59,16 @@ def summary(path) -> str:
             out.append(f"  {c} num {s.min():g}..{s.max():g} sum={s.sum():g}")
         elif is_time(s.dropna().unique()):
             u = sorted(map(str, s.dropna().unique()))
-            out.append(f"  {c} time {len(u)}: {u[0]}..{u[-1]}" + (f" ({','.join(u[-3:])})" if len(u) > 3 else ""))
+            out.append(f"  {c} time {len(u)}: {u[0]}..{u[-1]}" + (f" (latest: {','.join(u[-3:])})" if len(u) > 3 else ""))
         else:
             top = s.value_counts().index[:6].tolist()
             out.append(f"  {c} cat {s.nunique()}: {','.join(map(str, top))}{' …' if s.nunique() > 6 else ''}")
     return "\n".join(out)
+
+
+def coerce(col, v):
+    """CLI values are strings; match the column's type (years are numbers)."""
+    return pd.to_numeric(v) if pd.api.types.is_numeric_dtype(col) else v
 
 
 def _filter(df, where):
@@ -136,6 +151,7 @@ def cagr(p):
     """Compound annual growth of each column from the first to the last time-like row (None if not time-like)."""
     idx = [i for i in p.index if is_time([i])]
     if len(idx) < 2:
-        return None
+        cols = [c for c in p.columns if is_time([c])]
+        return cagr(p[cols].T) if len(cols) >= 2 else None  # time across columns: one rate per row
     a, b = p.loc[idx[0]], p.loc[idx[-1]]
     return ((b / a) ** (1 / (len(idx) - 1)) - 1) * 100

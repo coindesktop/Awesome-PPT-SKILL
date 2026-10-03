@@ -174,6 +174,13 @@ def test_stack_op_and_changed_map_sees_notes():
     assert "S1" in edit.deck_map(deck, changed=True) and not list(d.glob("*.map.json"))
 
 
+def test_gaejosik_lint_accepts_noun_endings():
+    import re
+    pat = re.compile(r"(다|(어|아|해|에|예|세|지|네|게|래|까|죠)요)[.!]?$")
+    assert not any(pat.search(t) for t in ("추가 검토 필요", "수요 증가", "핵심 개요"))
+    assert all(pat.search(t) for t in ("검토가 필요합니다", "늘었어요", "확대해요"))
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

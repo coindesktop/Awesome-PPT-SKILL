@@ -43,6 +43,7 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
 4. **Data** - `pptkit data <file>` for a summary (KOSIS and World Bank web downloads are normalized automatically).
    Every number in a title or bullet comes from `pptkit pivot <file> --rows .. [--cols ..] --val ..`: totals and
    CAGR are printed; `--pct row|col` gives shares, `--pct growth` the change vs the previous period;
+   `--where year=2025,2026` filters, `--group 수도권=서울,경기,인천` merges rows (combined shares);
    `--agg wmean --weight <col>` gives weighted averages (e.g. revenue-weighted margin) with weighted totals.
    Do not do arithmetic on pivot output yourself.
 5. **Deck** - write `deck.md` per [references/deck-spec.md](references/deck-spec.md). Titles are conclusion
@@ -51,7 +52,7 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
 6. **Tone sample** - `pptkit build deck.md --sample` → give the user `deck.sample.pptx` (cover + one data
    slide) and ask if the look and voice fit. Compare looks with `--design <name>`. Lasting preferences go to
    `pptkit profile set ...` (e.g. `design=forest`, `brand=0B5E7A`, `dislikes=..`); deck-only ones to `brief.yaml`.
-7. **Build** - `pptkit build deck.md`. Its `WARN` lines are about content (keys, length, voice); `pptkit qa
+7. **Build** - `pptkit build deck.md` (`-o 이름.pptx` names the file). Its `WARN` lines are about content (keys, length, voice); `pptkit qa
    deck.pptx` is about layout (overflow, overlap, `sparse`). Fix both by editing deck.md and rebuilding until
    neither reports anything (on Windows with PowerPoint, `qa --com` measures text exactly).
 8. **Deliver** the .pptx path (in a cloud/app session, send the file).
