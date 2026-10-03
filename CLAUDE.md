@@ -1,6 +1,6 @@
 ## graphify
 
-This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+This project keeps development-only knowledge graphs under dev/graphify/<name>/ (gitignored, AST-only, rebuild with `graphify update <code-dir>` then move graphify-out/ there). Pass `--graph dev/graphify/<name>/graph.json` to query/path/explain. graphify is a dev tool for building our skill/CLI; never ship it inside the skill.
 
 Rules:
 - For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
