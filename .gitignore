@@ -8,3 +8,4 @@ dev/graphify/
 dev/ppt-workspace/
 dist/
 examples/*/deck.pptx
+examples/*/deck.preview.jpg
