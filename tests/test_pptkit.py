@@ -107,6 +107,36 @@ def test_style_extract_then_build_on_the_template():
     assert qa.check(out) == []
 
 
+def test_fetch_parsers_and_cached_pipeline_offline():
+    import hashlib
+    import json
+    from pptkit import sources
+    fx = ROOT / "tests/fixtures"
+    df, meta = sources.wb_parse(json.loads((fx / "synthetic_wb.json").read_text(encoding="utf-8")))
+    assert len(df) == 5 and meta["provider"] == "World Bank WDI"  # null values dropped
+    kdf, kmeta = sources.kosis_parse(json.loads((fx / "synthetic_kosis.json").read_text(encoding="utf-8")))
+    assert kdf["value"].sum() == 1000 + 1010 + 500 + 510 and kmeta["indicator"] == "합성 테스트 표"
+    try:
+        sources.kosis_parse({"err": "11", "errMsg": "인증키 오류"})
+        raise AssertionError("kosis error not raised")
+    except SystemExit as e:
+        assert "인증키 오류" in str(e)
+    # cached response -> full fetch path without network, then a chart picks up the provenance automatically
+    url = sources.wb_url("NY.GDP.MKTP.KD.ZG", ["KOR", "JPN"], "2023-2025")
+    cache = persona.home() / "cache" / (hashlib.sha1(url.encode()).hexdigest()[:16] + ".json")
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    cache.write_text((fx / "synthetic_wb.json").read_text(encoding="utf-8"), encoding="utf-8")
+    d = Path(tempfile.mkdtemp())
+    rep = sources.fetch("wb", d, indicator="NY.GDP.MKTP.KD.ZG", countries=["KOR", "JPN"], years="2023-2025")
+    assert "(cache)" in rep and (d / "wb_NY.GDP.MKTP.KD.ZG.meta.json").exists(), rep
+    (d / "deck.md").write_text("---\ndesign: executive\n---\n# GDP\nchart: line-trend\ndata: wb_NY.GDP.MKTP.KD.ZG.csv\n"
+                               "x: year\ny: value\nseries: country\n", encoding="utf-8")
+    render.build(d / "deck.md", d / "deck.pptx")
+    assert "World Bank WDI" in edit.read(d / "deck.pptx", [1])
+    if not os.environ.get("KOSIS_API_KEY"):
+        assert sources.key_cmd("status").startswith("kosis: not set")
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

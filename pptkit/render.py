@@ -263,7 +263,7 @@ def content_slide(ctx, spec):
         else:
             text(ctx, slide, MX, y - 0.18, W - 2 * MX, 0.45, [spec["message"]], ty["message"], c["body"])
             y += 0.4
-    src = spec.get("source") or (ctx.meta.get("source") if _has_data(spec) else None)
+    src = spec.get("source") or _meta_source(ctx, spec) or (ctx.meta.get("source") if _has_data(spec) else None)
     if src:
         label = "자료" if ctx.tone["name"] == "public" else "출처"
         text(ctx, slide, MX, ctx.footer_y, 9, 0.3, [f"{label}: {src}"], ty["small"], c["muted"], min_pt=8)
@@ -271,6 +271,17 @@ def content_slide(ctx, spec):
     if spec.get("notes"):
         slide.notes_slide.notes_text_frame.text = str(spec["notes"])
     return slide, (MX, y, W - 2 * MX, ctx.footer_y - 0.25 - y)
+
+
+def _meta_source(ctx, spec):
+    """Provenance written by `pptkit fetch` next to the csv (<file>.meta.json)."""
+    files = [spec.get("data")] + [c.get("data") for c in spec.get("charts", []) if isinstance(c, dict)]
+    for f in filter(None, files):
+        m = (ctx.base / f).with_suffix(".meta.json")
+        if m.exists():
+            import json
+            return json.loads(m.read_text(encoding="utf-8")).get("source")
+    return None
 
 
 def _has_data(spec):

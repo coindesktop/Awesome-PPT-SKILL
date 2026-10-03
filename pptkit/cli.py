@@ -67,6 +67,23 @@ def main(argv=None):
     p.add_argument("ops")
     p.add_argument("-o", "--out")
 
+    p = sub.add_parser("fetch", help="public statistics -> csv + .meta.json (cached)")
+    p.add_argument("source", choices=["wb", "kosis"])
+    p.add_argument("indicator", nargs="?", help="wb indicator code, e.g. NY.GDP.MKTP.KD.ZG")
+    p.add_argument("--country", default="KOR", help="wb: ISO3 list, e.g. KOR,JPN,USA")
+    p.add_argument("--years", required=True, help="e.g. 2021-2025")
+    p.add_argument("--org", help="kosis orgId")
+    p.add_argument("--tbl", help="kosis tblId")
+    p.add_argument("--prd", default="Y", help="kosis period: Y | Q | M")
+    p.add_argument("-o", "--out", default=".", help="output folder")
+    p.add_argument("--refresh", action="store_true")
+
+    p = sub.add_parser("key", help="API keys for optional sources (never printed)")
+    p.add_argument("action", choices=["set", "status", "rm"])
+    p.add_argument("source", nargs="?")
+
+    sub.add_parser("sources", help="available data sources and key status")
+
     p = sub.add_parser("install-skill", help="copy the Claude skill to ~/.claude/skills/ppt")
     p.add_argument("--dest", default=str(Path.home() / ".claude" / "skills" / "ppt"))
 
@@ -115,6 +132,17 @@ def main(argv=None):
         print(edit.read(a.pptx, [int(x) for x in a.slides.split(",")], a.level, ids))
     elif a.cmd == "patch":
         print(edit.patch(a.pptx, a.ops, a.out))
+    elif a.cmd == "fetch":
+        from . import sources
+        kw = ({"indicator": a.indicator, "countries": a.country.split(","), "years": a.years} if a.source == "wb"
+              else {"org": a.org, "tbl": a.tbl, "years": a.years, "prd": a.prd})
+        print(sources.fetch(a.source, a.out, a.refresh, **kw))
+    elif a.cmd == "key":
+        from . import sources
+        print(sources.key_cmd(a.action, a.source))
+    elif a.cmd == "sources":
+        from . import sources
+        print(sources.sources_report())
     elif a.cmd == "install-skill":
         src = Path(__file__).with_name("skill")
         if not src.exists():  # running from a source checkout
