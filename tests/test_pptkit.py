@@ -8,7 +8,7 @@ from pptx import Presentation
 ROOT = Path(__file__).resolve().parents[1]
 os.environ["PPTKIT_HOME"] = tempfile.mkdtemp()
 
-from pptkit import data, persona, qa, render  # noqa: E402
+from pptkit import data, edit, persona, qa, render  # noqa: E402
 
 
 def test_kosis_download_is_normalized_to_long():
@@ -59,6 +59,23 @@ def test_lint_flags_wrong_voice_and_density():
                   "# u\nask: 승인\nsteps: [a]\n", encoding="utf-8")
     rep = render.build(md)
     assert "bullets 6>5" in rep and "voice" in rep and "unknown key(s) ['steps'] for closing" in rep, rep
+
+
+def test_map_read_patch_on_a_foreign_deck():
+    import shutil
+    d = Path(tempfile.mkdtemp())
+    shutil.copy(ROOT / "evals/data/review.pptx", d / "r.pptx")
+    shutil.copy(ROOT / "evals/data/kpi_quarterly.csv", d)
+    m = edit.deck_map(d / "r.pptx")
+    assert "S3" in m and "read=L2" in m.splitlines()[3] and "chart:column 5x1" in m, m
+    before = {n: edit.read(d / "r.pptx", [n], "L2") for n in (1, 2, 4, 6)}
+    (d / "ops.yaml").write_text("- {slide: 3, fix: overlap}\n"
+                                "- {slide: 5, shape: 3, chart: {data: kpi_quarterly.csv, x: quarter, y: mau_k}}\n",
+                                encoding="utf-8")
+    out = edit.patch(d / "r.pptx", d / "ops.yaml")
+    assert "qa(S3,S5) OK" in out and (d / "r.bak.pptx").exists(), out
+    assert all(edit.read(d / "r.pptx", [n], "L2") == v for n, v in before.items())  # untouched slides unchanged
+    assert "2026Q3" in edit.read(d / "r.pptx", [5])
 
 
 if __name__ == "__main__":

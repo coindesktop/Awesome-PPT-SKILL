@@ -1,5 +1,9 @@
-"""Geometry + text-fit checks that print failures only. No rendering, no images."""
+"""Geometry + text-fit checks that print failures only. No rendering, no images.
+On Windows with PowerPoint, check_com() replaces the text-fit estimate with PowerPoint's own measurement."""
 import re
+import subprocess
+import sys
+import tempfile
 
 from pptx import Presentation
 from pptx.util import Emu
@@ -13,11 +17,13 @@ def _in(v):
     return Emu(v).inches
 
 
-def check(path) -> list[str]:
+def check(path, slides=None) -> list[str]:
     prs = Presentation(path)
     sw, sh = _in(prs.slide_width), _in(prs.slide_height)
     issues = []
     for n, slide in enumerate(prs.slides, start=1):
+        if slides and n not in slides:
+            continue
         boxes = []
         for s in slide.shapes:
             if s.width is None:
@@ -61,3 +67,42 @@ def _contains(a, b):
 def _bulleted(s):
     return any(p._p.pPr is not None and p._p.pPr.find(
         "{http://schemas.openxmlformats.org/drawingml/2006/main}buChar") is not None for p in s.text_frame.paragraphs)
+
+
+# PowerPoint measures the real text height (installed fonts, real line breaking). Read-only, no window.
+_PS = r"""
+param([string]$path)
+[Console]::OutputEncoding = [Text.Encoding]::UTF8
+$app = New-Object -ComObject PowerPoint.Application
+$p = $app.Presentations.Open($path, -1, 0, 0)
+foreach ($s in $p.Slides) {
+  foreach ($sh in $s.Shapes) {
+    if ($sh.HasTextFrame -and $sh.TextFrame2.HasText) {
+      $tf = $sh.TextFrame2
+      $need = $tf.TextRange.BoundHeight + $tf.MarginTop + $tf.MarginBottom
+      if ($need -gt ($sh.Height + 2)) {
+        $t = $tf.TextRange.Text
+        $t = $t.Substring(0, [Math]::Min(14, $t.Length))
+        "S{0} overflow '{1}' needs {2:N2}in > {3:N2}in (PowerPoint)" -f $s.SlideIndex, $t, ($need / 72), ($sh.Height / 72)
+      }
+    }
+  }
+}
+$p.Close()
+if ($app.Presentations.Count -eq 0) { $app.Quit() }
+"""
+
+
+def check_com(path, slides=None) -> list[str]:
+    """Geometry checks from check() plus PowerPoint-measured overflow (Windows + PowerPoint only)."""
+    if sys.platform != "win32":
+        raise SystemExit("qa --com needs Windows with PowerPoint installed; plain `pptkit qa` works everywhere")
+    with tempfile.NamedTemporaryFile("w", suffix=".ps1", delete=False, encoding="utf-8-sig") as f:
+        f.write(_PS)
+    from pathlib import Path
+    r = subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", f.name,
+                        str(Path(path).resolve())], capture_output=True, text=True, encoding="utf-8", timeout=300)
+    if r.returncode != 0:
+        raise SystemExit("PowerPoint COM failed: " + r.stderr.strip()[-300:])
+    com = [l for l in r.stdout.splitlines() if l.strip() and (not slides or int(l.split()[0][1:]) in slides)]
+    return [i for i in check(path, slides) if " overflow " not in i] + com

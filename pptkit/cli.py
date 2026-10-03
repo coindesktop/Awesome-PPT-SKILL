@@ -44,12 +44,29 @@ def main(argv=None):
 
     p = sub.add_parser("qa", help="failures only")
     p.add_argument("pptx")
+    p.add_argument("-s", "--slides", help="e.g. 3,5")
+    p.add_argument("--com", action="store_true", help="Windows+PowerPoint: measure text with PowerPoint itself")
+
+    p = sub.add_parser("map", help="any pptx: one line per slide + recommended read level")
+    p.add_argument("pptx")
+    p.add_argument("--changed", action="store_true", help="only slides changed since the last map")
+
+    p = sub.add_parser("read", help="read only the slides/shapes you need")
+    p.add_argument("pptx")
+    p.add_argument("-s", "--slides", required=True, help="e.g. 3,5")
+    p.add_argument("-l", "--level", default="L1", choices=["L1", "L2", "L3"], help="L1 text+data, L2 +geometry, L3 XML")
+    p.add_argument("--shape", help="shape ids, e.g. 4,7")
+
+    p = sub.add_parser("patch", help="apply ops.yaml to any pptx (keeps formatting; first in-place patch saves .bak)")
+    p.add_argument("pptx")
+    p.add_argument("ops")
+    p.add_argument("-o", "--out")
 
     p = sub.add_parser("install-skill", help="copy the Claude skill to ~/.claude/skills/ppt")
     p.add_argument("--dest", default=str(Path.home() / ".claude" / "skills" / "ppt"))
 
     a = ap.parse_args(argv)
-    from . import data, persona, qa, render  # lazy: keep `pptkit -h` fast
+    from . import data, edit, persona, qa, render  # lazy: keep `pptkit -h` fast
 
     if a.cmd == "profile":
         if a.action == "set":
@@ -79,9 +96,17 @@ def main(argv=None):
     elif a.cmd == "build":
         print(render.build(a.deck, a.out, a.sample, a.design))
     elif a.cmd == "qa":
-        issues = qa.check(a.pptx)
+        sl = {int(x) for x in a.slides.split(",")} if a.slides else None
+        issues = (qa.check_com if a.com else qa.check)(a.pptx, sl)
         print("\n".join(issues) if issues else "OK")
         return 1 if issues else 0
+    elif a.cmd == "map":
+        print(edit.deck_map(a.pptx, a.changed))
+    elif a.cmd == "read":
+        ids = {int(x) for x in a.shape.split(",")} if a.shape else None
+        print(edit.read(a.pptx, [int(x) for x in a.slides.split(",")], a.level, ids))
+    elif a.cmd == "patch":
+        print(edit.patch(a.pptx, a.ops, a.out))
     elif a.cmd == "install-skill":
         src = Path(__file__).with_name("skill")
         if not src.exists():  # running from a source checkout
