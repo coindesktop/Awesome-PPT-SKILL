@@ -1,0 +1,8 @@
+{
+  "name": "awesome-ppt-skill",
+  "private": true,
+  "description": "PPT generation skills: content, template, tone & manner, native charts and pivot tables",
+  "dependencies": {
+    "pptxgenjs": "^4.0.1"
+  }
+}

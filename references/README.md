@@ -6,7 +6,6 @@
 
 | 폴더 | 출처 (commit) | 라이선스 | 가져온 것 | 쓸 곳 |
 |---|---|---|---|---|
-| `pptx-from-layouts/` | [tristan-mcinnis/pptx-from-layouts-skill](https://github.com/tristan-mcinnis/pptx-from-layouts-skill) @ `46e7c66` | MIT (`LICENSE`) | 스킬 3종(`pptx-profile`, `pptx-author`, `pptx-from-layouts`), 데모 템플릿, 예제 outline | 템플릿 프로파일링, 마크다운 → 레이아웃 렌더, 검증 파이프라인 |
 | `academic-pptx/` | [Gabberflast/academic-pptx-skill](https://github.com/Gabberflast/academic-pptx-skill) @ `9f2b703` | MIT (`LICENSE`) | `SKILL.md`, `slide_patterns.md`, `content_guidelines.md` | 액션 타이틀, 차트 주석과 출처 규칙 |
 | `style-presets/` | [zarazhangrui/frontend-slides](https://github.com/zarazhangrui/frontend-slides) @ `9906a34` | MIT (`LICENSE`) | `STYLE_PRESETS.md` | 톤앤매너 프리셋 원안 (HTML/CSS → PPTX 토큰으로 변환 예정) |
 
@@ -20,14 +19,8 @@
 | anyideaz/pptx-skills | 라이선스 표기가 없다 |
 | PHY041 / danny0926 | LICENSE 파일이 없거나(README에만 MIT) 용도가 맞지 않는다 |
 
-## 동작 확인
+## 활성화한 스킬
 
-```bash
-pip install python-pptx pydantic
-cd references/pptx-from-layouts
-python3 pptx-from-layouts/scripts/generate.py examples/outline.md -o /tmp/test.pptx \
-  --template templates/inner-chapter.pptx --config templates/inner-chapter-config.json --validate
-# → Score: 100/100 ✓ PASS, Errors: 0
-```
-
-바로 써 보고 싶다면 원하는 폴더를 `.claude/skills/`로 복사하면 활성화된다.
+[tristan-mcinnis/pptx-from-layouts-skill](https://github.com/tristan-mcinnis/pptx-from-layouts-skill) @ `46e7c66` (MIT)은 그대로 쓸 수 있어서 `.claude/skills/`로 옮겨 활성화했다.
+스킬은 `pptx-profile`, `pptx-author`, `pptx-from-layouts` 3종이고, 데모 템플릿은 `templates/`, 예제는 `examples/`에 있다.
+각 스킬 폴더와 `templates/LICENSE-inner-chapter`에 원본 LICENSE를 두었다.

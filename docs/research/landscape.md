@@ -33,7 +33,7 @@
 
 ## 결론
 
-**요구사항을 전부 충족하는 스킬은 없다.** 그래서 통째로 설치하지 않고 MIT 레퍼런스만 `references/`에 반입했다(비활성 상태라 컨텍스트를 쓰지 않음).
+**요구사항을 전부 충족하는 스킬은 없다.** 그래서 그대로 쓸 수 있는 `pptx-from-layouts` 3종만 `.claude/skills/`에 활성화하고, 나머지 MIT 레퍼런스는 `references/`에 비활성 상태로 두었다(컨텍스트를 쓰지 않음).
 
 - 뼈대: `pptx-from-layouts`의 *프로파일 → 마크다운 작성 → 스크립트 렌더 → 검증* 파이프라인 (R2, R4, R7)
 - 차트: `anthropic pptx`의 네이티브 차트 규칙 + `ppt-master`의 chart data 접근 (R5)

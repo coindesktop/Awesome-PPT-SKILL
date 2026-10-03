@@ -1,0 +1,14 @@
+# PPTX 생성·편집·검증
+python-pptx>=1.0
+pydantic>=2
+markitdown[pptx]
+defusedxml
+lxml
+Pillow
+# 데이터·피벗·차트
+pandas
+openpyxl
+matplotlib
+# 통계 수집
+wbgapi            # World Bank 지표
+PublicDataReader  # KOSIS·공공데이터포털 (API 키 필요)
