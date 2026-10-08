@@ -4,7 +4,7 @@ storyline: report/scr
 source: "가상 예시 데이터, 2026년 9월 말 기준"
 date: 2026-10-05
 author: ERP 고도화 PMO
-eyebrow: ERP 고도화 9월 진척 보고
+eyebrow: ERP 고도화 PMO 월간 보고
 labels: {month: 월, kind: 구분, amount_100m_krw: 금액, area: 영역, week: 주차, new: 신규 이슈}
 ---
 
@@ -16,12 +16,12 @@ subtitle: 데이터 이관 지연 대응을 위한 전담 인력 투입·오픈 
 eyebrow: 상황
 message: 지연은 데이터 이관 한 영역에 집중되고, 비용·타 영역은 계획 수준을 유지함
 kpis:
-  - {label: 전체 진척률, value: "65.5%", note: "계획 71.0% (가중 평균)"}
-  - {label: 예산 집행률, value: "98.7%", note: "누적 60.2억 / 계획 61.0억 원"}
+  - {label: 전체 진척률, value: "65.5%", note: "계획 71.0%"}
+  - {label: 예산 집행률, value: "98.7%", note: "누적 60.2억 / 계획 61.0억"}
   - {label: 오픈 이슈, value: "36건", note: "데이터 이관 23건 (63.9%)"}
-  - {label: 일정 편차, value: "2주", note: "오픈 11/30 → 12/14 (조정안)"}
+  - {label: 일정 편차, value: "2주", note: "오픈 11/30 → 12/14"}
 callout:
-  - 데이터 이관 실적 38%(계획 60%), 오픈 이슈는 9월 중 20건 → 36건으로 증가함
+  - 이관 실적 38%(계획 60%), 오픈 이슈 20건 → 36건으로 증가함
 callout_title: 시사점
 
 # 데이터 이관 2주 지연이 통합 테스트·교육·오픈으로 전이됨
@@ -39,7 +39,6 @@ x: month
 y: amount_100m_krw
 series: kind
 unit: 억 원
-highlight: 실적
 pattern: chart-takeaway
 takeaways:
   - 월별 집행은 계획 대비 96.7~102.5% 범위에서 안정적임
