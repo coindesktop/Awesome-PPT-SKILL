@@ -103,7 +103,7 @@ def test_style_extract_then_build_on_the_template():
     out = d / "deck.pptx"
     assert "design=corp" in render.build(ROOT / "examples/sales-report/deck.md", out, design="corp")
     built = Presentation(out)
-    assert len(built.slides) == 18 and any(s.shape_type == 1 for s in built.slide_master.shapes)
+    assert len(built.slides) == 20 and any(s.shape_type == 1 for s in built.slide_master.shapes)
     assert qa.check(out) == []
 
 
