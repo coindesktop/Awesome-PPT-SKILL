@@ -35,7 +35,7 @@ def main(argv=None):
     p.add_argument("--val", required=True)
     p.add_argument("--where", action="append", default=[], help="keep rows: col=v1,v2 (repeatable)")
     p.add_argument("--group", action="append", default=[], help="merge row labels: 수도권=서울,경기 (repeatable)")
-    p.add_argument("--pct", choices=["row", "col", "growth"], help="shares within row/col, or %% change vs previous period")
+    p.add_argument("--pct", choices=["row", "col", "growth", "diff"], help="shares within row/col, or %% change vs previous period")
     p.add_argument("--agg", default="sum", help="sum | mean | count | wmean (needs --weight)")
     p.add_argument("--weight", help="weight column for --agg wmean")
     p.add_argument("--top", type=int)
@@ -132,7 +132,7 @@ def main(argv=None):
             df[a.rows] = df[a.rows].where(~df[a.rows].astype(str).isin(members.split(",")), name)
         pv = data.pivot(df, a.rows, a.cols, a.val, a.agg, a.top, where=where, weight=a.weight, pct=a.pct)
         if a.pct:
-            print(f"% ({'change vs previous period' if a.pct == 'growth' else a.pct + ' shares'})")
+            print({"growth": "% change vs previous period", "diff": "change vs previous period (same unit)"}.get(a.pct, f"% {a.pct} shares"))
         print(pv.round(1 if a.pct else 3 if a.agg in ("mean", "wmean") else 1).to_string(max_rows=15, na_rep="-"))
         g = data.cagr(pv.drop(columns="합계", errors="ignore")) \
             if a.agg == "sum" and not a.pct else None

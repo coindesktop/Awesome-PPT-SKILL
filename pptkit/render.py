@@ -1013,6 +1013,8 @@ def lint(ctx, spec):
                  "`# 요청 사항` (shown above the ask) or move the sentence into `support`")
     for key in ("bullets", "callout", "takeaways", "points"):
         items = spec.get(key)
+        if key == "points" and spec["pattern"] == "big-number":
+            continue  # {title, desc} cards by design
         if not isinstance(items, list):
             continue
         odd = [i for i, v in enumerate(items, 1) if not isinstance(v, (str, int, float))]

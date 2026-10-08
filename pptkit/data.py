@@ -129,6 +129,8 @@ def pivot(df, rows, cols=None, val=None, agg="sum", top=None, where=None, total=
         p = p.iloc[:top]
     if pct in ("row", "col") and agg == "sum":
         p = p.div(p.sum(axis=1), axis=0) * 100 if pct == "row" else p.div(p.sum(axis=0), axis=1) * 100
+    elif pct == "diff":  # absolute change vs the previous period (net adds)
+        p = p.diff(axis=0 if timed or not cols or not is_time(p.columns) else 1)
     elif pct == "growth":
         p = (p.pct_change(axis=0 if timed or not cols or not is_time(p.columns) else 1) * 100)
     elif agg == "sum" and cols:

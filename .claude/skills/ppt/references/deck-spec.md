@@ -48,11 +48,11 @@ paths are relative to deck.md. Unknown keys and overlong text produce `WARN` lin
 | `roadmap` | `phases: [..]`, `lanes: [{name, cells: [..]}]`, `now: 1` | phases × workstreams |
 | `gantt` | `tasks: [{name, start, end, owner}]` or `data:` csv with those columns | dates `2026-10-01`; must set `pattern: gantt` with data |
 | `funnel` | `stages: [{label, value}]`, `callout` | conversion % computed |
-| `big-number` | `figure`, `label`, `support` | one headline number |
+| `big-number` | `figure`, `label`, `support`, `points: [{title, desc}]` ≤3 | one headline number; `points` explain it in cards on the right |
 | `market-size` | `tam/sam/som: {value, label}` | |
-| `pillars` | `pillars: [{title, desc, figure}]` 3-4 | strengths, reasons, why now; `figure` replaces the 01/02 number |
+| `pillars` | `pillars: [{title, desc, figure, note}]` 3-4 | strengths, reasons, why now; `figure` replaces 01/02; `note` = proof line |
 | `traction` | `metrics: [{value, label}]` ≤4 + chart keys | headline numbers over a growth chart (`line-trend` default) |
-| `team` | `members: [{name, role, bio: [..]}]` ≤8, `advisors: [..]` | initials badge, no photos |
+| `team` | `members: [{name, role, bio: [..], note}]` ≤8, `advisors: [..]` | initials badge; `note` = why this person |
 | `pricing` | `tiers: [{name, price, unit, for, features: [..], highlight: true, badge}]` ≤4 | |
 | `product-shot` | `features: [{title, desc}]` ≤4, `frame: phone`, `screen` | empty frame: the user pastes a screenshot |
 | `funding-ask` | `amount`, `round`, `use: [{label, pct}]`, `milestones: [..]` | doughnut of use of funds |

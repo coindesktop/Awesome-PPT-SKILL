@@ -31,7 +31,7 @@ def p_pillars(ctx, spec):
     gap = 0.35
     cw = (w - gap * (n - 1)) / n
     need = max(text_height(_lines(i.get("desc")), cw - 0.6, pt, gap_pt=6) for i in items) if items else 0
-    ch = min(h, max(3.2, need + 2.5))
+    ch = min(h, max(3.2, need + 2.5, h * 0.8))  # cards use most of the body
     for k, it in enumerate(items):
         cx = x + k * (cw + gap)
         card(ctx, slide, cx, y, cw, ch)
@@ -41,7 +41,11 @@ def p_pillars(ctx, spec):
         text(ctx, slide, cx + 0.3, y + 0.35, cw - 0.6, 0.8, [head], hp, c["accent"], bold=True, min_pt=hp)
         text(ctx, slide, cx + 0.3, y + 1.2, cw - 0.6, 0.85, [it.get("title", "")], 20, c["ink"], bold=True, min_pt=15)
         if it.get("desc"):
-            text(ctx, slide, cx + 0.3, y + 2.1, cw - 0.6, ch - 2.3, _lines(it["desc"]), pt, c["body"], gap=6)
+            text(ctx, slide, cx + 0.3, y + 2.1, cw - 0.6, ch - 2.3 - (0.6 if it.get("note") else 0), _lines(it["desc"]),
+                 pt, c["body"], gap=6)
+        if it.get("note"):  # a proof point pinned to the card bottom (e.g. "도입 기관 평균 63% 감소")
+            hline(slide, cx + 0.3, y + ch - 0.7, cw - 0.6, c["line"])
+            text(ctx, slide, cx + 0.3, y + ch - 0.6, cw - 0.6, 0.45, [_s(it["note"])], 13, c["accent"], bold=True, min_pt=10)
 
 
 def _initials(name):
@@ -65,7 +69,8 @@ def p_team(ctx, spec):
     avail = h - (0.6 if adv else 0)
     d = 0.9
     need = max((text_height(_lines(m.get("bio")), cw - 0.6, pt, gap_pt=4) for m in people), default=0)
-    rh = min(avail / max(rows, 1) - (gap if rows > 1 else 0), 0.3 + d + 0.3 + need + 0.3)
+    rh = min(avail / max(rows, 1) - (gap if rows > 1 else 0),
+             max(0.3 + d + 0.3 + need + 0.3 + (0.6 if any(m.get("note") for m in people) else 0), avail * 0.7 / max(rows, 1)))
     for k, m in enumerate(people):
         cx, cy = x + (k % cols) * (cw + gap), y + (k // cols) * (rh + gap)
         card(ctx, slide, cx, cy, cw, rh)
@@ -80,7 +85,10 @@ def p_team(ctx, spec):
         if bio:
             by = cy + 0.3 + d + 0.25
             hline(slide, cx + 0.3, by - 0.1, cw - 0.6, c["line"])
-            text(ctx, slide, cx + 0.3, by, cw - 0.6, cy + rh - by - 0.15, bio, pt, c["body"], gap=4)
+            text(ctx, slide, cx + 0.3, by, cw - 0.6, cy + rh - by - 0.15 - (0.6 if m.get("note") else 0), bio, pt,
+                 c["body"], gap=4)
+        if m.get("note"):  # why this person, in one line, at the card bottom
+            text(ctx, slide, cx + 0.3, cy + rh - 0.6, cw - 0.6, 0.45, [_s(m["note"])], 13, c["accent"], bold=True, min_pt=10)
     if adv:  # right under the cards, so a short team does not leave the advisors stranded at the bottom
         ay = y + rows * rh + (rows - 1) * gap + 0.3
         text(ctx, slide, x, ay, w, 0.4, ["자문  " + " · ".join(_lines(adv))], 13, c["muted"])
@@ -119,7 +127,7 @@ def p_pricing(ctx, spec):
     cw = min((w - gap * (n - 1)) / n, 3.9)
     x0 = x + (w - (cw * n + gap * (n - 1))) / 2
     need = max(text_height(["✓ " + f for f in _lines(t.get("features"))], cw - 0.6, pt, gap_pt=6) for t in tiers) if tiers else 0
-    ch = min(h, need + 2.6)
+    ch = min(h, max(need + 2.6, h * 0.8))
     for k, t in enumerate(tiers):
         cx = x0 + k * (cw + gap)
         hl = t.get("highlight")

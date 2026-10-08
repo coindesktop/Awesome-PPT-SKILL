@@ -74,7 +74,7 @@ def p_compare_table(ctx, spec):
     c = ctx.c
     opts, crit, rec = spec.get("options", []), spec.get("criteria", []), spec.get("recommend")
     nr, nc = len(crit) + 1, len(opts) + 1
-    rh = min(0.62, h / nr)
+    rh = min(0.85, h / nr)  # rows grow to use the body; a short table no longer leaves half the slide empty
     gt = slide.shapes.add_table(nr, nc, Inches(x), Inches(y), Inches(w), Inches(rh * nr))
     ctx.tables += 1
     tb = gt.table
@@ -247,13 +247,28 @@ def p_funnel(ctx, spec):
 
 
 def p_big_number(ctx, spec):
+    """One headline number; with `points` the right side explains it in 2-3 cards."""
     slide, (x, y, w, h) = content_slide(ctx, spec)
     c = ctx.c
-    text(ctx, slide, x, y + 0.4, w * 0.75, 2.2, [str(spec["figure"])], 110, c["accent"], bold=True, min_pt=60)
+    pts = [p if isinstance(p, dict) else {"title": _s(p)} for p in spec.get("points", [])][:3]
+    lw = w * 0.46 if pts else w * 0.75
+    text(ctx, slide, x, y + 0.4, lw, 2.2, [str(spec["figure"])], 110, c["accent"], bold=True, min_pt=54)
     if spec.get("label"):
-        text(ctx, slide, x, y + 2.7, w * 0.75, 0.6, [spec["label"]], 22, c["ink"], bold=True)
+        text(ctx, slide, x, y + 2.7, lw, 0.6, [spec["label"]], 22, c["ink"], bold=True, min_pt=16)
     if spec.get("support"):
-        text(ctx, slide, x, y + 3.35, w * 0.7, 1.2, [spec["support"]], 16, c["body"])
+        text(ctx, slide, x, y + 3.35, lw - 0.2, 1.4, [spec["support"]], 16, c["body"])
+    if pts:
+        gap, px = 0.25, x + w * 0.5
+        ph = (h - gap * (len(pts) - 1)) / len(pts)
+        for k, p in enumerate(pts):
+            py = y + k * (ph + gap)
+            card(ctx, slide, px, py, w * 0.5, ph)
+            box(slide, px, py, 0.07, ph, fill=c["accent"])
+            text(ctx, slide, px + 0.35, py + 0.2, w * 0.5 - 0.6, 0.45, [p.get("title", "")], 18, c["ink"], bold=True,
+                 min_pt=13)
+            if p.get("desc"):
+                text(ctx, slide, px + 0.35, py + 0.7, w * 0.5 - 0.6, ph - 0.85, [_s(p["desc"])],
+                     ctx.tone["density"]["body_pt"] - 1, c["body"])
 
 
 def p_market_size(ctx, spec):
@@ -280,7 +295,7 @@ NEW = {
     "swot": (p_swot, {"swot"}), "compare-table": (p_compare_table, {"options", "criteria", "recommend", "corner"}),
     "logic-tree": (p_logic_tree, {"root", "branches"}), "roadmap": (p_roadmap, {"phases", "lanes", "now"}),
     "gantt": (p_gantt, {"tasks", "data"}), "funnel": (p_funnel, {"stages", "callout", "callout_title"}),
-    "big-number": (p_big_number, {"figure", "label", "support"}), "market-size": (p_market_size, {"tam", "sam", "som"}),
+    "big-number": (p_big_number, {"figure", "label", "support", "points"}), "market-size": (p_market_size, {"tam", "sam", "som"}),
 }
 for name, (fn, keys) in NEW.items():
     PATTERNS[name], KEYS[name] = fn, keys

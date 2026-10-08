@@ -56,7 +56,10 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
    CAGR are printed; `--pct row|col` gives shares, `--pct growth` the change vs the previous period;
    `--where year=2025,2026` filters, `--group 수도권=서울,경기,인천` merges rows (combined shares);
    `--agg wmean --weight <col>` gives weighted averages (e.g. revenue-weighted margin) with weighted totals.
-   Do not do arithmetic on pivot output yourself.
+   `--pct diff` gives net adds. Do not do arithmetic on pivot output yourself.
+   For a pitch, derived metrics persuade: growth rate, net adds, revenue per customer, ARR. Get growth and net
+   adds from pivot (`--pct growth`, `--pct diff`); a plain unit conversion like ARR = MRR×12 is fine if the
+   slide says how it was derived.
 6. **Deck** - complete `deck.md` per [references/deck-spec.md](references/deck-spec.md). Titles are conclusion
    sentences backed by numbers you got from pptkit. Pick patterns by the order below and vary them; when a
    slide holds one chart, prefer `chart-table` or `chart-pair` if a second view adds information.
