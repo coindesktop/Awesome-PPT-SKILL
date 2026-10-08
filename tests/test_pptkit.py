@@ -47,7 +47,7 @@ def test_example_deck_builds_native_and_passes_qa():
     report = render.build(ROOT / "examples/sales-report/deck.md", out)
     assert report.startswith("OK 20 slides, 5 charts, 3 tables") and "WARN" not in report, report
     prs = Presentation(out)
-    assert sum(s.has_chart for sl in prs.slides for s in sl.shapes) == 5
+    assert sum(s.has_chart for sl in prs.slides for s in sl.shapes) == 9  # 5 charts + 4 KPI sparklines
     assert qa.check(out) == []
     sample = render.build(ROOT / "examples/sales-report/deck.md", out.with_name("s.pptx"), sample=True)
     assert sample.startswith("OK 2 slides, 1 charts"), sample
