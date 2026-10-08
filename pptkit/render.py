@@ -3,6 +3,7 @@ import math
 import re
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import yaml
 from lxml import etree
@@ -116,6 +117,8 @@ class Ctx:
         self.st = {"header": "plain", "chart": "neutral", "table_head": "card", "callout": "card", "kpi": "plain",
                    **tone.get("style", {})}
         self.sections = []
+        extra = ["E87BA4", "008300", "4A3AA7", "E34948", "8A919C"]
+        self.series = list(tone["series"]) + [e for e in extra if e not in tone["series"]]
         self.warnings, self.page, self.charts, self.tables = [], 0, 0, 0
         self.section = meta.get("eyebrow", "")
         self.template = bool(tone.get("template"))
@@ -175,6 +178,9 @@ def card(ctx, slide, x, y, w, h, fill=None, line=None, line_pt=None):
 
 def hline(slide, x, y, w, color, pt=0.75):
     ln = slide.shapes.add_connector(MSO_CONNECTOR.STRAIGHT, Inches(x), Inches(y), Inches(x + w), Inches(y))
+    st = ln._element.find(qn("p:style"))
+    if st is not None:
+        ln._element.remove(st)  # theme effects render as a thick blurred bar in some viewers
     ln.line.color.rgb, ln.line.width = rgb(color), Pt(pt)
     return ln
 
@@ -399,7 +405,7 @@ def p_cover(ctx, spec):
         top = 2.55 - max(0, th - 1.9) / 2  # long titles grow both ways; the subtitle follows the title
         for ph, (x, y, w, h) in ((ttl, (0.9, top, tw, th)), (st, (0.9, top + th + 0.1, tw, 0.8))):
             ph.left, ph.top, ph.width, ph.height = Inches(x), Inches(y), Inches(w), Inches(h)
-    if spec.get("eyebrow") or ctx.meta.get("eyebrow"):  # sits just above the (possibly moved) title
+    if (spec.get("eyebrow") or ctx.meta.get("eyebrow")) and (spec.get("eyebrow") or ctx.meta.get("eyebrow")) != spec["title"]:
         ey = ttl.top / 914400 - 0.45
         if ey > 0.2:
             text(ctx, slide, ttl.left / 914400, ey, 8, 0.4, [spec.get("eyebrow") or ctx.meta["eyebrow"]], 14,
@@ -597,23 +603,23 @@ def p_matrix(ctx, spec):
     c = ctx.c
     notes = spec.get("callout")
     side = min(h - 0.45, (w * 0.62 if notes else w) - 0.7)
-    ox, oy = x + 0.6, y
+    mw = (w * 0.6 if notes else w) - 0.4  # wide quadrants: labels have room, the slide is used
+    ox, oy = x + 0.2, y + 0.35
+    side = min(side, h - 0.8)
     q = spec.get("quadrants", ["", "", "", ""])  # TL, TR, BL, BR
     for i, (qx, qy) in enumerate(((0, 0), (1, 0), (0, 1), (1, 1))):
-        box(slide, ox + qx * side / 2, oy + qy * side / 2, side / 2, side / 2,
+        box(slide, ox + qx * mw / 2, oy + qy * side / 2, mw / 2, side / 2,
             fill=c["card"] if i == 1 else c["surface"], line=c["line"])
         ly = oy + 0.1 if qy == 0 else oy + side - 0.5  # names on the outer edge; items cluster mid-quadrant
-        text(ctx, slide, ox + qx * side / 2 + 0.12, ly, side / 2 - 0.24, 0.4, [q[i]], 12,
+        text(ctx, slide, ox + qx * mw / 2 + 0.12, ly, mw / 2 - 0.24, 0.4, [q[i]], 12,
              c["accent"] if i == 1 else c["muted"], bold=True, align=PP_ALIGN.RIGHT if qx else PP_ALIGN.LEFT)
-    text(ctx, slide, ox, oy + side + 0.05, side, 0.35, [f"{spec.get('x_axis', '')} →"], 12, c["muted"], align=PP_ALIGN.RIGHT)
-    lbl = text(ctx, slide, ox - 0.25 - side / 2, oy + side / 2 - 0.18, side, 0.36, [f"{spec.get('y_axis', '')} →"], 12,
-               c["muted"], align=PP_ALIGN.RIGHT)
-    lbl.rotation = 270
+    text(ctx, slide, ox, oy + side + 0.05, mw, 0.35, [f"{spec.get('x_axis', '')} →"], 12, c["muted"], align=PP_ALIGN.RIGHT)
+    text(ctx, slide, ox, oy - 0.35, mw, 0.32, [f"↑ {spec.get('y_axis', '')}"], 12, c["muted"])
     band = 0.6 / side  # keep dots out of the quadrant-name bands at the top and bottom edges
     for it in spec.get("items", []):
         fx = min(max(float(it["x"]), 0.05), 0.95)
         fy = min(max(float(it["y"]), band + 0.03), 1 - band - 0.03)
-        px, py = ox + fx * side, oy + (1 - fy) * side
+        px, py = ox + fx * mw, oy + (1 - fy) * side
         box(slide, px - 0.11, py - 0.11, 0.22, 0.22, fill=c["accent"], shape=MSO_SHAPE.OVAL)
         lw = min(2.6, text_width(it["label"], 12) / 0.92 + 0.2)
         lx = px + 0.15 if fx <= 0.7 else px - 0.15 - lw
@@ -621,6 +627,10 @@ def p_matrix(ctx, spec):
              align=PP_ALIGN.LEFT if fx <= 0.7 else PP_ALIGN.RIGHT)
     if notes:
         _callout(ctx, slide, x + w * 0.64, y, w * 0.36, h, spec.get("callout_title", ctx.tone.get("callout_title", "시사점")), notes)
+
+
+def _lines_of(v):
+    return [_s(x) for x in v] if isinstance(v, list) else [_s(v)]
 
 
 def p_process(ctx, spec):
@@ -637,11 +647,17 @@ def p_process(ctx, spec):
                   line=None if hl else c["line"], shape=MSO_SHAPE.OVAL)
         text(ctx, slide, 0, 0, 0.8, 0.8, [f"{i + 1}"], 20, "FFFFFF" if hl else c["accent"], bold=True,
              align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, shape=dot)
-        text(ctx, slide, cx - sw / 2 + 0.15, cy + 0.6, sw - 0.3, 0.5, [s["title"]], 17, c["ink"], bold=True,
-             align=PP_ALIGN.CENTER, min_pt=12)
+        ch = max(2.2, (y + h * 0.88) - (cy + 0.6))  # each step sits on a card that reaches down the body
+        card(ctx, slide, cx - sw / 2 + 0.1, cy + 0.6, sw - 0.2, ch, fill=c["surface"] if hl else None,
+             line=c["accent"] if hl else None, line_pt=1.75 if hl else None)
+        text(ctx, slide, cx - sw / 2 + 0.2, cy + 0.8, sw - 0.4, 0.5, [s["title"]], 17, c["accent"] if hl else c["ink"],
+             bold=True, align=PP_ALIGN.CENTER, min_pt=12)
         if s.get("desc"):
-            text(ctx, slide, cx - sw / 2 + 0.2, cy + 1.15, sw - 0.4, h - 1.8, [s["desc"]],
-                 ctx.tone["density"]["body_pt"] - 1, c["body"], align=PP_ALIGN.CENTER)
+            text(ctx, slide, cx - sw / 2 + 0.25, cy + 1.4, sw - 0.5, ch - 1.0 - (0.5 if s.get("note") else 0),
+                 _lines_of(s["desc"]), ctx.tone["density"]["body_pt"] - 1, c["body"], align=PP_ALIGN.CENTER, gap=4)
+        if s.get("note"):  # duration, owner or output of the step, at the card bottom
+            text(ctx, slide, cx - sw / 2 + 0.2, cy + 0.6 + ch - 0.55, sw - 0.4, 0.4, [_s(s["note"])], 12, c["accent"],
+                 bold=True, align=PP_ALIGN.CENTER, min_pt=10)
 
 
 def p_timeline(ctx, spec):
@@ -670,7 +686,12 @@ def p_kpi(ctx, spec):
     tw = (w - gap * (len(kpis) - 1)) / max(len(kpis), 1)
     sp = 0.85 if any(k.get("spark") for k in kpis) else 0  # room for a sparkline under the delta
     th = min(h, (2.9 if any(k.get("note") for k in kpis) else 2.4) + sp)
-    if not spec.get("callout"):
+    if spec.get("callout"):
+        th = min(th, h - 1.7)  # the callout below always keeps at least 1.4in
+        if th < 2.3:
+            sp, th = 0, min(h - 1.7, 2.4)
+            ctx.warn("kpi-tiles: sparklines dropped to leave room for the callout (or move the callout to `message:`)")
+    else:
         th = max(th, min(h, 3.4))  # tiles take the body when nothing sits below them
     for i, k in enumerate(kpis):
         cx = x + i * (tw + gap)
@@ -679,7 +700,7 @@ def p_kpi(ctx, spec):
             box(slide, cx, y, tw, 0.07, fill=c["accent"] if i == 0 else mix(c["bg"], c["accent"], 0.45))
         text(ctx, slide, cx + 0.28, y + 0.25, tw - 0.56, 0.4, [k["label"]], 13, c["muted"], bold=True)
         vpt = ty["metric"]
-        while vpt > 20 and text_width(str(k["value"]), vpt) > (tw - 0.56) * 0.9:
+        while vpt > 18 and text_width(str(k["value"]), vpt) > (tw - 0.56) * 0.78:
             vpt -= 2  # a value stays on one line: shrink it rather than wrap "월 49만 원"
         text(ctx, slide, cx + 0.28, y + 0.7, tw - 0.56, 1.0, [str(k["value"])], vpt, c["accent"], bold=True, min_pt=vpt)
         if k.get("delta"):
@@ -687,9 +708,9 @@ def p_kpi(ctx, spec):
             down = d.startswith(("-", "▼"))
             good = down if k.get("good") == "down" else not down
             arrow = "▼" if down else "▲"  # icon + label, never color alone
-            text(ctx, slide, cx + 0.28, y + 1.72, tw - 0.56, 0.42, [f"{arrow} {d.lstrip('-▲▼ ')}"], 15,
+            text(ctx, slide, cx + 0.28, y + 1.72, tw - 0.56, 0.42, [f"{arrow} {d.lstrip('▲▼ ')}"], 15,
                  c["positive"] if good else c["negative"], bold=True)
-        if k.get("spark"):
+        if k.get("spark") and sp:
             _spark(ctx, slide, cx + 0.2, y + 2.15, tw - 0.4, 0.75, k["spark"], i == 0)
         if k.get("note"):
             text(ctx, slide, cx + 0.28, y + 2.2 + sp, tw - 0.56, th - 2.3 - sp, [k["note"]], 12, c["muted"])
@@ -743,7 +764,11 @@ def p_chart_table(ctx, spec):
         tbl["증감률"] = tbl.iloc[:, 0].pct_change() * 100
     tbl.index.name = _label(ctx, spec, spec["x"])
     th = min(h - 0.3, 0.42 * (len(tbl) + 1))
+    if spec.get("takeaways"):
+        th = min(th, max(h - 1.9, 0.26 * (len(tbl) + 1)))  # leave the takeaways their room; rows get tighter
     _table(ctx, slide, x + w * 0.6, y + 0.3, w * 0.4, th, tbl, tbl, False, False, spec, pct_cols=["증감률"])
+    if spec.get("takeaways") and h - th - 0.6 <= 1.0:
+        ctx.warn("chart-table: no room for takeaways under the table (fewer rows via `where`, or use chart-takeaway)")
     if spec.get("takeaways") and h - th - 0.6 > 1.0:
         text(ctx, slide, x + w * 0.6, y + th + 0.55, w * 0.4, h - th - 0.6, spec["takeaways"],
              ctx.tone["density"]["body_pt"] - 1, ctx.c["ink"], bullets=True, gap=6)
@@ -838,8 +863,22 @@ def _chart(ctx, slide, x, y, w, h, spec):
     ca.tick_labels.font.color.rgb = rgb(c["body"])
     ca.major_tick_mark = va.major_tick_mark = XL_TICK_MARK.NONE
     plot = ch.plots[0]
-    series_c = [c["accent"]] if single else ctx.tone["series"]  # one series = the design accent
-    hl = str(spec["highlight"]) if spec.get("highlight") is not None else None
+    series_c = [c["accent"]] if single else ctx.series  # one series = the design accent
+    hls = spec.get("highlight")
+    hls = {str(v) for v in (hls if isinstance(hls, list) else [hls])} if hls is not None else set()
+    hl = next(iter(hls)) if hls else None
+    names = [_label(ctx, spec, col) for col in wide.columns]
+    if not single and hls & (set(names) | {str(col) for col in wide.columns}):  # emphasise one series, mute the rest
+        series_c = [c["accent"] if (n in hls or str(col) in hls) else mix(c["bg"], c["muted"], 0.55)
+                    for n, col in zip(names, wide.columns)]
+    if kind == "line-trend" or spec.get("ymin") is not None:
+        lo_, hi_ = float(np.nanmin(wide.values)), float(np.nanmax(wide.values))
+        ymin = spec.get("ymin")
+        if ymin is None and kind == "line-trend" and lo_ > 0 and lo_ > 0.45 * hi_:
+            step = 10 ** math.floor(math.log10(max(hi_ - lo_, 1e-9)))
+            ymin = math.floor(lo_ * 0.95 / step) * step
+        if ymin is not None:
+            va.minimum_scale = float(ymin)
     if kind == "line-trend":
         for i, s in enumerate(plot.series):
             col = series_c[i % len(series_c)]
@@ -864,10 +903,16 @@ def _chart(ctx, slide, x, y, w, h, spec):
             s.format.fill.solid()
             s.format.fill.fore_color.rgb = rgb(col)
             s.format.line.color.rgb, s.format.line.width = rgb(c["bg"]), Pt(1.5)  # surface gap between segments
-            dl = s.data_labels
-            dl.show_value, dl.position = True, XL_LABEL_POSITION.CENTER
-            dl.number_format, dl.number_format_is_linked = fmt, False
-            dl.font.size, dl.font.color.rgb = Pt(11), rgb("FFFFFF" if dark_color(col) else "1A1A1A")
+            totals = wide.sum(axis=1).replace(0, np.nan)
+            for j, v in enumerate(wide.iloc[:, i]):
+                share = (v / totals.iloc[j]) if pd.notna(v) and pd.notna(totals.iloc[j]) else 0
+                if share < 0.07 or (len(wide) > 8 and j != len(wide) - 1):
+                    continue  # a label that cannot fit is worse than none; the table/legend carry it
+                dl = s.points[j].data_label
+                dl.has_text_frame = True
+                dl.text_frame.text = _fmt_num(v, fmt) if fmt != "0%" else f"{v:.0%}"
+                dl.position = XL_LABEL_POSITION.CENTER
+                dl.font.size, dl.font.color.rgb = Pt(11), rgb("FFFFFF" if dark_color(col) else "1A1A1A")
         return wide
     if not single:
         plot.overlap = -10
@@ -885,7 +930,7 @@ def _chart(ctx, slide, x, y, w, h, spec):
         s.format.fill.fore_color.rgb = rgb(series_c[i % len(series_c)])
         if single and hl:  # one accent: the highlighted point keeps the color, the rest go neutral
             for j, cat in enumerate(wide.index):
-                if str(cat) != hl:
+                if str(cat) not in hls:
                     pf = s.points[j].format.fill
                     pf.solid()
                     pf.fore_color.rgb = rgb(mix(c["bg"], c["accent"], 0.38) if ctx.st["chart"] == "tint"
@@ -984,10 +1029,10 @@ def _table(ctx, slide, x, y, w, h, part, body, heat, has_total, spec, pct_cols=(
             if is_total or col == "합계":
                 fill = c["card"]
             elif heat and vmax > vmin and col not in pct_cols:
-                k = (float(v) - vmin) / (vmax - vmin)
+                k = float((numeric.values.ravel() < float(v)).mean())  # percentile among the cells
                 fill = mix(c["surface"], c["accent"], 0.08 + 0.72 * k)
                 color = "FFFFFF" if k > 0.62 else c["ink"]
-            val = "" if pd.isna(v) else (f"{v:+.1f}%" if col in pct_cols else _fmt_num(v, fmt))
+            val = ("-" if col in pct_cols else "") if pd.isna(v) else (f"{v:+.1f}%" if col in pct_cols else _fmt_num(v, fmt))
             ce = cell(i, j, val, fill, color, is_total or col == "합계")
             _border(ce, "B", c["line"], 0.75)
             if is_total:
@@ -1117,7 +1162,8 @@ def build(md_path, out=None, sample=False, design=None):
     tone = load_tone(meta, base)
     if sample:  # tone check: cover + first data-bearing (or first content) slide
         rest = [s for s in slides if s["pattern"] not in ("cover", "section")]
-        pick = next((s for s in rest if _has_data(s)), rest[0] if rest else None)
+        pick = next((s for s in rest if "chart" in s or "charts" in s or "rows" in s),
+                    next((s for s in rest if _has_data(s)), rest[0] if rest else None))
         slides = [s for s in slides if s["pattern"] == "cover"][:1] + ([pick] if pick else [])
     ctx = Ctx(new_deck(tone), tone, meta, base)
     ctx.sections = [s["title"] for s in slides if s["pattern"] == "section"]

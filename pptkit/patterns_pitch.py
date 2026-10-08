@@ -67,7 +67,9 @@ def p_team(ctx, spec):
     cw = (w - gap * (cols - 1)) / cols
     adv = spec.get("advisors")
     avail = h - (0.6 if adv else 0)
-    d = 0.9
+    d = 0.9 if rows == 1 else 0.6
+    if rows > 1:
+        pt -= 2  # two rows of people: tighter type so bios fit
     need = max((text_height(_lines(m.get("bio")), cw - 0.6, pt, gap_pt=4) for m in people), default=0)
     rh = min(avail / max(rows, 1) - (gap if rows > 1 else 0),
              max(0.3 + d + 0.3 + need + 0.3 + (0.6 if any(m.get("note") for m in people) else 0), avail * 0.7 / max(rows, 1)))
@@ -79,8 +81,8 @@ def p_team(ctx, spec):
              align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, shape=dot, min_pt=12)
         tx = cx + 0.3 + d + 0.2
         text(ctx, slide, tx, cy + 0.3, cx + cw - tx - 0.2, 0.45, [m.get("name", "")], 20, c["ink"], bold=True, min_pt=14)
-        text(ctx, slide, tx, cy + 0.78, cx + cw - tx - 0.2, 0.38, [m.get("role", "")], 14, c["accent"], bold=True,
-             min_pt=11)
+        text(ctx, slide, tx, cy + 0.3 + (0.48 if rows == 1 else 0.36), cx + cw - tx - 0.15, 0.38, [m.get("role", "")], 14,
+             c["accent"], bold=True, min_pt=9)
         bio = _lines(m.get("bio"))
         if bio:
             by = cy + 0.3 + d + 0.25
@@ -107,7 +109,9 @@ def p_traction(ctx, spec):
             mx = x + k * mw
             if k:
                 box(slide, mx, y + 0.1, 0.02, 1.25, fill=c["line"])
-            text(ctx, slide, mx + (0.3 if k else 0), y, mw - 0.4, 1.15, [str(m["value"])], vp, c["accent"], bold=True,
+            neg = str(m["value"]).strip().startswith(("-", "▼", "−")) != (m.get("good") == "down")
+            text(ctx, slide, mx + (0.3 if k else 0), y, mw - 0.4, 1.15, [str(m["value"])], vp,
+                 c["negative"] if neg and str(m["value"]).strip()[:1] in "-▼−" else c["accent"], bold=True,
                  min_pt=vp, anchor=MSO_ANCHOR.BOTTOM)
             text(ctx, slide, mx + (0.3 if k else 0), y + 1.15, mw - 0.4, 0.4, [m.get("label", "")], 14, c["muted"])
         top = 1.8
@@ -211,7 +215,7 @@ def p_funding_ask(ctx, spec):
     ctx.charts += 1
     _no_fill(ch)
     ch.has_legend, ch.has_title = False, False
-    cols = [c["accent"]] + [s for s in ctx.tone["series"] if s.upper() != c["accent"].upper()]
+    cols = [c["accent"]] + [s for s in ctx.series if s.upper() != c["accent"].upper()]
     for k, point in enumerate(ch.plots[0].series[0].points):
         point.format.fill.solid()
         point.format.fill.fore_color.rgb = rgb(cols[k % len(cols)])

@@ -145,7 +145,7 @@ def main(argv=None):
         if a.pct:
             print({"growth": "% change vs previous row", "diff": "change vs previous row (same unit)"}.get(
                 a.pct, f"% {a.pct} shares"))
-        print(data.smart_round(pv, bool(a.pct)).to_string(max_rows=15, na_rep="-"))
+        print(data.smart_round(pv, a.pct in ("growth", "row", "col")).to_string(max_rows=15, na_rep="-"))
         rows_t = data.is_time([i for i in pv.index if i != "합계"])  # keep the total row when years run across
         g = data.growth_summary((pv.drop(index="합계", errors="ignore") if rows_t else pv).drop(columns="합계", errors="ignore")) \
             if a.agg == "sum" and not a.pct else None

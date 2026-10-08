@@ -30,7 +30,7 @@ paths are relative to deck.md. Unknown keys and overlong text produce `WARN` lin
 | `bullets-callout` | `bullets: [..]`, `callout: [..]`, `callout_title` | default pattern |
 | `compare` | `columns: [{title, items: [..]}]`, `recommend: 2` (1-based) | 2-3 columns |
 | `matrix-2x2` | `quadrants: [TL, TR, BL, BR]`, `x_axis`, `y_axis`, `items: [{label, x, y}]` 0..1, `callout` | |
-| `process` | `steps: [{title, desc}]`, `highlight: 3` | 3-5 steps |
+| `process` | `steps: [{title, desc, note}]`, `highlight: 3` | 3-5 steps; `note` = duration/output at the card bottom |
 | `timeline` | `events: [{when, label, now: true}]` | 4-7 events |
 | `kpi-tiles` | `kpis: [{label, value, delta, good: down, note, spark: [..]}]`, `callout`, `callout_title` | delta "-0.2%p" → ▼; spark = recent values |
 | `chart-takeaway` | chart keys + `takeaways: [..]` | |
@@ -38,7 +38,7 @@ paths are relative to deck.md. Unknown keys and overlong text produce `WARN` lin
 | `chart-pair` | `charts: [{subtitle, chart keys}, {...}]`, shared `data`/`unit` | two views side by side; % charts keep `%` |
 | `pivot-table` | `data`, `rows`, `cols`, `val`, `agg`, `weight`, `top`, `where`, `unit`, `max_rows` | totals + 기타 for sum |
 | `heatmap-table` | same as pivot-table | needs `pattern: heatmap-table` |
-| `closing` | `ask`, `support`, `next: [{t, who, when}]` | headline is `ask`; write a short `# 요청 사항` label (shown above it) |
+| `closing` | `ask`, `support`, `next: [{t, who, when}]` | headline is `ask`; a short `# 요청 사항` is the label above it (`eyebrow:` replaces it) |
 | `two-column` | `columns: [{title, items}, {title, items}]` | must set `pattern: two-column` (else `compare`) |
 | `before-after` | `before: {title, items}`, `after: {title, items}` | |
 | `problem-solution` | `problems: [..]`, `solutions: [..]`, `problem_title`, `solution_title` | |
@@ -46,7 +46,7 @@ paths are relative to deck.md. Unknown keys and overlong text produce `WARN` lin
 | `swot` | `swot: {S: [..], W: [..], O: [..], T: [..]}` | |
 | `logic-tree` | `root`, `branches: [{label, leaves: [..]}]` | issue tree / cause breakdown |
 | `roadmap` | `phases: [..]`, `lanes: [{name, cells: [..]}]`, `now: 1` | phases × workstreams |
-| `gantt` | `tasks: [{name, start, end, owner}]` or `data:` csv with those columns | dates `2026-10-01`; must set `pattern: gantt` with data |
+| `gantt` | `tasks: [{name, start, end, owner, baseline_end}]` or `data:` csv, `asof` | dates `2026-10-01`; must set `pattern: gantt` with data; `asof` (default: deck `date`) draws the now line and colours done/live/next; `baseline_end` shows the planned end as an outline |
 | `funnel` | `stages: [{label, value}]`, `callout` | conversion % computed |
 | `big-number` | `figure`, `label`, `support`, `points: [{title, desc}]` ≤3 | one headline number; `points` explain it in cards on the right |
 | `market-size` | `tam/sam/som: {value, label}` | |
@@ -55,7 +55,7 @@ paths are relative to deck.md. Unknown keys and overlong text produce `WARN` lin
 | `team` | `members: [{name, role, bio: [..], note}]` ≤8, `advisors: [..]` | initials badge; `note` = why this person |
 | `pricing` | `tiers: [{name, price, unit, for, features: [..], highlight: true, badge}]` ≤4 | |
 | `product-shot` | `features: [{title, desc}]` ≤4, `frame: phone`, `screen` | empty frame: the user pastes a screenshot |
-| `funding-ask` | `amount`, `round`, `use: [{label, pct}]`, `milestones: [..]` | doughnut of use of funds |
+| `funding-ask` | `amount`, `round`, `use: [{label, pct}]`, `milestones: [..]`, `milestones_title`, `use_title` | doughnut of use of funds; retitle for grants (`사업비 집행 계획`) |
 
 Numbers the user typed (no file) go inline: `values: {2026-01: 1.2, 2026-02: 1.6}` or
 `values: {ARR: {...}, 고객사: {...}}` instead of `data`/`x`/`y`. Quote any value that contains a comma inside
@@ -64,7 +64,9 @@ Numbers the user typed (no file) go inline: `values: {2026-01: 1.2, 2026-02: 1.6
 ## Chart keys
 
 `chart`, `data`, `x`, `y`, `series` (long data → one series per value), `where: {year: 2026}`,
-`agg` (sum | mean | count | wmean), `weight` (for wmean), `highlight`, `top`, `unit`, `fmt: pct`.
+`agg` (sum | mean | count | wmean), `weight` (for wmean), `highlight` (a category, a list of them, or a series
+name on multi-series charts: the rest go muted), `top`, `unit`, `fmt: pct`, `ymin` (axis start; line charts far
+above zero start near the data automatically). Up to 8 series get distinct colours; more should fold into 기타.
 
 | chart | use | notes |
 |---|---|---|

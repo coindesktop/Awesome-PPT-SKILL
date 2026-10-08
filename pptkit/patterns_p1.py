@@ -9,6 +9,7 @@ from pptx.util import Inches
 from . import data
 from .render import (KEYS, PATTERNS, INFER, _callout, _s, box, card, content_slide, hline, mix, text, text_height,
                      text_width)
+from .render import rgb as _rgb
 
 
 def _items_h(ctx, items, w, pt):
@@ -21,6 +22,8 @@ def _arrow(ctx, slide, x, y, w=0.55, h=0.5):
 
 def _titled_list(ctx, slide, x, y, w, h, title, items, accent=False, filled=True):
     c, pt = ctx.c, ctx.tone["density"]["body_pt"]
+    if filled and h < ctx.body[3] - y - 0.2:  # short lists still get a card that reaches down the body
+        h = max(h, (ctx.body[3] - y) * 0.85)
     if filled:
         card(ctx, slide, x, y, w, h, fill=c["surface"] if accent else None, line=c["accent"] if accent else None,
              line_pt=1.75 if accent else None)
@@ -199,7 +202,7 @@ def p_gantt(ctx, spec):
         m = (m.replace(day=28) + dt.timedelta(days=4)).replace(day=1)
     end = months[-1].replace(day=28) + dt.timedelta(days=4)
     span = (end.replace(day=1) - lo).days or 1
-    nw = min(2.8, w * 0.25)
+    nw = min(3.4, w * 0.3)
     gx, gw = x + nw, w - nw
     for i, mo in enumerate(months):
         mx = gx + (mo - lo).days / span * gw
@@ -207,29 +210,44 @@ def p_gantt(ctx, spec):
         text(ctx, slide, mx, y, nxt - mx - 0.02, 0.35, [f"{mo.year % 100:02d}.{mo.month:02d}"], 11, c["muted"], bold=True)
         if i:
             box(slide, mx, y + 0.4, 0.01, h - 0.4, fill=c["line"])
-    rh = min(0.55, (h - 0.45) / max(len(t), 1))
-    today = dt.date.today()
+    rh = min(0.6, (h - 0.45) / max(len(t), 1))
+    asof = spec.get("asof") or ctx.meta.get("date")  # the deck's date, never the day it is built
+    asof = _date(asof) if asof else None
+    if asof and lo <= asof <= end:
+        nx = gx + (asof - lo).days / span * gw
+        box(slide, nx - 0.01, y + 0.38, 0.02, h - 0.38, fill=c["negative"])
+        text(ctx, slide, min(max(gx, nx - 0.6), x + w - 1.2), y + 0.38 + len(t) * rh, 1.2, 0.3, [f"기준 {asof.month}/{asof.day}"], 10, c["negative"],
+             bold=True, align=PP_ALIGN.CENTER)
     for i, r in enumerate(t):
         ry = y + 0.45 + i * rh
-        text(ctx, slide, x, ry, nw - 0.15, rh, [r["name"]], 13, c["ink"], anchor=MSO_ANCHOR.MIDDLE, min_pt=10)
+        owner = f"  {r['owner']}" if r.get("owner") and str(r.get("owner")) != "nan" else ""
+        tb = text(ctx, slide, x, ry, nw - 0.15, rh, [str(r["name"]) + owner], 13, c["ink"], anchor=MSO_ANCHOR.MIDDLE,
+                  min_pt=9)  # sized for name + owner together
+        if owner:  # owner beside the name in a muted run, in one place for every row
+            first = tb.text_frame.paragraphs[0].runs[0]
+            first.text = str(r["name"])
+            run = tb.text_frame.paragraphs[0].add_run()
+            run.text = owner
+            run.font.size, run.font.color.rgb = first.font.size, _rgb(c["muted"])
         bx = gx + (r["s"] - lo).days / span * gw
         bw = max(0.12, ((r["e"] - r["s"]).days + 1) / span * gw)
-        live = r["s"] <= today <= r["e"]
-        box(slide, bx, ry + rh * 0.22, bw, rh * 0.56, fill=c["accent"] if live else mix(c["bg"], c["accent"], 0.45),
-            radius=min(0.08, rh * 0.25))
-        if r.get("owner"):
-            right = bx + bw + 1.5 <= x + w  # room after the bar, else put the label before it
-            lx = bx + bw + 0.08 if right else max(gx, bx - 1.5)
-            text(ctx, slide, lx, ry, 1.4, rh, [str(r["owner"])], 11, c["muted"], anchor=MSO_ANCHOR.MIDDLE,
-                 align=PP_ALIGN.LEFT if right else PP_ALIGN.RIGHT)
+        base = r.get("baseline_end") or r.get("plan_end")
+        if base and str(base) != "nan":  # planned end as an outline: the slip is visible
+            be = _date(base)
+            box(slide, bx, ry + rh * 0.2, max(0.12, ((be - r["s"]).days + 1) / span * gw), rh * 0.6, line=c["muted"],
+                radius=min(0.08, rh * 0.25))
+        done = asof is not None and r["e"] < asof
+        live = asof is not None and r["s"] <= asof <= r["e"]
+        fill = c["accent"] if live else (mix(c["bg"], c["muted"], 0.45) if done else mix(c["bg"], c["accent"], 0.45))
+        box(slide, bx, ry + rh * 0.24, bw, rh * 0.52, fill=fill, radius=min(0.08, rh * 0.25))
 
 
 def p_funnel(ctx, spec):
     slide, (x, y, w, h) = content_slide(ctx, spec)
     c = ctx.c
     st = spec.get("stages", [])
-    fw = w * 0.62
-    sh = min(0.95, h / max(len(st), 1))
+    fw = w * (0.5 if spec.get("callout") else 0.72)
+    sh = min(1.1, h / max(len(st), 1))
     top = float(st[0]["value"]) if st else 1
     for i, s in enumerate(st):
         frac = 0.35 + 0.65 * (float(s["value"]) / top)
@@ -244,7 +262,8 @@ def p_funnel(ctx, spec):
             text(ctx, slide, x + fw + 0.3, y + i * sh + 0.05, 2.2, sh - 0.1, [f"→ {conv:.1f}%"], 15, c["accent"], bold=True,
                  anchor=MSO_ANCHOR.MIDDLE)
     if spec.get("callout"):
-        _callout(ctx, slide, x + fw + 2.6, y, w - fw - 2.6, h, spec.get("callout_title", "시사점"), spec["callout"])
+        _callout(ctx, slide, x + fw + 2.0, y, w - fw - 2.0, h,
+                 spec.get("callout_title", ctx.tone.get("callout_title", "시사점")), spec["callout"])
 
 
 def p_big_number(ctx, spec):
@@ -298,7 +317,7 @@ NEW = {
     "problem-solution": (p_problem_solution, {"problems", "solutions", "problem_title", "solution_title"}),
     "swot": (p_swot, {"swot"}), "compare-table": (p_compare_table, {"options", "criteria", "recommend", "corner"}),
     "logic-tree": (p_logic_tree, {"root", "branches"}), "roadmap": (p_roadmap, {"phases", "lanes", "now"}),
-    "gantt": (p_gantt, {"tasks", "data"}), "funnel": (p_funnel, {"stages", "callout", "callout_title"}),
+    "gantt": (p_gantt, {"tasks", "data", "asof"}), "funnel": (p_funnel, {"stages", "callout", "callout_title"}),
     "big-number": (p_big_number, {"figure", "label", "support", "points"}), "market-size": (p_market_size, {"tam", "sam", "som"}),
 }
 for name, (fn, keys) in NEW.items():

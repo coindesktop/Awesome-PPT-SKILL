@@ -162,6 +162,8 @@ def pivot(df, rows, cols=None, val=None, agg="sum", top=None, where=None, total=
     cols_timed = bool(cols) and is_time(p.columns)
     if cols_timed:
         p = p[sorted(p.columns, key=time_pos)]
+    elif cols:  # category columns (근속 1년 미만, 1~3년 ...) keep the file's order, not alphabetical
+        p = p[[c for c in dict.fromkeys(df[cols]) if c in p.columns]]
     timed = is_time(p.index)
     p = _order(p, timed, pct in ("growth", "diff"), first_seen)
     if top and len(p) > top and agg == "sum":

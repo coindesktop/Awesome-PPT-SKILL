@@ -93,6 +93,8 @@ eyebrow: 3. 성장 전략
 
 # 정부지원사업비 1억 원 중 65%를 외주용역과 인건비에 집중 투입
 pattern: funding-ask
+milestones_title: 협약 기간 성과 목표
+use_title: 사업비 집행
 amount: 1억 원
 round: 정부지원사업비 (협약 기간 8개월)
 use:
