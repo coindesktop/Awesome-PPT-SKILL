@@ -17,7 +17,7 @@ def _lines(v):
 
 def _fit(s, w, pt, floor=20):
     """Largest size <= pt at which s stays on one line in w inches."""
-    while pt > floor and text_width(str(s), pt) > w * 0.92:
+    while pt > floor and text_width(str(s), pt) > w * 0.8:  # bold display type runs ~15% wider than the estimate
         pt -= 2
     return pt
 
@@ -94,11 +94,11 @@ def p_traction(ctx, spec):
     top = 0
     if ms:
         mw = w / len(ms)
+        vp = min(_fit(m["value"], mw - 0.5, ctx.ty["metric"] + 8, 22) for m in ms)  # one size for the whole strip
         for k, m in enumerate(ms):
             mx = x + k * mw
             if k:
                 box(slide, mx, y + 0.1, 0.02, 1.25, fill=c["line"])
-            vp = _fit(m["value"], mw - 0.5, ctx.ty["metric"] + 8, 22)
             text(ctx, slide, mx + (0.3 if k else 0), y, mw - 0.4, 1.15, [str(m["value"])], vp, c["accent"], bold=True,
                  min_pt=vp, anchor=MSO_ANCHOR.BOTTOM)
             text(ctx, slide, mx + (0.3 if k else 0), y + 1.15, mw - 0.4, 0.4, [m.get("label", "")], 14, c["muted"])

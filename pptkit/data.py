@@ -147,6 +147,16 @@ def pivot(df, rows, cols=None, val=None, agg="sum", top=None, where=None, total=
     return p
 
 
+def period_name(values):
+    """CAGR is per year only for yearly data: months -> CMGR, quarters -> CQGR."""
+    v = [str(x) for x in values if is_time([x])]
+    if v and all(re.search(r"[-./]\d{1,2}$", x) for x in v):
+        return "CMGR (월 복리)"
+    if v and all("Q" in x for x in v):
+        return "CQGR (분기 복리)"
+    return "CAGR (연 복리)"
+
+
 def cagr(p):
     """Compound annual growth of each column from the first to the last time-like row (None if not time-like)."""
     idx = [i for i in p.index if is_time([i])]

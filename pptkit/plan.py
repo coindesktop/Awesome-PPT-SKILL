@@ -8,7 +8,7 @@ CAT = yaml.safe_load((HERE / "storylines.yaml").read_text(encoding="utf-8"))
 
 # Minimal body per pattern; every TODO must be replaced before build (build warns on leftovers).
 SKELETON = {
-    "cover": "pattern: cover\nsubtitle: TODO 한 줄 소개",
+    "cover": "pattern: cover\nsubtitle: TODO 한 줄 소개 (누구의 무슨 문제를 어떻게)",
     "big-number": "figure: TODO 숫자\nlabel: TODO 숫자가 뜻하는 것\nsupport: TODO 근거 한 문장",
     "key-message": "statement: TODO 한 문장\nsupport: TODO 근거",
     "pillars": "pillars:\n  - {title: TODO, desc: TODO}\n  - {title: TODO, desc: TODO}\n  - {title: TODO, desc: TODO}",

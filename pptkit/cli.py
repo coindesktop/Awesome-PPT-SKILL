@@ -123,6 +123,9 @@ def main(argv=None):
         print(data.summary(a.file))
     elif a.cmd == "pivot":
         df = data.load(a.file)
+        bad = [c for c in (a.rows, a.cols, a.val, a.weight) if c and c not in df.columns]
+        if bad:
+            raise SystemExit(f"unknown column(s) {bad}; one --val per call. columns: {', '.join(map(str, df.columns))}")
         where = {k: [data.coerce(df[k], v) for v in vs.split(",")] for k, _, vs in (w.partition("=") for w in a.where)}
         for g in a.group:
             name, _, members = g.partition("=")
@@ -134,7 +137,8 @@ def main(argv=None):
         g = data.cagr(pv.drop(columns="합계", errors="ignore")) \
             if a.agg == "sum" and not a.pct else None
         if g is not None:
-            print("CAGR % " + "  ".join(f"{k}={v:.1f}" for k, v in g.round(1).items()))
+            per = data.period_name(pv.index if data.is_time([i for i in pv.index if i != "합계"]) else pv.columns)
+            print(f"{per} % " + "  ".join(f"{k}={v:.1f}" for k, v in g.round(1).items()))
         if a.out:
             pv.to_csv(a.out, encoding="utf-8-sig")
             print(f"-> {a.out}")

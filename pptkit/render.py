@@ -196,7 +196,7 @@ def text(ctx, slide, x, y, w, h, paras, pt, color=None, bold=False, align=None, 
     """paras: list of str. Font size shrinks to fit (down to min_pt); still too long -> warning."""
     paras = [_s(p) for p in (paras if isinstance(paras, list) else [paras])]
     min_pt = min_pt or max(10, pt - 4)
-    tw = w - (0.24 if bullets else 0)
+    tw = (w - (0.24 if bullets else 0)) * (0.88 if bold and pt >= 24 else 1)  # big bold glyphs run wider
     size = pt
     while size > min_pt and text_height(paras, tw, size, gap_pt=gap) > h:
         size -= 1
@@ -365,30 +365,35 @@ def p_cover(ctx, spec):
             box(slide, cx - r, H / 2 - r, 2 * r, 2 * r, line=ring, shape=MSO_SHAPE.OVAL, line_pt=1)
         box(slide, cx - 0.16, H / 2 - 0.16, 0.32, 0.32, fill=c["accent"], shape=MSO_SHAPE.OVAL)
     elif cov.get("decor") == "orb":  # soft glow: accent-tinted discs, largest first, kept inside the slide
-        cx, cy = W - 3.0, H / 2 + 0.3
-        for r, t_ in ((2.85, 0.10), (2.15, 0.2), (1.45, 0.38), (0.75, 0.75)):
+        cx, cy = W - 2.6, H / 2 + 0.3
+        for r, t_ in ((2.5, 0.10), (1.9, 0.2), (1.3, 0.38), (0.68, 0.75)):
             box(slide, cx - r, cy - r, 2 * r, 2 * r, fill=mix(fill, "FFFFFF" if fill == c["accent"] else c["accent"], t_),
                 shape=MSO_SHAPE.OVAL)
     elif cov.get("decor") == "rule":
         box(slide, 0.9, 1.95, 0.9, 0.05, fill=c["accent"])
     ttl = slide.shapes.title
-    if spec.get("eyebrow") or ctx.meta.get("eyebrow"):
-        ey = 2.15 if not ctx.template else ttl.top / 914400 - 0.45
-        if ey > 0.2:
-            text(ctx, slide, 0.9 if not ctx.template else ttl.left / 914400, ey, 8, 0.4,
-                 [spec.get("eyebrow") or ctx.meta["eyebrow"]], 14, _label_on(c, fill), bold=True)
     st = next((ph for ph in slide.placeholders if ph.placeholder_format.idx == 1), None)
     if st is None:
         st = slide.shapes.add_textbox(Inches(0.9), Inches(4.55), Inches(7.6), Inches(0.8))
     if not ctx.template:
-        for ph, (x, y, w, h) in ((ttl, (0.9, 2.55, 7.6, 1.9)), (st, (0.9, 4.55, 7.6, 0.8))):
+        tw = 7.0 if cov.get("decor") in ("orb", "circles") else 11.5  # keep text clear of the artwork
+        th = min(3.0, max(1.9, text_height([spec["title"]], tw * 0.88, ty["cover"], spacing=1.05)))
+        top = 2.55 - max(0, th - 1.9) / 2  # long titles grow both ways; the subtitle follows the title
+        for ph, (x, y, w, h) in ((ttl, (0.9, top, tw, th)), (st, (0.9, top + th + 0.1, tw, 0.8))):
             ph.left, ph.top, ph.width, ph.height = Inches(x), Inches(y), Inches(w), Inches(h)
+    if spec.get("eyebrow") or ctx.meta.get("eyebrow"):  # sits just above the (possibly moved) title
+        ey = ttl.top / 914400 - 0.45
+        if ey > 0.2:
+            text(ctx, slide, ttl.left / 914400, ey, 8, 0.4, [spec.get("eyebrow") or ctx.meta["eyebrow"]], 14,
+                 _label_on(c, fill), bold=True)
     text(ctx, slide, 0, 0, ttl.width / 914400, ttl.height / 914400, [spec["title"]], ty["cover"], fg, bold=True, anchor=MSO_ANCHOR.TOP, shape=ttl,
          min_pt=28, align=PP_ALIGN.LEFT, spacing=1.05)
     if spec.get("subtitle"):
         text(ctx, slide, 0, 0, st.width / 914400, st.height / 914400, [spec["subtitle"]], 18, sub, shape=st, align=PP_ALIGN.LEFT)
     else:
         st._element.getparent().remove(st._element)
+    if spec.get("notes"):
+        slide.notes_slide.notes_text_frame.text = str(spec["notes"])
     meta = " · ".join(str(v) for v in (spec.get("date") or ctx.meta.get("date"),
                                        spec.get("author") or ctx.meta.get("author")) if v)
     if meta:
@@ -485,6 +490,8 @@ def p_closing(ctx, spec):
             text(ctx, slide, 8.6, cy + 0.1, 3.95, sh - 0.2, [s["t"]] + ([meta] if meta else []), 15, fg,
                  anchor=MSO_ANCHOR.MIDDLE, gap=2)
     text(ctx, slide, W - MX - 1, H - 0.5, 1, 0.3, [str(ctx.page)], ctx.ty["small"], sub, align=PP_ALIGN.RIGHT)
+    if spec.get("notes"):
+        slide.notes_slide.notes_text_frame.text = str(spec["notes"])
 
 
 # ---------- message patterns ----------
@@ -1053,6 +1060,9 @@ def build(md_path, out=None, sample=False, design=None):
     out = Path(out or md_path.with_suffix(".sample.pptx" if sample else ".pptx"))
     ctx.prs.save(out)
     head = f"OK {ctx.page} slides, {ctx.charts} charts, {ctx.tables} tables, design={tone['name']} -> {out}"
+    drafts = [i + 1 for i, s in enumerate(slides) if re.search(r"\(예시\)|\(가정\)", yaml.safe_dump(s, allow_unicode=True))]
+    if drafts:  # invented figures must not reach an audience unconfirmed
+        head += f"\nNOTE (예시)/(가정) figures on slide(s) {drafts}: tell the user to replace or confirm them before use"
     return "\n".join([head] + [f"WARN {w}" for w in ctx.warnings])
 
 
