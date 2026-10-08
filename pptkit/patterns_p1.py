@@ -7,7 +7,8 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches
 
 from . import data
-from .render import (KEYS, PATTERNS, INFER, _callout, _s, box, card, content_slide, hline, mix, text, text_height)
+from .render import (KEYS, PATTERNS, INFER, _callout, _s, box, card, content_slide, hline, mix, text, text_height,
+                     text_width)
 
 
 def _items_h(ctx, items, w, pt):
@@ -252,7 +253,10 @@ def p_big_number(ctx, spec):
     c = ctx.c
     pts = [p if isinstance(p, dict) else {"title": _s(p)} for p in spec.get("points", [])][:3]
     lw = w * 0.46 if pts else w * 0.75
-    text(ctx, slide, x, y + 0.4, lw, 2.2, [str(spec["figure"])], 110, c["accent"], bold=True, min_pt=54)
+    fp = 110
+    while fp > 54 and text_width(str(spec["figure"]), fp) > lw * 0.7:
+        fp -= 4  # the figure stays on one line
+    text(ctx, slide, x, y + 0.4, lw, 2.2, [str(spec["figure"])], fp, c["accent"], bold=True, min_pt=fp)
     if spec.get("label"):
         text(ctx, slide, x, y + 2.7, lw, 0.6, [spec["label"]], 22, c["ink"], bold=True, min_pt=16)
     if spec.get("support"):

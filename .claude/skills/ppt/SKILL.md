@@ -58,8 +58,8 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
    `--agg wmean --weight <col>` gives weighted averages (e.g. revenue-weighted margin) with weighted totals.
    `--pct diff` gives net adds. Do not do arithmetic on pivot output yourself.
    For a pitch, derived metrics persuade: growth rate, net adds, revenue per customer, ARR. Get growth and net
-   adds from pivot (`--pct growth`, `--pct diff`); a plain unit conversion like ARR = MRR×12 is fine if the
-   slide says how it was derived.
+   adds from pivot (`--pct growth`, `--pct diff`, multiples are printed), revenue per customer from
+   `--val mrr --per customers`; a plain unit conversion like ARR = MRR×12 is fine if the slide says so.
 6. **Deck** - complete `deck.md` per [references/deck-spec.md](references/deck-spec.md). Titles are conclusion
    sentences backed by numbers you got from pptkit. Pick patterns by the order below and vary them; when a
    slide holds one chart, prefer `chart-table` or `chart-pair` if a second view adds information.
@@ -97,7 +97,9 @@ Slide order comes from the storyline the user picked (`pptkit plan`), not from t
 
 ## Numbers you did not compute
 
-Only put numbers on slides that come from the user's files or from pptkit (`data`, `pivot`, `fetch`). Never
+Only put numbers on slides that come from the user's files or from pptkit (`data`, `pivot`, `fetch`). When a
+storyline step has no source (e.g. market size not ready), ask for it; if the user cannot supply it, delete
+that slide rather than fill it with `(예시)` placeholders (build lists any that remain). Never
 fill a chart with figures from memory or loose web snippets: they differ run to run. Public statistics:
 `pptkit fetch wb <indicator> --country KOR,JPN --years 2021-2025` needs no key (World Bank); if it reports the
 network is unreachable, ask the user to download the table as CSV (KOSIS, e-나라지표, 한국은행) and use

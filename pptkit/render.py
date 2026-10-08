@@ -1005,6 +1005,9 @@ def lint(ctx, spec):
     if spec["pattern"] not in ("cover", "section", "closing", "key-message") and \
             text_width(spec["title"], ctx.ty["title"]) > (W - 2 * MX) * 1.8:
         ctx.warn(f"title needs 3 lines ({len(spec['title'])}자): shorten it, move detail into `message:`")
+    figs = [bool(isinstance(i, dict) and i.get("figure")) for i in spec.get("pillars", [])]
+    if any(figs) and not all(figs):
+        ctx.warn("pillars: give every card a `figure` or none (mixed 01/02 numbering and figures look uneven)")
     split = _split_values(spec)
     if split:
         ctx.warn(f"value(s) split at a comma by YAML near {split[:3]}: quote them, e.g. value: \"2,400억 원\"")

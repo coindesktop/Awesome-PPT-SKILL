@@ -38,6 +38,7 @@ def main(argv=None):
     p.add_argument("--pct", choices=["row", "col", "growth", "diff"], help="shares within row/col, or %% change vs previous period")
     p.add_argument("--agg", default="sum", help="sum | mean | count | wmean (needs --weight)")
     p.add_argument("--weight", help="weight column for --agg wmean")
+    p.add_argument("--per", help="ratio: sum(val) / sum(per) per cell, e.g. --val mrr --per customers")
     p.add_argument("--top", type=int)
     p.add_argument("-o", "--out", help="also save the pivot as csv (nothing is written without it)")
 
@@ -130,12 +131,21 @@ def main(argv=None):
         for g in a.group:
             name, _, members = g.partition("=")
             df[a.rows] = df[a.rows].where(~df[a.rows].astype(str).isin(members.split(",")), name)
-        pv = data.pivot(df, a.rows, a.cols, a.val, a.agg, a.top, where=where, weight=a.weight, pct=a.pct)
+        if a.per:  # revenue per customer and similar ratios, computed per cell (not an average of ratios)
+            num = data.pivot(df, a.rows, a.cols, a.val, "sum", a.top, where=where)
+            den = data.pivot(df, a.rows, a.cols, a.per, "sum", a.top, where=where)
+            num.columns = den.columns = [f"{a.val}/{a.per}"] if not a.cols else num.columns
+            pv = num / den
+        else:
+            pv = data.pivot(df, a.rows, a.cols, a.val, a.agg, a.top, where=where, weight=a.weight, pct=a.pct)
         if a.pct:
             print({"growth": "% change vs previous period", "diff": "change vs previous period (same unit)"}.get(a.pct, f"% {a.pct} shares"))
         print(pv.round(1 if a.pct else 3 if a.agg in ("mean", "wmean") else 1).to_string(max_rows=15, na_rep="-"))
         g = data.cagr(pv.drop(columns="합계", errors="ignore")) \
-            if a.agg == "sum" and not a.pct else None
+            if a.agg == "sum" and not a.pct and not a.per else None
+        if len(pv) > 2 and data.is_time([i for i in pv.index if i != "합계"]) and a.agg == "sum" and not a.pct:
+            body = pv.drop(index="합계", errors="ignore")
+            print("first→last x " + "  ".join(f"{k}={v:.1f}" for k, v in (body.iloc[-1] / body.iloc[0]).round(1).items()))
         if g is not None:
             per = data.period_name(pv.index if data.is_time([i for i in pv.index if i != "합계"]) else pv.columns)
             print(f"{per} % " + "  ".join(f"{k}={v:.1f}" for k, v in g.round(1).items()))
