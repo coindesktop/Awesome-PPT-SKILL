@@ -17,7 +17,7 @@ eyebrow: 상황
 message: 지연은 데이터 이관 한 영역에 집중되고, 비용·타 영역은 계획 수준을 유지함
 kpis:
   - {label: 전체 진척률, value: "65.5%", note: "계획 71.0%"}
-  - {label: 예산 집행률, value: "98.7%", note: "누적 60.2억 / 계획 61.0억"}
+  - {label: 예산 집행률, value: "98.7%", note: "60.2억 / 61.0억 원"}
   - {label: 오픈 이슈, value: "36건", note: "데이터 이관 23건 (63.9%)"}
   - {label: 일정 편차, value: "2주", note: "오픈 11/30 → 12/14"}
 callout:
