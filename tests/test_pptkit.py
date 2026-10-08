@@ -45,7 +45,7 @@ def test_weighted_mean_matches_manual():
 def test_example_deck_builds_native_and_passes_qa():
     out = Path(tempfile.mkdtemp()) / "deck.pptx"
     report = render.build(ROOT / "examples/sales-report/deck.md", out)
-    assert report.startswith("OK 18 slides, 5 charts, 3 tables") and "WARN" not in report, report
+    assert report.startswith("OK 20 slides, 5 charts, 3 tables") and "WARN" not in report, report
     prs = Presentation(out)
     assert sum(s.has_chart for sl in prs.slides for s in sl.shapes) == 5
     assert qa.check(out) == []

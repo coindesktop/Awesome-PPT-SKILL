@@ -61,7 +61,7 @@ Claude Code에서 "이 CSV로 본부장 보고용 PPT 8장 만들어줘"처럼 �
 ```
 pptkit/                CLI (render, patterns_p1, edit, qa, data, persona, style, sources) + designs/ + catalog.yaml
 .claude/skills/ppt/    배포되는 스킬 (pptkit install-skill 이 복사)
-examples/              예제 덱 (sales-report: 18장, p1-patterns: 12장, pitch: 10장)
+examples/              예제 덱 (sales-report: 20장, p1-patterns: 12장, pitch: 10장)
 evals/                 평가 시나리오, 가상 데이터, 채점기
 references/            참고한 MIT 스킬·DESIGN.md 원본 (비활성)
 .claude/skills/        개발 세션용 스킬들 (ppt 외에는 개발 보조용)
