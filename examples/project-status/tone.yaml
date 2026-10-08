@@ -1,0 +1,58 @@
+name: signal
+description: 전략 브리핑·IR형. 짙은 남색 표지·섹션과 크림색 본문, 금색 강조. 장문 잡지와 정보 브리핑의 절제.
+formality: formal
+use_for:
+- pitch
+- ir
+- strategy
+- report
+colors:
+  bg: F3F0E8
+  dark: 1C2644
+  ink: 1A2030
+  body: 4A5262
+  muted: 8A919C
+  accent: A9772F
+  card: EAE4D6
+  line: D8CFBB
+  neutral_series: C8C2B4
+  positive: 2E7D5B
+  negative: B8432F
+series:
+- 2A6FD6
+- C9852C
+- 1BAF7A
+- 9B59B6
+fonts:
+  title: 맑은 고딕
+  body: 맑은 고딕
+type:
+  cover: 40
+  title: 26
+  eyebrow: 12
+  message: 15
+  body: 15
+  metric: 36
+  small: 10
+shape:
+  radius: 0.03
+  border_pt: 0.75
+cover:
+  bg: dark
+  decor: rule
+section: dark
+closing: dark
+bullet: –
+style:
+  header: rule
+  chart: tint
+  table_head: dark
+  callout: tint
+  kpi: strip
+density:
+  max_bullets: 5
+  max_chars: 45
+  body_pt: 15
+voice: gaejosik
+callout_title: 시사점
+unit: ''
