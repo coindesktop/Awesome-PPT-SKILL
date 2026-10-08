@@ -21,6 +21,10 @@ def main(argv=None):
     p.add_argument("--brief", default="brief.yaml")
     p.add_argument("-o", "--out")
 
+    p = sub.add_parser("plan", help="purpose -> storyline options -> deck.md skeleton + questions for the user")
+    p.add_argument("what", nargs="?", help="nothing | a purpose (pitch) | a storyline id (pitch/vc-seed)")
+    p.add_argument("-o", "--out", help="write the deck.md skeleton for a storyline id")
+
     p = sub.add_parser("data", help="summarize a csv/xlsx")
     p.add_argument("file")
 
@@ -106,6 +110,15 @@ def main(argv=None):
         out = Path(a.out or bp.with_name("tone.yaml"))
         out.write_text(yaml.safe_dump(tone, allow_unicode=True, sort_keys=False), encoding="utf-8")
         print(summary + f"\n-> {out}")
+    elif a.cmd == "plan":
+        from . import plan
+        print(plan.report(a.what))
+        if a.out and a.what and "/" in a.what:
+            out = Path(a.out)
+            if out.exists():
+                raise SystemExit(f"{out} exists; not overwriting (delete it or pick another -o)")
+            out.write_text(plan.skeleton(a.what), encoding="utf-8")
+            print(f"-> {out} (replace every TODO, delete slides you do not need)")
     elif a.cmd == "data":
         print(data.summary(a.file))
     elif a.cmd == "pivot":

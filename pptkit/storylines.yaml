@@ -1,0 +1,188 @@
+# Deck structures by purpose. `pptkit plan` lists them, the user picks one, `pptkit plan <id>` writes the
+# deck.md skeleton and prints the content questions. Sources: YC seed deck guide, Sequoia "Writing a business
+# plan", DocSend pitch deck studies, 창업진흥원 PSST 사업계획서 양식, consulting SCR storyline.
+# slide: [role, pattern, title hint, question for the user]  (question "" = nothing to ask)
+
+purposes:
+  pitch: "투자 유치·데모데이·지원사업 피칭"
+  sales: "잠재 고객에게 제품·서비스 제안"
+  report: "상사·임원 보고 (실적, 현황, 분석)"
+  proposal: "사내 신사업·기획안 승인 요청"
+  education: "강의·교육·온보딩 자료"
+
+storylines:
+  pitch/vc-seed:
+    name: VC 시드 표준 (YC형)
+    when: 시드~프리A VC 미팅. 트랙션이 조금이라도 있을 때 가장 무난함
+    length: 10
+    mode: present
+    design: launch
+    slides:
+      - [표지, cover, "회사명 + 한 줄 소개 (누구의 무슨 문제를 어떻게)", "회사명과 한 줄 소개는?"]
+      - [문제, big-number, "고객이 겪는 문제를 숫자 하나로", "누가 어떤 문제를 겪고, 지금은 어떻게 버티나요? 문제의 크기를 보여 줄 숫자 1개는?"]
+      - [해결, pillars, "우리 해법을 3가지 강점으로", "제품이 그 문제를 어떻게 푸나요? 핵심 기능·강점 3가지는?"]
+      - [왜 지금, pillars, "지금이어야 하는 이유 (기술·규제·행동 변화)", "왜 지금 가능해졌나요? (기술, 규제, 고객 행동의 변화)"]
+      - [시장, market-size, "TAM·SAM·SOM과 산정 근거", "시장 규모(TAM/SAM/SOM)와 근거 자료는?"]
+      - [트랙션, traction, "성장 곡선 + 핵심 지표 3개", "매출·사용자·계약 수 추이 데이터(월별 CSV면 가장 좋음)와 대표 지표 3개는?"]
+      - [비즈니스 모델, pricing, "누가 얼마를 어떻게 내는지", "가격 정책과 과금 방식은? 단위 경제(객단가, CAC, LTV)가 있나요?"]
+      - [경쟁, compare-table, "대안 대비 우리만의 차별점", "고객이 지금 쓰는 대안·경쟁사 2~3개와 우리가 이기는 기준은?"]
+      - [팀, team, "이 문제를 풀 수 있는 이유가 있는 팀", "핵심 멤버 2~4명의 이름, 역할, 관련 이력 한 줄은?"]
+      - [투자 요청, funding-ask, "조달 금액, 자금 사용처, 이 돈으로 달성할 마일스톤", "조달 목표 금액, 라운드, 자금 사용처 비율, 다음 마일스톤은?"]
+
+  pitch/sequoia:
+    name: Sequoia형 (비전·시장 중심)
+    when: 트랙션이 아직 적고 큰 시장과 통찰로 설득해야 할 때
+    length: 11
+    mode: present
+    design: launch
+    slides:
+      - [표지, cover, "회사명 + 한 줄 소개", "회사명과 한 줄 소개는?"]
+      - [회사의 목적, key-message, "우리가 존재하는 이유 한 문장", "회사의 미션을 한 문장으로 하면?"]
+      - [문제, problem-solution, "고객의 고통과 현재 대안의 한계", "고객의 문제와, 지금 쓰는 대안의 한계는?"]
+      - [해결, pillars, "가치 제안 3가지", "우리 해법의 핵심 가치 3가지는?"]
+      - [왜 지금, timeline, "이 시장이 열린 역사적 흐름", "이 기회가 지금 열린 계기(연도별 사건)는?"]
+      - [시장, market-size, "TAM·SAM·SOM", "시장 규모와 근거는?"]
+      - [경쟁, matrix-2x2, "경쟁 지도에서 우리 위치", "경쟁사들을 두 기준(축)으로 나누면 어디에 있나요?"]
+      - [제품, product-shot, "제품 화면 + 핵심 기능", "제품의 핵심 기능 3~4개와 화면(스크린샷은 나중에 직접 붙임)은?"]
+      - [비즈니스 모델, pricing, "수익 구조", "가격 정책과 과금 방식은?"]
+      - [팀, team, "창업팀과 자문", "핵심 멤버와 이력은?"]
+      - [재무·요청, funding-ask, "조달 계획과 3년 목표", "조달 금액, 사용처, 3년 매출 목표는?"]
+
+  pitch/traction-first:
+    name: 트랙션 우선 (숫자로 시작)
+    when: 매출·성장률이 강할 때. 첫 30초에 숫자로 관심을 끌어야 할 때
+    length: 9
+    mode: present
+    design: launch
+    slides:
+      - [표지, cover, "회사명 + 한 줄 소개", "회사명과 한 줄 소개는?"]
+      - [훅, big-number, "가장 강한 숫자 하나 (예: 12개월 매출 8배)", "가장 자랑할 만한 숫자 하나는?"]
+      - [트랙션, traction, "성장 곡선 + 핵심 지표 3개", "월별 매출·사용자 추이 데이터와 대표 지표 3개는?"]
+      - [문제, problem-solution, "그 성장을 만든 고객 문제", "고객이 어떤 문제 때문에 우리를 쓰나요?"]
+      - [해결, pillars, "왜 우리가 이기는가 3가지", "우리가 이기는 이유 3가지는?"]
+      - [단위 경제, kpi-tiles, "CAC·LTV·회수 기간·유지율", "CAC, LTV, 회수 기간, 유지율 등 단위 경제 지표는?"]
+      - [시장, market-size, "성장 여력", "시장 규모와 근거는?"]
+      - [팀, team, "실행해 온 팀", "핵심 멤버와 이력은?"]
+      - [투자 요청, funding-ask, "이 돈으로 만들 다음 성장", "조달 금액, 사용처, 다음 마일스톤은?"]
+
+  pitch/demo-day:
+    name: 데모데이 3~5분 발표
+    when: 시간이 짧은 무대 발표. 한 장에 메시지 하나, 글자는 최소
+    length: 7
+    mode: present
+    design: launch
+    slides:
+      - [훅, big-number, "청중이 기억할 숫자 또는 질문 하나", "청중을 붙잡을 숫자나 질문 하나는?"]
+      - [문제, key-message, "문제를 한 문장으로", "고객의 문제를 한 문장으로 하면?"]
+      - [해결, product-shot, "제품이 하는 일 + 화면", "제품이 하는 일과 핵심 기능 3개는?"]
+      - [트랙션, traction, "지금까지의 성과", "지금까지의 성과 지표(추이 데이터가 있으면 함께)는?"]
+      - [시장, market-size, "얼마나 커질 수 있나", "시장 규모와 근거는?"]
+      - [팀, team, "누가 하는가", "핵심 멤버와 이력은?"]
+      - [요청, funding-ask, "투자·협업 요청과 연락처", "투자 금액 또는 원하는 협업은?"]
+
+  pitch/gov-psst:
+    name: 정부지원사업 PSST (예비·초기창업패키지)
+    when: 창업진흥원 등 지원사업 발표 평가. 심사 항목(문제인식·실현가능성·성장전략·팀)을 그대로 따름
+    length: 11
+    mode: handout
+    design: public
+    slides:
+      - [표지, cover, "아이템명 + 한 줄 소개", "아이템명과 한 줄 소개는?"]
+      - [개요, exec-summary, "아이템 요약과 핵심 수치", "아이템 개요와 핵심 수치 3개는?"]
+      - [1. 문제 인식, problem-solution, "개발 배경과 필요성", "개발 동기와 시장·고객의 문제는?"]
+      - [1. 문제 인식, market-size, "목표 시장 규모", "목표 시장 규모와 근거(통계 출처)는?"]
+      - [2. 실현 가능성, process, "개발·사업화 방안", "개발 방법과 현재 준비 정도(시제품, 특허 등)는?"]
+      - [2. 실현 가능성, compare-table, "경쟁사 대비 차별성", "경쟁 제품과 비교 기준은?"]
+      - [3. 성장 전략, roadmap, "사업화 추진 일정", "협약 기간 내 단계별 목표와 일정은?"]
+      - [3. 성장 전략, kpi-tiles, "판로와 매출 목표", "판로(B2B/B2C/수출)와 연도별 매출 목표는?"]
+      - [4. 팀 구성, team, "대표자와 팀 역량", "대표자와 팀원의 역량·이력은?"]
+      - [4. 팀 구성, funding-ask, "사업비 집행 계획", "총 사업비와 항목별 비율(재료비, 외주용역비, 인건비 등)은?"]
+      - [맺음, closing, "기대 효과와 요청", "고용 창출 등 기대 효과는?"]
+
+  sales/problem-led:
+    name: 문제 중심 제안
+    when: 고객이 아직 문제를 덜 느낄 때. 문제를 함께 정의하고 해법으로 넘어감
+    length: 7
+    mode: balanced
+    design: forest
+    slides:
+      - [표지, cover, "고객 이익을 담은 한 문장", "고객사명과 제안 제목은?"]
+      - [문제, problem-solution, "고객이 지금 겪는 일 vs 우리와 함께라면", "고객이 지금 겪는 문제 2~3가지는?"]
+      - [작동 방식, process, "도입부터 효과까지 단계", "도입 단계와 각 단계에서 일어나는 일은?"]
+      - [근거, kpi-tiles, "도입 효과 숫자", "기존 고객의 도입 효과 수치는?"]
+      - [비교, compare-table, "대안 대비 차이", "고객이 비교할 대안은?"]
+      - [가격, pricing, "요금제", "요금제와 포함 기능은?"]
+      - [다음 단계, closing, "파일럿·계약 제안", "고객에게 바라는 다음 행동은?"]
+
+  sales/case-led:
+    name: 사례 중심 제안
+    when: 비슷한 고객의 성공 사례가 있을 때. 결과부터 보여 줌
+    length: 6
+    mode: balanced
+    design: forest
+    slides:
+      - [표지, cover, "고객 이익을 담은 한 문장", "고객사명과 제안 제목은?"]
+      - [성과, big-number, "비슷한 고객이 얻은 결과", "대표 사례의 성과 숫자는?"]
+      - [변화, before-after, "도입 전후", "도입 전후로 무엇이 달라졌나요?"]
+      - [작동 방식, process, "어떻게 가능했나", "도입 단계는?"]
+      - [가격, pricing, "요금제", "요금제와 포함 기능은?"]
+      - [다음 단계, closing, "파일럿 제안", "고객에게 바라는 다음 행동은?"]
+
+  report/exec-report:
+    name: 결론 먼저 보고
+    when: 실적·현황 보고. 요약을 먼저, 근거 데이터를 뒤에
+    length: 8
+    mode: balanced
+    slides:
+      - [표지, cover, "보고 제목", ""]
+      - [요약, exec-summary, "결론 3~5줄 + 핵심 숫자", "이번 보고의 결론은?"]
+      - [추이, chart-table, "핵심 지표 추이", "데이터 파일은?"]
+      - [구조, chart-pair, "구성·비교 두 관점", ""]
+      - [상세, heatmap-table, "세부 피벗", ""]
+      - [시사점, bullets-callout, "시사점과 대응 방향", ""]
+      - [요청, closing, "의사결정 요청", "보고받는 분이 결정할 것은?"]
+
+  report/scr:
+    name: 상황-문제-해결 (SCR)
+    when: 문제 해결형 보고. 원인을 쪼개고 대안을 비교해 하나를 추천
+    length: 7
+    mode: balanced
+    slides:
+      - [표지, cover, "보고 제목", ""]
+      - [상황, key-message, "지금 벌어지는 일", "현재 상황을 한 문장으로 하면?"]
+      - [원인, logic-tree, "문제를 원인으로 분해", "문제의 원인들은?"]
+      - [대안, compare-table, "대안 비교와 추천", "검토한 대안과 비교 기준은?"]
+      - [실행, roadmap, "실행 계획", "실행 단계와 일정은?"]
+      - [효과, kpi-tiles, "기대 효과", "기대 효과 수치는?"]
+      - [요청, closing, "의사결정 요청", "결정받을 사항은?"]
+
+  proposal/new-biz:
+    name: 사내 신사업 제안
+    when: 경영진에게 새 사업·프로젝트 승인과 예산을 요청할 때
+    length: 9
+    mode: balanced
+    slides:
+      - [표지, cover, "사업명 + 한 줄 요약", "사업명은?"]
+      - [요약, exec-summary, "제안 요지와 핵심 숫자", "제안의 핵심과 숫자 3개는?"]
+      - [기회, problem-solution, "시장의 문제와 우리 기회", "어떤 시장 문제를 노리나요?"]
+      - [시장, market-size, "시장 규모", "시장 규모와 근거는?"]
+      - [사업 모델, pillars, "수익 구조 3요소", "수익 구조는?"]
+      - [재무, chart-table, "매출·손익 전망", "연도별 매출·비용 전망 데이터는?"]
+      - [실행, roadmap, "단계별 실행 계획", "실행 단계와 일정은?"]
+      - [리스크, swot, "리스크와 대응", "주요 리스크는?"]
+      - [요청, closing, "승인·예산 요청", "요청하는 예산과 결정 사항은?"]
+
+  education/lecture:
+    name: 강의 기본형
+    when: 개념을 단계적으로 설명하고 요약으로 마무리
+    length: 8
+    mode: present
+    slides:
+      - [표지, cover, "강의 제목", "강의 제목과 대상은?"]
+      - [목차, agenda, "오늘 배울 것", "다룰 주제 3~5개는?"]
+      - [개념, key-message, "핵심 개념 한 문장", ""]
+      - [과정, process, "단계별 방법", ""]
+      - [비교, compare, "헷갈리는 개념 비교", ""]
+      - [예시, bullets-callout, "예시와 주의점", ""]
+      - [요약, exec-summary, "오늘의 요약", ""]
+      - [마무리, closing, "다음 과제", ""]

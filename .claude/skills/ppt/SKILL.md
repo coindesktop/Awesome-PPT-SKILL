@@ -26,9 +26,20 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
    line. Save with `pptkit profile set role=.. industry=.. org_culture=.. audiences=a,b brand=none`.
    If the user has an old deck they like, `pptkit style extract old.pptx` learns its colors, fonts, density and
    voice (and uses it as the template when it is 16:9) → then `pptkit profile set design=<name> org_culture=..`.
-2. **What** - write `brief.yaml` in the work folder:
+2. **Purpose → structure (ask, then let the user choose)** - Do not invent the deck's structure.
+   - Purpose unclear from the request → ask it first (`pptkit plan` lists purposes: pitch, sales, report,
+     proposal, education).
+   - `pptkit plan <purpose>` lists proven storylines (pitch: VC seed, Sequoia, traction-first, demo day,
+     정부지원사업 PSST, ...). Show them to the user as choices (AskUserQuestion if you have it), your
+     recommendation first with one reason. Skip the choice only if the user already named a structure.
+   - `pptkit plan <id> -o deck.md` writes the skeleton (one slide per step, `TODO`s) and prints the content
+     questions. Ask the ones the request and files do not answer, in one message, together with any step 1 or
+     brief questions. If the user says "알아서", draft from what you know and label invented figures `(예시)`.
+   - Fill every `TODO` (build warns on leftovers); delete steps the user does not need.
+3. **What** - write `brief.yaml` in the work folder:
    ```yaml
    purpose: report        # report | proposal | pitch | ir | sales | education | review
+   storyline: report/exec-report   # the id the user picked; sets mode and design defaults
    audience: 사업본부장
    ask: 영업 인력 2명 증원 승인   # what the audience must decide/do after this deck
    mode: balanced         # present | balanced | handout
@@ -37,25 +48,25 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
    # design: forest       # optional override; `pptkit design` lists them
    ```
    `ask` and `mode` drive quality most. If you cannot infer them, ask (bundle with step 1 questions).
-3. **Tone** - `pptkit tone --brief brief.yaml`. It picks a DESIGN (look) and prints `VOICE` and `RULES`;
+4. **Tone** - `pptkit tone --brief brief.yaml`. It picks a DESIGN (look) and prints `VOICE` and `RULES`;
    obey them in every sentence you write (`friendly` overrides the profile's report shorthand for this deck).
    A `BRIEF MISSING` block means ask first.
-4. **Data** - `pptkit data <file>` for a summary (KOSIS and World Bank web downloads are normalized automatically).
+5. **Data** - `pptkit data <file>` for a summary (KOSIS and World Bank web downloads are normalized automatically).
    Every number in a title or bullet comes from `pptkit pivot <file> --rows .. [--cols ..] --val ..`: totals and
    CAGR are printed; `--pct row|col` gives shares, `--pct growth` the change vs the previous period;
    `--where year=2025,2026` filters, `--group 수도권=서울,경기,인천` merges rows (combined shares);
    `--agg wmean --weight <col>` gives weighted averages (e.g. revenue-weighted margin) with weighted totals.
    Do not do arithmetic on pivot output yourself.
-5. **Deck** - write `deck.md` per [references/deck-spec.md](references/deck-spec.md). Titles are conclusion
+6. **Deck** - complete `deck.md` per [references/deck-spec.md](references/deck-spec.md). Titles are conclusion
    sentences backed by numbers you got from pptkit. Pick patterns by the order below and vary them; when a
    slide holds one chart, prefer `chart-table` or `chart-pair` if a second view adds information.
-6. **Tone sample** - `pptkit build deck.md --sample` → give the user `deck.sample.pptx` (cover + one data
+7. **Tone sample** - `pptkit build deck.md --sample` → give the user `deck.sample.pptx` (cover + one data
    slide) and ask if the look and voice fit. Compare looks with `--design <name>`. Lasting preferences go to
    `pptkit profile set ...` (e.g. `design=forest`, `brand=0B5E7A`, `dislikes=..`); deck-only ones to `brief.yaml`.
-7. **Build** - `pptkit build deck.md` (`-o 이름.pptx` names the file). Its `WARN` lines are about content (keys, length, voice); `pptkit qa
+8. **Build** - `pptkit build deck.md` (`-o 이름.pptx` names the file). Its `WARN` lines are about content (keys, length, voice); `pptkit qa
    deck.pptx` is about layout (overflow, overlap, `sparse`). Fix both by editing deck.md and rebuilding until
    neither reports anything (on Windows with PowerPoint, `qa --com` measures text exactly).
-8. **Deliver** the .pptx path (in a cloud/app session, send the file).
+9. **Deliver** the .pptx path (in a cloud/app session, send the file).
 
 ## Edit an existing deck (any .pptx, ours or not)
 
@@ -73,13 +84,13 @@ you cannot resolve from its message.
 3. two-axis judgment → `matrix-2x2`; internal/external analysis → `swot`; causes → `logic-tree`
 4. data file → time series `chart-takeaway`/`chart-table`, composition `chart: stacked-share`,
    category × category `heatmap-table`/`pivot-table`, two related views `chart-pair`, conversion → `funnel`
-5. 3-4 headline numbers → `kpi-tiles`; one number → `big-number`; market → `market-size`
+5. 3-4 headline numbers → `kpi-tiles`; one number → `big-number`; market → `market-size`;
+   growth with headline metrics → `traction`; 3-4 strengths/reasons → `pillars`; people → `team`;
+   plans and prices → `pricing`; product with features → `product-shot`; money and its use → `funding-ask`
 6. one sentence → `key-message` 7. otherwise `bullets-callout` (two lists → `two-column`)
 Structure: `cover`, `agenda`, `section` (sets the eyebrow of following slides), `exec-summary`, `closing`.
 
-Default orders by purpose - report: cover, exec-summary, data slides, closing. proposal: cover,
-problem-solution, compare-table, roadmap/timeline, closing. pitch: cover, problem-solution, market-size,
-kpi-tiles or funnel, roadmap, closing.
+Slide order comes from the storyline the user picked (`pptkit plan`), not from this list.
 
 ## Numbers you did not compute
 

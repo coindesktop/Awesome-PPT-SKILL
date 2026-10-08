@@ -110,7 +110,8 @@ def dark_color(h):
 class Ctx:
     def __init__(self, prs, tone, meta, base: Path):
         self.prs, self.tone, self.meta, self.base = prs, tone, meta, base
-        self.c, self.ty = tone["colors"], tone["type"]
+        self.c = {"surface": "FFFFFF", **tone["colors"]}  # surface: cards/tables that sit on bg (dark designs set it)
+        self.ty = tone["type"]
         self.warnings, self.page, self.charts, self.tables = [], 0, 0, 0
         self.section = meta.get("eyebrow", "")
         self.template = bool(tone.get("template"))
@@ -286,7 +287,9 @@ def content_slide(ctx, spec):
     bg(slide, c["bg"], ctx)
     title = slide.shapes.title
     if not ctx.template:
-        title.left, title.top, title.width, title.height = Inches(MX), Inches(0.68), Inches(W - 2 * MX), Inches(0.72)
+        two = text_width(spec["title"], ty["title"]) > (W - 2 * MX) * 0.8  # long titles get a second line, body moves down
+        title.left, title.top, title.width = Inches(MX), Inches(0.68), Inches(W - 2 * MX)
+        title.height = Inches(0.72 + (ty["title"] * 1.2 / 72 if two else 0))
     t_top, t_h = title.top / 914400, title.height / 914400
     eyebrow = spec.get("eyebrow", ctx.section)
     if eyebrow and t_top >= 0.6:
@@ -335,10 +338,15 @@ def _dark_slide(ctx, kind):
     """Background for cover/section/closing per design: dark | light | tint."""
     if ctx.template:
         return ctx.c["bg"]  # the template paints these slides; assume a light ground
-    return {"dark": ctx.c["dark"], "light": ctx.c["bg"], "tint": ctx.c["card"]}[kind]
+    return {"dark": ctx.c["dark"], "light": ctx.c["bg"], "tint": ctx.c["card"], "accent": ctx.c["accent"]}[kind]
 
 
 # ---------- structure patterns ----------
+
+def _label_on(c, fill):
+    """Accent labels vanish on an accent-filled slide (bold design): use a light tint there instead."""
+    return mix(fill, "FFFFFF", 0.8) if fill.upper() == c["accent"].upper() else c["accent"]
+
 
 def p_cover(ctx, spec):
     ctx.page += 1
@@ -356,6 +364,11 @@ def p_cover(ctx, spec):
         for r in (0.8, 1.45, 2.1):
             box(slide, cx - r, H / 2 - r, 2 * r, 2 * r, line=ring, shape=MSO_SHAPE.OVAL, line_pt=1)
         box(slide, cx - 0.16, H / 2 - 0.16, 0.32, 0.32, fill=c["accent"], shape=MSO_SHAPE.OVAL)
+    elif cov.get("decor") == "orb":  # soft glow: accent-tinted discs, largest first, kept inside the slide
+        cx, cy = W - 3.0, H / 2 + 0.3
+        for r, t_ in ((2.85, 0.10), (2.15, 0.2), (1.45, 0.38), (0.75, 0.75)):
+            box(slide, cx - r, cy - r, 2 * r, 2 * r, fill=mix(fill, "FFFFFF" if fill == c["accent"] else c["accent"], t_),
+                shape=MSO_SHAPE.OVAL)
     elif cov.get("decor") == "rule":
         box(slide, 0.9, 1.95, 0.9, 0.05, fill=c["accent"])
     ttl = slide.shapes.title
@@ -363,7 +376,7 @@ def p_cover(ctx, spec):
         ey = 2.15 if not ctx.template else ttl.top / 914400 - 0.45
         if ey > 0.2:
             text(ctx, slide, 0.9 if not ctx.template else ttl.left / 914400, ey, 8, 0.4,
-                 [spec.get("eyebrow") or ctx.meta["eyebrow"]], 14, c["accent"], bold=True)
+                 [spec.get("eyebrow") or ctx.meta["eyebrow"]], 14, _label_on(c, fill), bold=True)
     st = next((ph for ph in slide.placeholders if ph.placeholder_format.idx == 1), None)
     if st is None:
         st = slide.shapes.add_textbox(Inches(0.9), Inches(4.55), Inches(7.6), Inches(0.8))
@@ -393,7 +406,7 @@ def p_section(ctx, spec):
     tag = (ROMAN[n - 1] if ctx.tone.get("section_numerals") == "roman" else f"{n:02d}") if n else ""
     ctx.section = f"{tag}  {spec['title']}".strip()
     if tag:
-        text(ctx, slide, 0.9, 2.2, 4, 1.2, [tag], 64, c["accent"], bold=True)
+        text(ctx, slide, 0.9, 2.2, 4, 1.2, [tag], 64, _label_on(c, fill), bold=True)
     ttl = slide.shapes.title
     ttl.left, ttl.top, ttl.width, ttl.height = Inches(0.9), Inches(3.45), Inches(11.5), Inches(1.1)
     text(ctx, slide, 0, 0, 11.5, 1.1, [spec["title"]], 36, fg, bold=True, shape=ttl, min_pt=24, align=PP_ALIGN.LEFT)
@@ -522,7 +535,7 @@ def p_compare(ctx, spec):
     for i, col in enumerate(cols):
         cx = x + i * (cw + gap)
         is_rec = rec == i + 1
-        card(ctx, slide, cx, y, cw, ch, fill="FFFFFF" if is_rec else None, line=c["accent"] if is_rec else None,
+        card(ctx, slide, cx, y, cw, ch, fill=c["surface"] if is_rec else None, line=c["accent"] if is_rec else None,
              line_pt=1.75 if is_rec else None)
         text(ctx, slide, cx + 0.3, y + 0.25, cw - 1.5, 0.5, [col["title"]], 18, c["ink"], bold=True, min_pt=13)
         if is_rec:
@@ -543,7 +556,7 @@ def p_matrix(ctx, spec):
     q = spec.get("quadrants", ["", "", "", ""])  # TL, TR, BL, BR
     for i, (qx, qy) in enumerate(((0, 0), (1, 0), (0, 1), (1, 1))):
         box(slide, ox + qx * side / 2, oy + qy * side / 2, side / 2, side / 2,
-            fill=c["card"] if i == 1 else "FFFFFF", line=c["line"])
+            fill=c["card"] if i == 1 else c["surface"], line=c["line"])
         ly = oy + 0.1 if qy == 0 else oy + side - 0.5  # names on the outer edge; items cluster mid-quadrant
         text(ctx, slide, ox + qx * side / 2 + 0.12, ly, side / 2 - 0.24, 0.4, [q[i]], 12,
              c["accent"] if i == 1 else c["muted"], bold=True, align=PP_ALIGN.RIGHT if qx else PP_ALIGN.LEFT)
@@ -596,7 +609,7 @@ def p_timeline(ctx, spec):
     for i, e in enumerate(ev):
         cx = x + step * (i + 0.5)
         now = e.get("now")
-        box(slide, cx - 0.15, ly - 0.15, 0.3, 0.3, fill=c["accent"] if now else "FFFFFF",
+        box(slide, cx - 0.15, ly - 0.15, 0.3, 0.3, fill=c["accent"] if now else c["surface"],
             line=None if now else c["accent"], line_pt=2, shape=MSO_SHAPE.OVAL)
         text(ctx, slide, cx - step / 2 + 0.05, ly - 0.8, step - 0.1, 0.55, [str(e["when"])], 18, c["accent"] if now else c["ink"],
              bold=True, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.BOTTOM)
@@ -706,9 +719,16 @@ def _chart(ctx, slide, x, y, w, h, spec):
     kind = spec.get("chart", "column-trend")
     if kind not in CHARTS:
         raise SystemExit(f"unknown chart '{kind}'. known: {', '.join(CHARTS)}")
-    df = data.load(ctx.base / spec["data"])
-    wide = data.aggregate(df, spec["x"], spec["y"], spec.get("series"), spec.get("agg", "sum"), spec.get("where"),
-                          spec.get("weight"))
+    if "values" in spec:  # numbers the user typed: {category: value} or {series: {category: value}}
+        v = spec["values"]
+        nested = all(isinstance(x, dict) for x in v.values())
+        wide = pd.DataFrame(v if nested else {spec.get("y", "값"): v})
+        wide.index = wide.index.map(str)
+        spec = {"x": "", "y": wide.columns[0], **spec}
+    else:
+        df = data.load(ctx.base / spec["data"])
+        wide = data.aggregate(df, spec["x"], spec["y"], spec.get("series"), spec.get("agg", "sum"), spec.get("where"),
+                              spec.get("weight"))
     if kind == "bar-ranked":
         wide = wide.sort_values(wide.columns[0]).tail(spec.get("top", 10))  # ascending: largest drawn on top
     if kind == "stacked-share":
@@ -770,7 +790,7 @@ def _chart(ctx, slide, x, y, w, h, spec):
             dl = s.data_labels
             dl.show_value, dl.position = True, XL_LABEL_POSITION.CENTER
             dl.number_format, dl.number_format_is_linked = fmt, False
-            dl.font.size, dl.font.color.rgb = Pt(11), rgb("FFFFFF" if dark_color(col) else c["ink"])
+            dl.font.size, dl.font.color.rgb = Pt(11), rgb("FFFFFF" if dark_color(col) else "1A1A1A")
         return wide
     if not single:
         plot.overlap = -10
@@ -874,17 +894,17 @@ def _table(ctx, slide, x, y, w, h, part, body, heat, has_total, spec, pct_cols=(
         _border(ce, "B", c["ink"] if not public else head_fill, 1.25)
     for i, (idx, row) in enumerate(part.iterrows(), start=1):
         is_total = has_total and str(idx) == "합계"
-        ce = cell(i, 0, str(idx), c["card"] if is_total else "FFFFFF", c["ink"], True, PP_ALIGN.LEFT)
+        ce = cell(i, 0, str(idx), c["card"] if is_total else c["surface"], c["ink"], True, PP_ALIGN.LEFT)
         _border(ce, "B", c["line"], 0.75)
         if is_total:
             _border(ce, "T", c["ink"], 1)
         for j, (col, v) in enumerate(row.items(), start=1):
-            fill, color = "FFFFFF", c["ink"]
+            fill, color = c["surface"], c["ink"]
             if is_total or col == "합계":
                 fill = c["card"]
             elif heat and vmax > vmin and col not in pct_cols:
                 k = (float(v) - vmin) / (vmax - vmin)
-                fill = mix("FFFFFF", c["accent"], 0.08 + 0.72 * k)
+                fill = mix(c["surface"], c["accent"], 0.08 + 0.72 * k)
                 color = "FFFFFF" if k > 0.62 else c["ink"]
             val = "" if pd.isna(v) else (f"{v:+.1f}%" if col in pct_cols else _fmt_num(v, fmt))
             ce = cell(i, j, val, fill, color, is_total or col == "합계")
@@ -901,7 +921,7 @@ PATTERNS = {
     "pivot-table": p_pivot, "heatmap-table": lambda c, s: p_pivot(c, s, heat=True),
 }
 COMMON = {"title", "pattern", "message", "source", "notes", "eyebrow", "labels"}
-CHART_KEYS = {"chart", "data", "x", "y", "series", "where", "agg", "weight", "highlight", "top", "unit", "fmt"}
+CHART_KEYS = {"chart", "data", "x", "y", "series", "where", "agg", "weight", "highlight", "top", "unit", "fmt", "values"}
 KEYS = {
     "cover": {"subtitle", "date", "author"}, "agenda": {"items", "bullets"}, "section": {"number", "subtitle"},
     "key-message": {"statement", "support"}, "bullets-callout": {"bullets", "callout", "callout_title"},
@@ -945,21 +965,42 @@ def load_tone(meta, base: Path):
         return yaml.safe_load((base / t).read_text(encoding="utf-8"))
     brief = meta.get("brief", {})
     if isinstance(brief, str):
-        brief = yaml.safe_load((base / brief).read_text(encoding="utf-8")) or {}
+        bp = base / brief
+        brief = (yaml.safe_load(bp.read_text(encoding="utf-8")) or {}) if bp.exists() else {}
+    if meta.get("storyline") and not brief.get("storyline"):
+        brief = {**brief, "storyline": meta["storyline"]}
     design = meta.get("design") or t
     if design:
         brief = {**brief, "design": design}
     return persona.resolve_tone(brief)[0]
 
 
+def _split_values(v, found=None):
+    """`{value: 2,400억 원}` parses as {value: 2, '400억 원': None}: keys with None values betray the split."""
+    found = [] if found is None else found
+    if isinstance(v, dict):
+        found += [k for k, x in v.items() if x is None and k not in ("pattern",)]
+        for x in v.values():
+            _split_values(x, found)
+    elif isinstance(v, list):
+        for x in v:
+            _split_values(x, found)
+    return found
+
+
 def lint(ctx, spec):
     d, voice = ctx.tone["density"], ctx.tone.get("voice")
+    if "TODO" in yaml.safe_dump(spec, allow_unicode=True):
+        ctx.warn("TODO left from `pptkit plan`: fill it from the user's answers or delete the slide")
     unknown = set(spec) - COMMON - KEYS.get(spec["pattern"], set())
     if unknown:
         ctx.warn(f"unknown key(s) {sorted(unknown)} for {spec['pattern']} (ignored). see deck-spec.md")
     if spec["pattern"] not in ("cover", "section", "closing", "key-message") and \
-            text_width(spec["title"], ctx.ty["title"]) > (W - 2 * MX) * 0.92:
-        ctx.warn(f"title wraps to 2 lines ({len(spec['title'])}자): shorten it, move detail into `message:`")
+            text_width(spec["title"], ctx.ty["title"]) > (W - 2 * MX) * 1.8:
+        ctx.warn(f"title needs 3 lines ({len(spec['title'])}자): shorten it, move detail into `message:`")
+    split = _split_values(spec)
+    if split:
+        ctx.warn(f"value(s) split at a comma by YAML near {split[:3]}: quote them, e.g. value: \"2,400억 원\"")
     if spec["pattern"] == "closing" and spec.get("ask") and len(spec["title"]) > 24 and not spec.get("eyebrow"):
         ctx.warn("closing: the headline is `ask`; a long `# title` is not shown. Use a short label like "
                  "`# 요청 사항` (shown above the ask) or move the sentence into `support`")
@@ -1016,3 +1057,4 @@ def build(md_path, out=None, sample=False, design=None):
 
 
 from . import patterns_p1  # noqa: E402,F401  (registers the P1 patterns)
+from . import patterns_pitch  # noqa: E402,F401  (registers the pitch patterns)

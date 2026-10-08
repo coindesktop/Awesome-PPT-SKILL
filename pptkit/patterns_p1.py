@@ -21,7 +21,7 @@ def _arrow(ctx, slide, x, y, w=0.55, h=0.5):
 def _titled_list(ctx, slide, x, y, w, h, title, items, accent=False, filled=True):
     c, pt = ctx.c, ctx.tone["density"]["body_pt"]
     if filled:
-        card(ctx, slide, x, y, w, h, fill="FFFFFF" if accent else None, line=c["accent"] if accent else None,
+        card(ctx, slide, x, y, w, h, fill=c["surface"] if accent else None, line=c["accent"] if accent else None,
              line_pt=1.75 if accent else None)
     text(ctx, slide, x + 0.3, y + 0.22, w - 0.6, 0.5, [title], 17, c["accent"] if accent else c["ink"], bold=True, min_pt=12)
     hline(slide, x + 0.3, y + 0.82, w - 0.6, c["accent"] if accent else c["line"])
@@ -62,7 +62,7 @@ def p_swot(ctx, spec):
     gw, gh = (w - 0.25) / 2, (h - 0.25) / 2
     for i, k in enumerate("SWOT"):
         cx, cy = x + (i % 2) * (gw + 0.25), y + (i // 2) * (gh + 0.25)
-        card(ctx, slide, cx, cy, gw, gh, fill=c["card"] if k in "SO" else "FFFFFF", line=c["line"])
+        card(ctx, slide, cx, cy, gw, gh, fill=c["card"] if k in "SO" else c["surface"], line=c["line"])
         text(ctx, slide, cx + 0.25, cy + 0.15, 0.7, 0.75, [k], 34, c["accent"], bold=True)
         text(ctx, slide, cx + 0.95, cy + 0.32, gw - 1.2, 0.45, [names[k]], 14, c["muted"], bold=True)
         text(ctx, slide, cx + 0.95, cy + 0.85, gw - 1.2, gh - 1.0, sw.get(k, []), pt, c["ink"], bullets=True, gap=pt * 0.5)
@@ -104,10 +104,10 @@ def p_compare_table(ctx, spec):
         is_rec = rec == j
         cell(0, j, o + ("  ★" if is_rec else ""), c["accent"] if is_rec else c["card"], "FFFFFF" if is_rec else c["ink"], True)
     for i, row in enumerate(crit, start=1):
-        cell(i, 0, row["label"], "FFFFFF", c["ink"], True, PP_ALIGN.LEFT)
+        cell(i, 0, row["label"], c["surface"], c["ink"], True, PP_ALIGN.LEFT)
         for j, v in enumerate(row.get("values", []), start=1):
             mark = str(v) in ("●", "◐", "○")
-            cell(i, j, v, mix("FFFFFF", c["card"], 0.6) if rec == j else "FFFFFF",
+            cell(i, j, v, mix(c["surface"], c["card"], 0.6) if rec == j else c["surface"],
                  c["accent"] if mark else c["ink"], False, size=18 if mark else 13)
 
 

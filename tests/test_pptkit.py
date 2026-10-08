@@ -181,6 +181,24 @@ def test_gaejosik_lint_accepts_noun_endings():
     assert all(pat.search(t) for t in ("검토가 필요합니다", "늘었어요", "확대해요"))
 
 
+def test_every_storyline_skeleton_uses_known_patterns_and_keys():
+    from pptkit import plan
+    for sid in plan.CAT["storylines"]:
+        meta, slides = render.parse(plan.skeleton(sid))
+        assert meta["storyline"] == sid and slides
+        for sp in slides:
+            assert sp["pattern"] in render.PATTERNS, (sid, sp["pattern"])
+            assert not set(sp) - render.COMMON - render.KEYS[sp["pattern"]], (sid, sp["pattern"])
+    assert "pitch/vc-seed" in plan.report("pitch") and "ASK THE USER" in plan.report("pitch/vc-seed")
+
+
+def test_pitch_example_builds_clean():
+    out = Path(tempfile.mkdtemp()) / "pitch.pptx"
+    msg = render.build(ROOT / "examples/pitch/deck.md", out)
+    assert "WARN" not in msg and "design=launch" in msg, msg
+    assert qa.check(out) == []
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

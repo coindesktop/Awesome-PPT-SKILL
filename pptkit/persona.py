@@ -94,11 +94,24 @@ def _pick_design(prof: dict, brief: dict) -> str:
     purpose, industry = brief.get("purpose", ""), prof.get("industry", "")
     if industry == "public":
         return "public"
+    story = _storyline(brief)
+    if story.get("design"):
+        return story["design"]
+    if purpose in ("pitch", "demo-day"):
+        return "launch"
     if brief.get("formality") == "friendly" or purpose in ("sales", "education"):
         return "forest"
     if purpose in ("pitch", "ir", "strategy") or industry == "startup":
         return "signal"
     return "executive"
+
+
+def _storyline(brief):
+    sid = brief.get("storyline")
+    if not sid:
+        return {}
+    from . import plan
+    return plan._get(sid)
 
 
 def resolve_tone(brief: dict) -> tuple[dict, str]:
@@ -108,7 +121,7 @@ def resolve_tone(brief: dict) -> tuple[dict, str]:
     brand = str(prof.get("brand", "none")).lstrip("#")
     if len(brand) == 6:
         tone["colors"]["accent"] = brand.upper()  # brand drives the accent; chart series stay validated
-    mode = brief.get("mode", "balanced")
+    mode = brief.get("mode") or _storyline(brief).get("mode", "balanced")
     tone["density"] = dict(CATALOG["density"].get(mode, CATALOG["density"]["balanced"]))
     voice = brief.get("voice") or prof.get("org_culture", "gaejosik")
     if brief.get("formality") == "friendly" and voice in ("gaejosik", "formal"):
@@ -127,7 +140,8 @@ def resolve_tone(brief: dict) -> tuple[dict, str]:
         f"VOICE {voice}: {CATALOG['voices'][voice]} | bullets<={d['max_bullets']} x {d['max_chars']}자",
         "RULES: " + "; ".join(rules),
     ]
-    missing = [f"- {k}: {q}" for k, q in BRIEF_REQUIRED.items() if not brief.get(k)]
+    missing = [f"- {k}: {q}" for k, q in BRIEF_REQUIRED.items() if not brief.get(k)
+               and not (k == "mode" and brief.get("storyline"))]
     if missing:
         summary.insert(0, "BRIEF MISSING (ask before building):\n" + "\n".join(missing))
     return tone, "\n".join(summary)

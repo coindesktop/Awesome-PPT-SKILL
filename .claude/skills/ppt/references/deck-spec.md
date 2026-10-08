@@ -3,6 +3,7 @@
 ```markdown
 ---
 brief: brief.yaml            # design/voice/density come from profile x brief (or set design: forest)
+storyline: pitch/vc-seed     # written by `pptkit plan <id> -o deck.md`
 source: "통계청 KOSIS, 2026"   # footer on data slides, without "자료:"/"출처:" (the design adds it)
 date: 2026-10-03
 author: 사업기획팀
@@ -49,6 +50,16 @@ paths are relative to deck.md. Unknown keys and overlong text produce `WARN` lin
 | `funnel` | `stages: [{label, value}]`, `callout` | conversion % computed |
 | `big-number` | `figure`, `label`, `support` | one headline number |
 | `market-size` | `tam/sam/som: {value, label}` | |
+| `pillars` | `pillars: [{title, desc, figure}]` 3-4 | strengths, reasons, why now; `figure` replaces the 01/02 number |
+| `traction` | `metrics: [{value, label}]` ≤4 + chart keys | headline numbers over a growth chart (`line-trend` default) |
+| `team` | `members: [{name, role, bio: [..]}]` ≤8, `advisors: [..]` | initials badge, no photos |
+| `pricing` | `tiers: [{name, price, unit, for, features: [..], highlight: true, badge}]` ≤4 | |
+| `product-shot` | `features: [{title, desc}]` ≤4, `frame: phone`, `screen` | empty frame: the user pastes a screenshot |
+| `funding-ask` | `amount`, `round`, `use: [{label, pct}]`, `milestones: [..]` | doughnut of use of funds |
+
+Numbers the user typed (no file) go inline: `values: {2026-01: 1.2, 2026-02: 1.6}` or
+`values: {ARR: {...}, 고객사: {...}}` instead of `data`/`x`/`y`. Quote any value that contains a comma inside
+`{...}` (`value: "2,400억 원"`): unquoted, YAML splits it and build warns.
 
 ## Chart keys
 
@@ -73,5 +84,5 @@ charts, values labeled, recessive axes and grid.
 ## Designs
 
 `pptkit design` lists looks: `executive` (경영 보고), `signal` (전략·IR), `forest` (고객 제안, friendly),
-`public` (공공 보고). A user's own DESIGN.md in `~/.pptkit/designs/<name>.md` (same front-matter tokens as
+`public` (공공 보고), `launch` (어두운 피칭), `bold` (밝은 피칭). A storyline sets a default design. A user's own DESIGN.md in `~/.pptkit/designs/<name>.md` (same front-matter tokens as
 `pptkit/designs/executive.md`) is picked up automatically.

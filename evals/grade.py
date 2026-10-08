@@ -160,6 +160,26 @@ def grade_run(eval_id, out: Path, peers: dict):
               ex("사용자에게 다음 행동을 안내함 (CSV 다운로드 또는 fetch)", re.search(r"CSV|다운로드|download|fetch", reply, re.I),
                  reply[:120]),
               ex("기존 보고서 장표가 남아 있음 (17장 이상, 또는 덱을 고치지 않음)", not p or n_slides >= 17, f"{n_slides} slides")]
+    elif eval_id in (6, 7):
+        raw = " ".join(questions(out))
+        story = re.findall(r"YC|시드 표준|Sequoia|세쿼이아|트랙션 우선|데모데이|PSST|문제 중심|사례 중심|구성안", raw)
+        prs, e = common(out, p, 6, 13)
+        if eval_id == 7:
+            e.append(ex("목적(투자·고객·채용 등)을 먼저 물음", re.search(r"목적|투자자|고객|채용|누구에게|어떤 자리", raw), raw[:120]))
+        e.append(ex("구성안을 2개 이상 제시하고 고르게 함(질문 기록)", len(set(story)) >= 2, f"options {sorted(set(story))}"))
+        if prs and eval_id == 6:
+            allt = " ".join(t for sl in texts(prs) for t in sl)
+            charts = [s.chart for sl in prs.slides for s in sl.shapes if s.has_chart]
+            trend = [ch for ch in charts if any(abs((v or 0) - 2950) < 1 or abs((v or 0) - 86) < 0.5
+                                                for sr in ch.plots[0].series for v in sr.values)]
+            donut = [ch for ch in charts if ch.chart_type is not None and "DOUGHNUT" in str(ch.chart_type)]
+            market = [" ".join(sl) for sl in texts(prs) if re.search(r"TAM|SAM|SOM|시장 규모", " ".join(sl))]
+            invented = [m for m in market if re.search(r"\d[\d,.]*\s*(조|억)", m) and not re.search(r"예시|가정|추정|확인 필요|TBD", m)]
+            e += [ex("트랙션이 CSV 값(최신 MRR 2,950 또는 기관 86곳) 차트로 들어감", trend, f"{len(trend)} matching chart(s)"),
+                  ex("팀 3명이 모두 들어감", all(n in allt for n in ("정하늘", "윤재민", "한소라")), "names"),
+                  ex("투자 요청: 15억 원과 자금 사용처(도넛 또는 50/30/20%)", "15억" in allt and (donut or all(k in allt for k in ("50%", "30%", "20%"))),
+                     f"15억:{'15억' in allt} donut:{len(donut)}"),
+                  ex("메모에 없는 시장 규모 수치를 지어내지 않음(넣었다면 예시·가정 표기)", not invented, invented[:1] or "none")]
     passed = sum(x["passed"] for x in e)
     return {"expectations": e, "summary": {"passed": passed, "failed": len(e) - passed, "total": len(e),
                                            "pass_rate": round(passed / len(e), 2)}}
