@@ -96,20 +96,61 @@ def aggregate(df, x, y, series=None, agg="sum", where=None, weight=None):
     return df.groupby(x)[ys].agg(agg).sort_index()
 
 
-TIME = re.compile(r"^(19|20)\d{2}([-./]?(Q[1-4]|H[12]|\d{1,2}))?$|^(19|20)\d{2}년")
+TIME = re.compile(r"^(19|20)\d{2}([-./]?(Q[1-4]|H[12]|\d{1,2}))?$|^(19|20)\d{2}년|^Q[1-4]$|^H[12]$|^[1-4]분기$"
+                  r"|^[상하]반기$|^\d{1,2}월$|^(\d{4}-)?\d{1,2}-\d주(차)?$|^W\d{1,2}$")
 
 
 def is_time(values) -> bool:
-    """Years, quarters (2026Q3), months (2026-01): keep chronological order instead of sorting by size."""
+    """Years, quarters (2026Q3, Q3, 3분기), halves, months (2026-01, 3월): chronological, never sorted by size."""
     vals = [str(v).strip() for v in values]
     return bool(vals) and all(TIME.match(v) for v in vals)
 
 
+def time_pos(v):
+    """(unit, position) so steps can be counted: M = months, Q = quarters, H = halves, Y = years."""
+    v = str(v).strip()
+    y = re.match(r"(19|20)\d{2}", v)
+    year = int(y.group()) if y else 0
+    w = re.search(r"(\d{1,2})-(\d)주|^W(\d{1,2})$", v)
+    if w:  # 09-1주 = September week 1; W37 = ISO-like week number
+        return "W", (year * 60 + int(w.group(1)) * 5 + int(w.group(2))) if w.group(1) else int(w.group(3))
+    for pat, unit, mult in ((r"Q([1-4])|([1-4])분기", "Q", 4), (r"H([12])", "H", 2), (r"[-./](\d{1,2})$|^(\d{1,2})월$", "M", 12)):
+        m = re.search(pat, v)
+        if m:
+            return unit, year * mult + int(next(g for g in m.groups() if g))
+    if v in ("상반기", "하반기"):
+        return "H", year * 2 + (1 if v == "상반기" else 2)
+    return "Y", year
+
+
+def _order(p, timed, keep_file_order, first_seen):
+    if timed:
+        return p.loc[sorted(p.index, key=lambda i: time_pos(i))]
+    if keep_file_order:  # growth/diff on categories (도입 전 → 도입 후) follow the file, not the size
+        return p.loc[[i for i in first_seen if i in p.index]]
+    return p.loc[p.sum(axis=1).sort_values(ascending=False).index]
+
+
+def apply_pct(p, pct, timed, cols_timed=False):
+    """row | col shares, growth (% vs previous), diff (change vs previous). Along time columns when rows are not time."""
+    axis = 1 if (cols_timed and not timed) else 0
+    if pct == "row":
+        return p.div(p.sum(axis=1), axis=0) * 100
+    if pct == "col":
+        return p.div(p.sum(axis=0), axis=1) * 100
+    if pct == "diff":
+        return p.diff(axis=axis)
+    if pct == "growth":
+        return p.pct_change(axis=axis) * 100
+    return p
+
+
 def pivot(df, rows, cols=None, val=None, agg="sum", top=None, where=None, total="합계", other="기타", weight=None,
           pct=None):
-    """rows x cols table (cols optional). Time-like rows stay chronological; others sort by size.
-    Totals are sums, or weighted means for wmean. pct: row | col (shares) | growth (vs previous period)."""
+    """rows x cols table (cols optional). Time-like rows stay chronological; others sort by size (file order for
+    growth/diff). Totals are sums, or weighted means for wmean. pct: row | col | growth | diff."""
     df = _filter(df, where)
+    first_seen = list(dict.fromkeys(df[rows]))
     keys = [rows, cols] if cols else [rows]
     if agg == "wmean":
         p = _wmean(df, keys, val, weight)
@@ -118,21 +159,20 @@ def pivot(df, rows, cols=None, val=None, agg="sum", top=None, where=None, total=
         p = df.pivot_table(index=rows, columns=cols, values=val, aggfunc=agg)
     else:
         p = df.groupby(rows)[[val]].agg(agg)
-    if cols and is_time(p.columns):
-        p = p[sorted(p.columns, key=str)]
+    cols_timed = bool(cols) and is_time(p.columns)
+    if cols_timed:
+        p = p[sorted(p.columns, key=time_pos)]
     timed = is_time(p.index)
-    p = p.sort_index() if timed else p.loc[p.sum(axis=1).sort_values(ascending=False).index]
+    p = _order(p, timed, pct in ("growth", "diff"), first_seen)
     if top and len(p) > top and agg == "sum":
         rest = p.iloc[top:].sum().rename(other)
         p = pd.concat([p.iloc[:top], rest.to_frame().T])
     elif top:
         p = p.iloc[:top]
-    if pct in ("row", "col") and agg == "sum":
-        p = p.div(p.sum(axis=1), axis=0) * 100 if pct == "row" else p.div(p.sum(axis=0), axis=1) * 100
-    elif pct == "diff":  # absolute change vs the previous period (net adds)
-        p = p.diff(axis=0 if timed or not cols or not is_time(p.columns) else 1)
-    elif pct == "growth":
-        p = (p.pct_change(axis=0 if timed or not cols or not is_time(p.columns) else 1) * 100)
+    if pct in ("row", "col") and agg != "sum":
+        pct = None  # shares of averages mean nothing
+    if pct:
+        p = apply_pct(p, pct, timed, cols_timed)
     elif agg == "sum" and cols:
         p[total] = p.sum(axis=1)
         p.loc[total] = p.sum()
@@ -149,21 +189,41 @@ def pivot(df, rows, cols=None, val=None, agg="sum", top=None, where=None, total=
     return p
 
 
-def period_name(values):
-    """CAGR is per year only for yearly data: months -> CMGR, quarters -> CQGR."""
-    v = [str(x) for x in values if is_time([x])]
-    if v and all(re.search(r"[-./]\d{1,2}$", x) for x in v):
-        return "CMGR (월 복리)"
-    if v and all("Q" in x for x in v):
-        return "CQGR (분기 복리)"
-    return "CAGR (연 복리)"
+RATE = {"W": "주 복리 성장률", "M": "CMGR (월 복리)", "Q": "CQGR (분기 복리)", "H": "반기 복리 성장률", "Y": "CAGR (연 복리)"}
 
 
-def cagr(p):
-    """Compound annual growth of each column from the first to the last time-like row (None if not time-like)."""
+def growth_summary(p):
+    """(label, compound rate per period unit, first→last multiple) between the first and last time points.
+    Steps are counted from the labels, so 2024-12 → 2025-06 is 6 months, not one step. None if not time-like."""
     idx = [i for i in p.index if is_time([i])]
     if len(idx) < 2:
         cols = [c for c in p.columns if is_time([c])]
-        return cagr(p[cols].T) if len(cols) >= 2 else None  # time across columns: one rate per row
-    a, b = p.loc[idx[0]], p.loc[idx[-1]]
-    return ((b / a) ** (1 / (len(idx) - 1)) - 1) * 100
+        return growth_summary(p[cols].T) if len(cols) >= 2 else None  # time across columns: one rate per row
+    (ua, a_pos), (ub, b_pos) = time_pos(idx[0]), time_pos(idx[-1])
+    steps = b_pos - a_pos if ua == ub and b_pos > a_pos else len(idx) - 1
+    a, b = p.loc[idx[0]].astype(float), p.loc[idx[-1]].astype(float)
+    ok = (a > 0) & (b >= 0)
+    mult = (b / a).where(ok)
+    rate = ((mult ** (1 / steps)) - 1) * 100
+    return RATE[ua], rate, mult
+
+
+def cagr(p):
+    """Compound growth per period from the first to the last time point (kept for callers that need only the rate)."""
+    g = growth_summary(p)
+    return None if g is None else g[1]
+
+
+def period_name(values):
+    v = [x for x in values if is_time([x])]
+    return RATE[time_pos(v[0])[0]] if v else RATE["Y"]
+
+
+def smart_round(p, pct=False):
+    """Keep significant digits: shares and growth at 0.1, small ratios (0.02) at 4 places."""
+    if pct:
+        return p.round(1)
+    m = p.abs().max().max() if p.size else 0
+    if pd.isna(m) or m >= 100:
+        return p.round(1)
+    return p.round(2 if m >= 1 else 4)

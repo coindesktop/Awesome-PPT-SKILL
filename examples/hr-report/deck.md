@@ -39,13 +39,12 @@ kpis:
 - {label: "상반기 퇴사(명)", value: "75", delta: "+6명", good: down, note: 전 반기 대비, spark: [28, 31, 34, 35, 35, 40]}
 - {label: "분기 이직률(2분기)", value: "3.9%", delta: "+0.5%p", good: down, note: 전 분기 대비, spark: [2.7, 3.0, 3.2, 3.3, 3.4, 3.9]}
 
-# 연구개발 이직률이 6.2%로 가장 높아 인원 비중이 19.4%로 낮아짐
+# 연구개발은 분기 이직률 6.2%로 가장 높고, 3년 미만 인력 비중도 40%로 가장 큼
 pattern: chart-pair
-data: headcount.csv
 charts:
-- {subtitle: "부문별 분기 이직률 (2026년 상반기 평균, %)", chart: bar-ranked, x: dept, y: turnover_pct, agg: wmean, weight: headcount, where: {half: 2026H1}, highlight: 연구개발, unit: "%"}
-- {subtitle: "부문별 인원 구성 추이", chart: stacked-share, x: quarter, y: headcount, series: dept}
-notes: 분기 이직률 = 분기 퇴사자 ÷ 분기 말 인원. 연구개발 이직률은 2025년 상반기 3.0%, 하반기 4.4%, 2026년 상반기 6.2%로 상승함.
+- {subtitle: "부문별 분기 이직률 (2026년 상반기 평균)", chart: bar-ranked, data: headcount.csv, x: dept, y: turnover_pct, agg: wmean, weight: headcount, where: {half: 2026H1}, highlight: 연구개발, unit: "%"}
+- {subtitle: "부문별 근속 구간 구성 (2026년 6월 말)", chart: stacked-share, data: tenure.csv, x: dept, y: headcount, series: tenure}
+notes: 분기 이직률 = 분기 퇴사자 ÷ 분기 말 인원. 연구개발 이직률은 2025년 상반기 3.0%, 하반기 4.4%, 2026년 상반기 6.2%로 상승함. 연구개발 인원은 2025년 2분기 216명에서 2026년 2분기 199명으로 감소함.
 
 # 퇴사자 75명 중 41%가 1~3년차이며 연구개발은 이 구간에서만 14명이 이탈함
 pattern: heatmap-table
@@ -76,6 +75,7 @@ takeaways:
 
 # 리텐션 대응은 예산 6.2억 원의 C안(보상·성장 혼합)을 권고함
 pattern: compare-table
+source: "가상 예시 데이터, 이직률 대응 예산안 기준"
 corner: 구분
 options: [A안 보상 중심, B안 성장 중심, C안 보상·성장 혼합]
 recommend: 3

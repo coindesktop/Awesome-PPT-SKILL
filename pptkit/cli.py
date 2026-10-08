@@ -4,6 +4,7 @@ import shutil
 import sys
 from pathlib import Path
 
+import pandas as pd
 import yaml
 
 
@@ -136,19 +137,23 @@ def main(argv=None):
             den = data.pivot(df, a.rows, a.cols, a.per, "sum", a.top, where=where)
             num.columns = den.columns = [f"{a.val}/{a.per}"] if not a.cols else num.columns
             pv = num / den
+            if a.pct:
+                body = pv.drop(index="합계", errors="ignore").drop(columns="합계", errors="ignore")
+                pv = data.apply_pct(body, a.pct, data.is_time(body.index), data.is_time(body.columns))
         else:
             pv = data.pivot(df, a.rows, a.cols, a.val, a.agg, a.top, where=where, weight=a.weight, pct=a.pct)
         if a.pct:
-            print({"growth": "% change vs previous period", "diff": "change vs previous period (same unit)"}.get(a.pct, f"% {a.pct} shares"))
-        print(pv.round(1 if a.pct else 3 if a.agg in ("mean", "wmean") else 1).to_string(max_rows=15, na_rep="-"))
-        g = data.cagr(pv.drop(columns="합계", errors="ignore")) \
-            if a.agg == "sum" and not a.pct and not a.per else None
-        if len(pv) > 2 and data.is_time([i for i in pv.index if i != "합계"]) and a.agg == "sum" and not a.pct:
-            body = pv.drop(index="합계", errors="ignore")
-            print("first→last x " + "  ".join(f"{k}={v:.1f}" for k, v in (body.iloc[-1] / body.iloc[0]).round(1).items()))
+            print({"growth": "% change vs previous row", "diff": "change vs previous row (same unit)"}.get(
+                a.pct, f"% {a.pct} shares"))
+        print(data.smart_round(pv, bool(a.pct)).to_string(max_rows=15, na_rep="-"))
+        rows_t = data.is_time([i for i in pv.index if i != "합계"])  # keep the total row when years run across
+        g = data.growth_summary((pv.drop(index="합계", errors="ignore") if rows_t else pv).drop(columns="합계", errors="ignore")) \
+            if a.agg == "sum" and not a.pct else None
         if g is not None:
-            per = data.period_name(pv.index if data.is_time([i for i in pv.index if i != "합계"]) else pv.columns)
-            print(f"{per} % " + "  ".join(f"{k}={v:.1f}" for k, v in g.round(1).items()))
+            label, rate, mult = g
+            fmt = lambda s, f: "  ".join(f"{k}={'n/a' if pd.isna(v) else format(v, f)}" for k, v in s.items())
+            print(f"first→last x {fmt(mult, '.2f')}")
+            print(f"{label} % {fmt(rate, '.1f')}")
         if a.out:
             pv.to_csv(a.out, encoding="utf-8-sig")
             print(f"-> {a.out}")
