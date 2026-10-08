@@ -68,6 +68,10 @@ takeaways:
 - 온라인 매출은 4년간 2배 이상 증가함
 - 오프라인은 정체 구간에 진입함
 
+# 지역별 현황
+pattern: section
+number: 2
+
 # 서울·경기가 매출 상위 2개 지역이고, 이익률은 품목 구성에 좌우됨
 data: ../../evals/data/sales.csv
 charts:
@@ -95,10 +99,14 @@ unit: 억 원
 
 # 2026년 3분기 핵심 지표는 모두 개선됨
 kpis:
-- {label: MAU, value: "637천", delta: "+4.6%"}
-- {label: 유료 전환율, value: "4.2%", delta: "+0.2%p"}
-- {label: 이탈률, value: "4.4%", delta: "-0.2%p", good: down}
-- {label: NPS, value: "32", delta: "+2"}
+- {label: MAU, value: "637천", delta: "+4.6%", spark: [446, 464, 499, 527, 568, 609, 637]}
+- {label: 유료 전환율, value: "4.2%", delta: "+0.2%p", spark: [3.18, 3.35, 3.52, 3.67, 3.83, 3.93, 4.15]}
+- {label: 이탈률, value: "4.4%", delta: "-0.2%p", good: down, spark: [5.24, 5.2, 5.21, 5.1, 4.8, 4.63, 4.43]}
+- {label: NPS, value: "32", delta: "+2", spark: [25, 24, 24, 28, 27, 30, 32]}
+
+# 개선 방향
+pattern: section
+number: 3
 
 # 비수도권 성장을 막는 요인은 영업 커버리지 부족임
 bullets:

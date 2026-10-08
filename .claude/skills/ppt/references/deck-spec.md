@@ -32,7 +32,7 @@ paths are relative to deck.md. Unknown keys and overlong text produce `WARN` lin
 | `matrix-2x2` | `quadrants: [TL, TR, BL, BR]`, `x_axis`, `y_axis`, `items: [{label, x, y}]` 0..1, `callout` | |
 | `process` | `steps: [{title, desc}]`, `highlight: 3` | 3-5 steps |
 | `timeline` | `events: [{when, label, now: true}]` | 4-7 events |
-| `kpi-tiles` | `kpis: [{label, value, delta, good: down, note}]`, `callout`, `callout_title` | delta "-0.2%p" → ▼ |
+| `kpi-tiles` | `kpis: [{label, value, delta, good: down, note, spark: [..]}]`, `callout`, `callout_title` | delta "-0.2%p" → ▼; spark = recent values |
 | `chart-takeaway` | chart keys + `takeaways: [..]` | |
 | `chart-table` | chart keys + `growth: true`, `takeaways` | chart left, same numbers as a table right |
 | `chart-pair` | `charts: [{subtitle, chart keys}, {...}]`, shared `data`/`unit` | two views side by side; % charts keep `%` |
@@ -83,6 +83,7 @@ charts, values labeled, recessive axes and grid.
 
 ## Designs
 
-`pptkit design` lists looks: `executive` (경영 보고), `signal` (전략·IR), `forest` (고객 제안, friendly),
-`public` (공공 보고), `launch` (어두운 피칭), `bold` (밝은 피칭). A storyline sets a default design. A user's own DESIGN.md in `~/.pptkit/designs/<name>.md` (same front-matter tokens as
+`pptkit design` lists looks: `corporate` (기업 보고, 기본), `executive` (컨설팅형 보고), `signal` (전략·IR),
+`forest` (고객 제안, friendly), `public` (공공 보고), `launch` (어두운 피칭), `bold` (밝은 피칭). A storyline sets a
+default design. KPI tiles take `spark: [..]` (a small trend line); section slides list all sections automatically. A user's own DESIGN.md in `~/.pptkit/designs/<name>.md` (same front-matter tokens as
 `pptkit/designs/executive.md`) is picked up automatically.

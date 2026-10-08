@@ -23,6 +23,7 @@ cover: {bg: light, decor: circles}
 section: dark
 closing: dark
 bullet: "•"
+style: {header: bar-rule, chart: tint, table_head: dark, callout: tint, kpi: strip}
 ---
 
 # executive

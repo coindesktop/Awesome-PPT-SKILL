@@ -23,6 +23,7 @@ cover: {bg: dark, decor: rule}
 section: dark
 closing: dark
 bullet: "–"
+style: {header: rule, chart: tint, table_head: dark, callout: tint, kpi: strip}
 ---
 
 # signal

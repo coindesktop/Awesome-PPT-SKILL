@@ -25,6 +25,7 @@ closing: light
 bullet: "○"
 message_box: true
 section_numerals: roman
+style: {header: rule, chart: tint, table_head: dark, callout: card, kpi: strip}
 ---
 
 # public

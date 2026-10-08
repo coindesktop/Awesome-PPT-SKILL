@@ -103,7 +103,7 @@ def _pick_design(prof: dict, brief: dict) -> str:
         return "forest"
     if purpose in ("pitch", "ir", "strategy") or industry == "startup":
         return "signal"
-    return "executive"
+    return "corporate"  # company reports; `executive` stays available as the quieter consulting look
 
 
 def _storyline(brief):

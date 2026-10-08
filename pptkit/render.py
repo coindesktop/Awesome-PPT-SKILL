@@ -112,6 +112,10 @@ class Ctx:
         self.prs, self.tone, self.meta, self.base = prs, tone, meta, base
         self.c = {"surface": "FFFFFF", **tone["colors"]}  # surface: cards/tables that sit on bg (dark designs set it)
         self.ty = tone["type"]
+        # visual treatments a design can switch on (designs/*.md `style:`); defaults keep the quiet look
+        self.st = {"header": "plain", "chart": "neutral", "table_head": "card", "callout": "card", "kpi": "plain",
+                   **tone.get("style", {})}
+        self.sections = []
         self.warnings, self.page, self.charts, self.tables = [], 0, 0, 0
         self.section = meta.get("eyebrow", "")
         self.template = bool(tone.get("template"))
@@ -286,14 +290,18 @@ def content_slide(ctx, spec):
     slide = ctx.prs.slides.add_slide(ctx.layout("content"))
     bg(slide, c["bg"], ctx)
     title = slide.shapes.title
+    bar = ctx.st["header"] in ("bar", "bar-rule") and not ctx.template
     if not ctx.template:
-        two = text_width(spec["title"], ty["title"]) > (W - 2 * MX) * 0.8  # long titles get a second line, body moves down
-        title.left, title.top, title.width = Inches(MX), Inches(0.68), Inches(W - 2 * MX)
+        tx = MX + (0.24 if bar else 0)  # an accent bar sits left of the title
+        two = text_width(spec["title"], ty["title"]) > (W - MX - tx) * 0.8  # long titles get a second line, body moves down
+        title.left, title.top, title.width = Inches(tx), Inches(0.68), Inches(W - MX - tx)
         title.height = Inches(0.72 + (ty["title"] * 1.2 / 72 if two else 0))
+    if bar:
+        box(slide, MX, title.top / 914400 + 0.14, 0.08, title.height / 914400 - 0.28, fill=c["accent"])
     t_top, t_h = title.top / 914400, title.height / 914400
     eyebrow = spec.get("eyebrow", ctx.section)
     if eyebrow and t_top >= 0.6:
-        text(ctx, slide, MX, t_top - 0.3, 9, 0.32, [eyebrow], ty["eyebrow"], c["accent"], bold=True)
+        text(ctx, slide, title.left / 914400, t_top - 0.3, 9, 0.32, [eyebrow], ty["eyebrow"], c["accent"], bold=True)
     text(ctx, slide, 0, 0, title.width / 914400, t_h, [spec["title"]], ty["title"], c["ink"], bold=True,
          anchor=MSO_ANCHOR.MIDDLE, shape=title, min_pt=18, align=PP_ALIGN.LEFT)
     y = t_top + t_h + 0.2
@@ -305,8 +313,12 @@ def content_slide(ctx, spec):
             b.text_frame.margin_left = Inches(0.25)
             y += 0.7
         else:
-            text(ctx, slide, MX, y - 0.18, W - 2 * MX, 0.45, [spec["message"]], ty["message"], c["body"])
+            text(ctx, slide, title.left / 914400, y - 0.18, W - MX - title.left / 914400, 0.45, [spec["message"]],
+                 ty["message"], c["body"])
             y += 0.4
+    if ctx.st["header"] in ("rule", "bar-rule") and not ctx.template:
+        hline(slide, MX, y - 0.06, W - 2 * MX, c["line"], 1)  # separates the header from the body
+        y += 0.12
     src = spec.get("source") or _meta_source(ctx, spec) or (ctx.meta.get("source") if _has_data(spec) else None)
     if src:
         label = "자료" if ctx.tone["name"] == "public" else "출처"
@@ -345,7 +357,11 @@ def _dark_slide(ctx, kind):
 
 def _label_on(c, fill):
     """Accent labels vanish on an accent-filled slide (bold design): use a light tint there instead."""
-    return mix(fill, "FFFFFF", 0.8) if fill.upper() == c["accent"].upper() else c["accent"]
+    if fill.upper() == c["accent"].upper():
+        return mix(fill, "FFFFFF", 0.8)
+    if dark_color(fill) and dark_color(c["accent"]):  # blue on navy: lift the accent so it reads
+        return mix(c["accent"], "FFFFFF", 0.45)
+    return c["accent"]
 
 
 def p_cover(ctx, spec):
@@ -369,6 +385,8 @@ def p_cover(ctx, spec):
         for r, t_ in ((2.5, 0.10), (1.9, 0.2), (1.3, 0.38), (0.68, 0.75)):
             box(slide, cx - r, cy - r, 2 * r, 2 * r, fill=mix(fill, "FFFFFF" if fill == c["accent"] else c["accent"], t_),
                 shape=MSO_SHAPE.OVAL)
+    elif cov.get("decor") == "stripe":  # accent edge + thin rule: the corporate cover
+        box(slide, 0, 0, 0.32, H, fill=c["accent"])
     elif cov.get("decor") == "rule":
         box(slide, 0.9, 1.95, 0.9, 0.05, fill=c["accent"])
     ttl = slide.shapes.title
@@ -416,7 +434,17 @@ def p_section(ctx, spec):
     ttl.left, ttl.top, ttl.width, ttl.height = Inches(0.9), Inches(3.45), Inches(11.5), Inches(1.1)
     text(ctx, slide, 0, 0, 11.5, 1.1, [spec["title"]], 36, fg, bold=True, shape=ttl, min_pt=24, align=PP_ALIGN.LEFT)
     if spec.get("subtitle"):
-        text(ctx, slide, 0.9, 4.6, 11, 0.6, [spec["subtitle"]], 16, mix(fill, fg, 0.7))
+        text(ctx, slide, 0.9, 4.6, 7, 0.6, [spec["subtitle"]], 16, mix(fill, fg, 0.7))
+    if len(ctx.sections) > 1 and not ctx.template:  # where we are in the deck
+        ttl.width = Inches(6.6)
+        lx, ly = 8.4, max(1.2, H / 2 - 0.4 * len(ctx.sections))
+        box(slide, lx - 0.35, ly - 0.1, 0.02, 0.8 * len(ctx.sections), fill=mix(fill, fg, 0.25))
+        for k, name in enumerate(ctx.sections):
+            cur = name == spec["title"]
+            text(ctx, slide, lx, ly + k * 0.8, 0.7, 0.5, [f"{k + 1:02d}"], 16, _label_on(c, fill) if cur else mix(fill, fg, 0.4),
+                 bold=True)
+            text(ctx, slide, lx + 0.7, ly + k * 0.8, 3.9, 0.5, [name], 16, fg if cur else mix(fill, fg, 0.5), bold=cur,
+                 min_pt=11)
 
 
 def p_agenda(ctx, spec):
@@ -452,11 +480,13 @@ def p_exec_summary(ctx, spec):
         for i, n in enumerate(nums):
             cy = y + i * (th + gap)
             cx = x + w * 0.64
-            card(ctx, slide, cx, cy, w * 0.36, th)
+            lead = i == 0 and ctx.st["kpi"] == "strip"  # the headline number gets the filled card
+            card(ctx, slide, cx, cy, w * 0.36, th, fill=c["accent"] if lead else None, line=c["accent"] if lead else None)
             vh = th * 0.56  # value then label, stacked by construction so they never overlap
             text(ctx, slide, cx + 0.3, cy + 0.08, w * 0.36 - 0.6, vh, [str(n["value"])], ty["metric"],
-                 c["accent"], bold=True, anchor=MSO_ANCHOR.BOTTOM, min_pt=20)
-            text(ctx, slide, cx + 0.3, cy + 0.08 + vh, w * 0.36 - 0.6, th - vh - 0.12, [n["label"]], 13, c["muted"], min_pt=10)
+                 "FFFFFF" if lead else c["accent"], bold=True, anchor=MSO_ANCHOR.BOTTOM, min_pt=20)
+            text(ctx, slide, cx + 0.3, cy + 0.08 + vh, w * 0.36 - 0.6, th - vh - 0.12, [n["label"]], 13,
+                 mix(c["accent"], "FFFFFF", 0.8) if lead else c["muted"], min_pt=10)
 
 
 def p_closing(ctx, spec):
@@ -469,7 +499,7 @@ def p_closing(ctx, spec):
     fg = "FFFFFF" if dark else c["ink"]
     sub = mix(fill, fg, 0.7)
     label = spec.get("eyebrow") or (spec["title"] if spec.get("ask") and len(spec["title"]) <= 24 else "요청 사항")
-    text(ctx, slide, 0.9, 0.9, 6.4, 0.4, [label], 14, c["accent"], bold=True)
+    text(ctx, slide, 0.9, 0.9, 6.4, 0.4, [label], 14, _label_on(c, fill), bold=True)
     ttl = slide.shapes.title
     ttl.left, ttl.top, ttl.width, ttl.height = Inches(0.9), Inches(1.35), Inches(6.4), Inches(2.6)
     text(ctx, slide, 0, 0, 6.4, 2.6, [spec.get("ask") or spec["title"]], 32, fg, bold=True, shape=ttl, min_pt=22,
@@ -478,7 +508,7 @@ def p_closing(ctx, spec):
         text(ctx, slide, 0.9, 4.1, 6.2, 1.2, [spec["support"]], 16, sub)
     steps = [s if isinstance(s, dict) else {"t": _s(s)} for s in spec.get("next", [])][:4]
     if steps:
-        text(ctx, slide, 7.75, 0.9, 4.6, 0.4, ["다음 단계"], 14, c["accent"], bold=True)
+        text(ctx, slide, 7.75, 0.9, 4.6, 0.4, ["다음 단계"], 14, _label_on(c, fill), bold=True)
         sh = min(1.25, (H - 1.9) / len(steps) - 0.18)
         for i, s in enumerate(steps):
             cy = 1.4 + i * (sh + 0.18)
@@ -499,6 +529,10 @@ def p_closing(ctx, spec):
 def p_key_message(ctx, spec):
     slide, (x, y, w, h) = content_slide(ctx, {**spec, "message": None})
     c = ctx.c
+    if ctx.st["callout"] == "tint":
+        box(slide, x, y + 0.1, w, h - 0.2, fill=mix(c["bg"], c["accent"], 0.07), radius=ctx.tone["shape"]["radius"] or None)
+        box(slide, x, y + 0.1, 0.08, h - 0.2, fill=c["accent"])
+        x, w = x + 0.4, w - 0.6
     text(ctx, slide, x, y + 0.3, 0.9, 1.4, ["“"], 72, mix(c["bg"], c["accent"], 0.45), bold=True, min_pt=72)
     text(ctx, slide, x + 0.9, y + 0.9, w * 0.8, 2.2, [spec.get("statement", spec["title"])], 32, c["ink"], bold=True,
          min_pt=22, spacing=1.1)
@@ -511,7 +545,11 @@ def _callout(ctx, slide, x, y, w, h, title, items):
     items = items if isinstance(items, list) else [items]
     pt = ctx.tone["density"]["body_pt"]
     h = min(h, max(2.4, text_height(list(map(_s, items)), w - 0.74, pt, gap_pt=pt * 0.6) + 1.05))
-    card(ctx, slide, x, y, w, h)
+    if ctx.st["callout"] == "tint":
+        box(slide, x, y, w, h, fill=mix(c["bg"], c["accent"], 0.08), radius=ctx.tone["shape"]["radius"] or None)
+        box(slide, x, y, 0.07, h, fill=c["accent"])
+    else:
+        card(ctx, slide, x, y, w, h)
     text(ctx, slide, x + 0.28, y + 0.22, w - 0.56, 0.4, [title], 13, c["accent"], bold=True)
     text(ctx, slide, x + 0.28, y + 0.7, w - 0.56, h - 0.9, items, pt, c["ink"], bullets=True, gap=pt * 0.6)
 
@@ -630,10 +668,15 @@ def p_kpi(ctx, spec):
     kpis = spec.get("kpis", [])
     gap = 0.28
     tw = (w - gap * (len(kpis) - 1)) / max(len(kpis), 1)
-    th = min(h, 2.9 if any(k.get("note") for k in kpis) else 2.4)
+    sp = 0.85 if any(k.get("spark") for k in kpis) else 0  # room for a sparkline under the delta
+    th = min(h, (2.9 if any(k.get("note") for k in kpis) else 2.4) + sp)
+    if not spec.get("callout"):
+        th = max(th, min(h, 3.4))  # tiles take the body when nothing sits below them
     for i, k in enumerate(kpis):
         cx = x + i * (tw + gap)
         card(ctx, slide, cx, y, tw, th)
+        if ctx.st["kpi"] == "strip":
+            box(slide, cx, y, tw, 0.07, fill=c["accent"] if i == 0 else mix(c["bg"], c["accent"], 0.45))
         text(ctx, slide, cx + 0.28, y + 0.25, tw - 0.56, 0.4, [k["label"]], 13, c["muted"], bold=True)
         vpt = ty["metric"]
         while vpt > 20 and text_width(str(k["value"]), vpt) > (tw - 0.56) * 0.9:
@@ -646,10 +689,37 @@ def p_kpi(ctx, spec):
             arrow = "▼" if down else "▲"  # icon + label, never color alone
             text(ctx, slide, cx + 0.28, y + 1.72, tw - 0.56, 0.42, [f"{arrow} {d.lstrip('-▲▼ ')}"], 15,
                  c["positive"] if good else c["negative"], bold=True)
+        if k.get("spark"):
+            _spark(ctx, slide, cx + 0.2, y + 2.15, tw - 0.4, 0.75, k["spark"], i == 0)
         if k.get("note"):
-            text(ctx, slide, cx + 0.28, y + 2.2, tw - 0.56, th - 2.3, [k["note"]], 12, c["muted"])
+            text(ctx, slide, cx + 0.28, y + 2.2 + sp, tw - 0.56, th - 2.3 - sp, [k["note"]], 12, c["muted"])
     if spec.get("callout"):
         _callout(ctx, slide, x, y + th + 0.3, w, h - th - 0.3, spec.get("callout_title", ctx.tone.get("callout_title", "시사점")), spec["callout"])
+
+
+def _spark(ctx, slide, x, y, w, h, values, lead):
+    """Tiny trend line in a KPI tile: no axes, no grid, last point marked."""
+    vals = [float(v) for v in values]
+    cd = CategoryChartData()
+    cd.categories = [str(i) for i in range(len(vals))]
+    cd.add_series("trend", vals)
+    ch = slide.shapes.add_chart(XL_CHART_TYPE.LINE, Inches(x), Inches(y), Inches(w), Inches(h), cd).chart
+    _no_fill(ch)
+    ch.has_legend = ch.has_title = False
+    ch.value_axis.visible = ch.category_axis.visible = False
+    ch.value_axis.has_major_gridlines = False
+    lo, hi = min(vals), max(vals)
+    ch.value_axis.minimum_scale, ch.value_axis.maximum_scale = lo - (hi - lo) * 0.1, hi + (hi - lo) * 0.15 or hi + 1
+    s = ch.plots[0].series[0]
+    col = ctx.c["accent"] if lead else mix(ctx.c["bg"], ctx.c["accent"], 0.6)
+    s.smooth = False
+    s.format.line.color.rgb, s.format.line.width = rgb(col), Pt(2)
+    s.marker.style = XL_MARKER_STYLE.NONE
+    pt = s.points[len(vals) - 1]
+    pt.marker.style, pt.marker.size = XL_MARKER_STYLE.CIRCLE, 7
+    pt.marker.format.fill.solid()
+    pt.marker.format.fill.fore_color.rgb = rgb(col)
+    pt.marker.format.line.color.rgb = rgb(ctx.c["card"])
 
 
 # ---------- data patterns ----------
@@ -818,7 +888,8 @@ def _chart(ctx, slide, x, y, w, h, spec):
                 if str(cat) != hl:
                     pf = s.points[j].format.fill
                     pf.solid()
-                    pf.fore_color.rgb = rgb(c["neutral_series"])
+                    pf.fore_color.rgb = rgb(mix(c["bg"], c["accent"], 0.38) if ctx.st["chart"] == "tint"
+                                            else c["neutral_series"])
     return wide
 
 
@@ -866,7 +937,7 @@ def _table(ctx, slide, x, y, w, h, part, body, heat, has_total, spec, pct_cols=(
     c = ctx.c
     public = ctx.tone["name"] == "public"
     nr, nc = len(part) + 1, len(part.columns) + 1
-    rh = min(0.42, h / nr)
+    rh = min(0.55 if nr <= 7 else 0.42, h / nr)  # short tables get roomier rows
     first_w = min(2.2, w * 0.24)
     gt = slide.shapes.add_table(nr, nc, Inches(x), Inches(y), Inches(w), Inches(rh * nr))
     ctx.tables += 1
@@ -880,7 +951,9 @@ def _table(ctx, slide, x, y, w, h, part, body, heat, has_total, spec, pct_cols=(
     fmt = _numfmt(numeric.values.ravel(), {})
     pt = 12 if nr <= 10 else 11
     header = [_label(ctx, spec, part.index.name or "")] + [_label(ctx, spec, col) for col in part.columns]
-    head_fill, head_fg = (c["dark"], "FFFFFF") if public else (c["card"], c["ink"])
+    head_fill, head_fg = {"dark": (c["dark"], "FFFFFF"), "accent": (c["accent"], "FFFFFF")}.get(
+        "dark" if public else ctx.st["table_head"], (c["card"], c["ink"]))
+    zebra = ctx.st["table_head"] != "card" and not heat
 
     def cell(i, j, val, fill, color, bold=False, align=PP_ALIGN.RIGHT):
         ce = tb.cell(i, j)
@@ -901,12 +974,13 @@ def _table(ctx, slide, x, y, w, h, part, body, heat, has_total, spec, pct_cols=(
         _border(ce, "B", c["ink"] if not public else head_fill, 1.25)
     for i, (idx, row) in enumerate(part.iterrows(), start=1):
         is_total = has_total and str(idx) == "합계"
-        ce = cell(i, 0, str(idx), c["card"] if is_total else c["surface"], c["ink"], True, PP_ALIGN.LEFT)
+        row_fill = mix(c["surface"], c["card"], 0.55) if zebra and i % 2 == 0 else c["surface"]
+        ce = cell(i, 0, str(idx), c["card"] if is_total else row_fill, c["ink"], True, PP_ALIGN.LEFT)
         _border(ce, "B", c["line"], 0.75)
         if is_total:
             _border(ce, "T", c["ink"], 1)
         for j, (col, v) in enumerate(row.items(), start=1):
-            fill, color = c["surface"], c["ink"]
+            fill, color = row_fill, c["ink"]
             if is_total or col == "합계":
                 fill = c["card"]
             elif heat and vmax > vmin and col not in pct_cols:
@@ -1046,6 +1120,7 @@ def build(md_path, out=None, sample=False, design=None):
         pick = next((s for s in rest if _has_data(s)), rest[0] if rest else None)
         slides = [s for s in slides if s["pattern"] == "cover"][:1] + ([pick] if pick else [])
     ctx = Ctx(new_deck(tone), tone, meta, base)
+    ctx.sections = [s["title"] for s in slides if s["pattern"] == "section"]
     for spec in slides:
         fn = PATTERNS.get(spec["pattern"])
         if not fn:

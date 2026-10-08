@@ -23,6 +23,7 @@ cover: {bg: dark, decor: circles}
 section: dark
 closing: dark
 bullet: "•"
+style: {header: bar, chart: tint, table_head: accent, callout: tint, kpi: strip}
 ---
 
 # forest

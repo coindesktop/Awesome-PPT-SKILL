@@ -24,6 +24,7 @@ cover: {bg: dark, decor: orb}
 section: dark
 closing: dark
 bullet: "•"
+style: {chart: tint, callout: tint, kpi: strip}
 ---
 
 # launch

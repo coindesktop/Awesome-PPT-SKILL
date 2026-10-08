@@ -5,7 +5,7 @@
 - Claude는 짧은 텍스트 파일(`brief.yaml`, `deck.md`, `ops.yaml`)만 씁니다. 렌더링, 피벗, 검증, 편집은 미리 만든 CLI가 합니다. 그래서 토큰이 적게 들고, 같은 입력에서 같은 덱이 나옵니다.
 - 차트와 표는 PowerPoint 네이티브 객체라서 "데이터 편집"으로 숫자를 고칠 수 있습니다. 사진은 넣지 않습니다.
 - 덱 구성은 지어내지 않습니다. 목적(피칭, 고객 제안, 보고, 기획안, 교육)을 묻고, 검증된 구성안(VC 시드, Sequoia, 트랙션 우선, 데모데이, 정부지원사업 PSST 등)을 보여 주고, 사용자가 고른 구성으로 만듭니다.
-- 디자인은 DESIGN.md 파일 하나로 정의합니다. 기본 6종(executive, signal, forest, public, 피칭용 launch·bold)이 있고, 예전에 만든 덱에서 개인 디자인을 추출할 수도 있습니다.
+- 디자인은 DESIGN.md 파일 하나로 정의합니다. 기본 7종(기업 보고 corporate, executive, signal, forest, public, 피칭용 launch·bold)이 있고, 예전에 만든 덱에서 개인 디자인을 추출할 수도 있습니다.
 
 ## 설치 (Windows · macOS · Linux)
 

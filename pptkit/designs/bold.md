@@ -24,6 +24,7 @@ cover: {bg: accent, decor: orb}
 section: accent
 closing: dark
 bullet: "•"
+style: {header: bar, chart: tint, table_head: dark, callout: tint, kpi: strip}
 ---
 
 # bold
