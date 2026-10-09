@@ -287,10 +287,15 @@ def p_big_number(ctx, spec):
             py = y + k * (ph + gap)
             card(ctx, slide, px, py, w * 0.5, ph)
             box(slide, px, py, 0.07, ph, fill=c["accent"])
-            text(ctx, slide, px + 0.35, py + 0.2, w * 0.5 - 0.6, 0.45, [p.get("title", "")], 18, c["ink"], bold=True,
-                 min_pt=13)
+            ix = 0
+            if p.get("icon"):
+                from .render import icon_badge
+                icon_badge(ctx, slide, p["icon"], px + 0.3, py + 0.2, 0.55)
+                ix = 0.7
+            text(ctx, slide, px + 0.35 + ix, py + 0.2, w * 0.5 - 0.6 - ix, 0.45, [p.get("title", "")], 18, c["ink"],
+                 bold=True, min_pt=13)
             if p.get("desc"):
-                text(ctx, slide, px + 0.35, py + 0.7, w * 0.5 - 0.6, ph - 0.85, [_s(p["desc"])],
+                text(ctx, slide, px + 0.35 + ix, py + 0.7, w * 0.5 - 0.6 - ix, ph - 0.85, [_s(p["desc"])],
                      ctx.tone["density"]["body_pt"] - 1, c["body"])
 
 

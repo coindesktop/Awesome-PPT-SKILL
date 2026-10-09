@@ -26,6 +26,9 @@ def main(argv=None):
     p.add_argument("what", nargs="?", help="nothing | a purpose (pitch) | a storyline id (pitch/vc-seed)")
     p.add_argument("-o", "--out", help="write the deck.md skeleton for a storyline id")
 
+    p = sub.add_parser("icons", help="line icons for pillars/process/kpi/points (`icon: rocket`)")
+    p.add_argument("query", nargs="?", help="filter, e.g. chart")
+
     p = sub.add_parser("data", help="summarize a csv/xlsx")
     p.add_argument("file")
 
@@ -121,6 +124,9 @@ def main(argv=None):
                 raise SystemExit(f"{out} exists; not overwriting (delete it or pick another -o)")
             out.write_text(plan.skeleton(a.what), encoding="utf-8")
             print(f"-> {out} (replace every TODO, delete slides you do not need)")
+    elif a.cmd == "icons":
+        names = [n for n in render.icon_names() if not a.query or a.query in n]
+        print(f"{len(names)} icons: " + " ".join(names))
     elif a.cmd == "data":
         print(data.summary(a.file))
     elif a.cmd == "pivot":

@@ -8,7 +8,7 @@ from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
 from .render import (INFER, KEYS, PATTERNS, CHART_KEYS, _chart, _no_fill, _s, box, card, content_slide, dark_color,
-                     hline, mix, rgb, text, text_height, text_width)
+                     hline, icon, icon_badge, mix, rgb, text, text_height, text_width)
 
 
 def _lines(v):
@@ -31,14 +31,18 @@ def p_pillars(ctx, spec):
     gap = 0.35
     cw = (w - gap * (n - 1)) / n
     need = max(text_height(_lines(i.get("desc")), cw - 0.6, pt, gap_pt=6) for i in items) if items else 0
-    ch = min(h, max(3.2, need + 2.5, h * 0.8))  # cards use most of the body
+    noted = 0.6 if any(i.get("note") for i in items) else 0
+    ch = min(h, max(3.2, need + 2.5 + noted, h * 0.8))  # cards use most of the body; room for the proof line
     for k, it in enumerate(items):
         cx = x + k * (cw + gap)
         card(ctx, slide, cx, y, cw, ch)
         box(slide, cx, y, cw, 0.07, fill=c["accent"])
-        head = str(it.get("figure") or f"{k + 1:02d}")
-        hp = _fit(head, cw - 0.6, 40 if it.get("figure") else 30)
-        text(ctx, slide, cx + 0.3, y + 0.35, cw - 0.6, 0.8, [head], hp, c["accent"], bold=True, min_pt=hp)
+        if it.get("icon") and not it.get("figure"):
+            icon_badge(ctx, slide, it["icon"], cx + 0.3, y + 0.3, 0.8)
+        else:
+            head = str(it.get("figure") or f"{k + 1:02d}")
+            hp = _fit(head, cw - 0.6, 40 if it.get("figure") else 30)
+            text(ctx, slide, cx + 0.3, y + 0.35, cw - 0.6, 0.8, [head], hp, c["accent"], bold=True, min_pt=hp)
         text(ctx, slide, cx + 0.3, y + 1.2, cw - 0.6, 0.85, [it.get("title", "")], 20, c["ink"], bold=True, min_pt=15)
         if it.get("desc"):
             text(ctx, slide, cx + 0.3, y + 2.1, cw - 0.6, ch - 2.3 - (0.6 if it.get("note") else 0), _lines(it["desc"]),

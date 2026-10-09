@@ -199,6 +199,25 @@ def test_pitch_example_builds_clean():
     assert qa.check(out) == []
 
 
+def test_icons_draw_as_vector_shapes_and_unknown_names_warn():
+    d = Path(tempfile.mkdtemp())
+    (d / "deck.md").write_text("""---
+design: corporate
+---
+
+# 세 가지 이유
+pillars:
+  - {icon: rocket, title: 빠름, desc: 설치 없이 2주}
+  - {icon: shield-check, title: 안전, desc: 검증 내장}
+  - {icon: rockett, title: 쉬움, desc: 오탈자 아이콘}
+""", encoding="utf-8")
+    msg = render.build(d / "deck.md")
+    assert "unknown icon 'rockett'" in msg and "rocket" in msg.split("rockett")[1]
+    shapes = [s for s in Presentation(d / "deck.pptx").slides[0].shapes if s.name.startswith("icon:")]
+    assert [s.name for s in shapes] == ["icon:rocket", "icon:shield-check"]
+    assert all(s._element.find(".//{http://schemas.openxmlformats.org/drawingml/2006/main}custGeom") is not None for s in shapes)
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

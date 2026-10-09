@@ -76,6 +76,10 @@ above zero start near the data automatically). Up to 8 series get distinct colou
 | `stacked` | totals with composition | needs `series` |
 | `stacked-share` | composition in % | needs `series`; shares computed for you |
 
+Icons: `icon: rocket` on `pillars` items, `process` steps, `kpi-tiles` tiles and `big-number` points draws a line icon
+as an editable vector shape (no image). `pptkit icons [word]` lists the 125 names (Lucide, ISC licence). Use one icon
+per item only when it adds meaning; never invent names (build warns and suggests the closest).
+
 Callout boxes are headed `시사점` (report voices) or `핵심` (friendly); set `callout_title` per slide.
 `stacked-share` and `fmt: pct` charts show `단위: %` unless they set their own `unit`. Body content that is
 shorter than the slide is moved down to balance the space; `qa` reports `sparse` when half the body is still empty.

@@ -185,6 +185,52 @@ def hline(slide, x, y, w, color, pt=0.75):
     return ln
 
 
+_ICONS = None
+
+
+def icon_names():
+    global _ICONS
+    if _ICONS is None:
+        import json
+        _ICONS = json.loads((Path(__file__).parent / "icons.json").read_text(encoding="utf-8"))
+    return _ICONS
+
+
+def icon(ctx, slide, name, x, y, size, color, weight=2.0):
+    """Lucide line icon as one freeform shape (vector, recolourable in PowerPoint; no image). size in inches."""
+    icons = icon_names()
+    if name not in icons:
+        import difflib
+        near = difflib.get_close_matches(str(name), icons, n=3)
+        ctx.warn(f"unknown icon '{name}'" + (f" (did you mean {', '.join(near)}?)" if near else "; `pptkit icons` lists them"))
+        return None
+    unit = Inches(size / 24)
+    contours = icons[name]
+    fb = slide.shapes.build_freeform(contours[0]["p"][0][0], contours[0]["p"][0][1], scale=unit)
+    for k, c in enumerate(contours):
+        if k:
+            fb.move_to(*c["p"][0])
+        fb.add_line_segments([tuple(pt) for pt in c["p"][1:]], close=c["z"])
+    sh = fb.convert_to_shape(Inches(x), Inches(y))
+    st = sh._element.find(qn("p:style"))
+    if st is not None:
+        sh._element.remove(st)
+    sh.fill.background()
+    sh.line.color.rgb, sh.line.width = rgb(color), Pt(max(0.75, size * 72 * weight / 24))
+    ln = sh._element.spPr.find(qn("a:ln"))
+    ln.set("cap", "rnd")
+    etree.SubElement(ln, qn("a:round"))
+    sh.name = f"icon:{name}"
+    return sh
+
+
+def icon_badge(ctx, slide, name, x, y, d, filled=False):
+    """Icon centred in a tinted (or accent-filled) circle of diameter d."""
+    c = ctx.c
+    box(slide, x, y, d, d, fill=c["accent"] if filled else mix(c["bg"], c["accent"], 0.14), shape=MSO_SHAPE.OVAL)
+    return icon(ctx, slide, name, x + d * 0.22, y + d * 0.22, d * 0.56, "FFFFFF" if filled else c["accent"])
+
+
 def bg(slide, color, ctx=None):
     if ctx is not None and ctx.template:
         return  # keep the template master's background (logos, artwork)
@@ -645,8 +691,11 @@ def p_process(ctx, spec):
         hl = spec.get("highlight") == i + 1
         dot = box(slide, cx - 0.4, cy - 0.4, 0.8, 0.8, fill=c["accent"] if hl else c["card"],
                   line=None if hl else c["line"], shape=MSO_SHAPE.OVAL)
-        text(ctx, slide, 0, 0, 0.8, 0.8, [f"{i + 1}"], 20, "FFFFFF" if hl else c["accent"], bold=True,
-             align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, shape=dot)
+        if s.get("icon"):
+            icon(ctx, slide, s["icon"], cx - 0.22, cy - 0.22, 0.44, "FFFFFF" if hl else c["accent"])
+        else:
+            text(ctx, slide, 0, 0, 0.8, 0.8, [f"{i + 1}"], 20, "FFFFFF" if hl else c["accent"], bold=True,
+                 align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, shape=dot)
         ch = max(2.2, (y + h * 0.88) - (cy + 0.6))  # each step sits on a card that reaches down the body
         card(ctx, slide, cx - sw / 2 + 0.1, cy + 0.6, sw - 0.2, ch, fill=c["surface"] if hl else None,
              line=c["accent"] if hl else None, line_pt=1.75 if hl else None)
@@ -698,7 +747,10 @@ def p_kpi(ctx, spec):
         card(ctx, slide, cx, y, tw, th)
         if ctx.st["kpi"] == "strip":
             box(slide, cx, y, tw, 0.07, fill=c["accent"] if i == 0 else mix(c["bg"], c["accent"], 0.45))
-        text(ctx, slide, cx + 0.28, y + 0.25, tw - 0.56, 0.4, [k["label"]], 13, c["muted"], bold=True)
+        if k.get("icon"):
+            icon(ctx, slide, k["icon"], cx + tw - 0.68, y + 0.24, 0.4, c["accent"] if i == 0 else mix(c["card"], c["accent"], 0.7))
+        text(ctx, slide, cx + 0.28, y + 0.25, tw - 0.56 - (0.45 if k.get("icon") else 0), 0.4, [k["label"]], 13,
+             c["muted"], bold=True)
         vpt = ty["metric"]
         while vpt > 18 and text_width(str(k["value"]), vpt) > (tw - 0.56) * 0.78:
             vpt -= 2  # a value stays on one line: shrink it rather than wrap "월 49만 원"

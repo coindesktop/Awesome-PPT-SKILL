@@ -80,10 +80,10 @@ notes: "마지막 파트예요. 오늘 배운 지표와 차트를 보고서 한 
 pattern: process
 highlight: 1
 steps:
-- {title: 결론 한 문장, desc: "제목에 하고 싶은 말을 써요"}
-- {title: 근거 숫자 3개, desc: "결론을 받치는 숫자만 골라요"}
-- {title: 차트 하나, desc: "질문에 맞는 차트를 골라요"}
-- {title: 다음 행동, desc: "누가 언제 무엇을 할지 써요"}
+- {icon: target, title: 결론 한 문장, desc: "제목에 하고 싶은 말을 써요"}
+- {icon: chart-column, title: 근거 숫자 3개, desc: "결론을 받치는 숫자만 골라요"}
+- {icon: chart-line, title: 차트 하나, desc: "질문에 맞는 차트를 골라요"}
+- {icon: arrow-right, title: 다음 행동, desc: "누가 언제 무엇을 할지 써요"}
 notes: "많은 분들이 데이터부터 나열하는데, 읽는 사람은 결론부터 알고 싶어 해요. 제목 한 줄만 읽어도 무슨 이야기인지 알 수 있게 써 보세요."
 
 # 제목만 바꿔도 보고서가 결론을 말하기 시작해요
