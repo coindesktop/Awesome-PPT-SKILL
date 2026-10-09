@@ -57,6 +57,10 @@ paths are relative to deck.md. Unknown keys and overlong text produce `WARN` lin
 | `product-shot` | `features: [{title, desc}]` ≤4, `frame: phone`, `screen` | empty frame: the user pastes a screenshot |
 | `funding-ask` | `amount`, `round`, `use: [{label, pct}]`, `milestones: [..]`, `milestones_title`, `use_title` | doughnut of use of funds; retitle for grants (`사업비 집행 계획`) |
 
+Public data files: a World Bank download (`.zip` or its `API_*.csv`) reads as columns `Country Name`,
+`Country Code`, `year`, `value` → chart keys `x: year, y: value, series: Country Name, where: {Country Code: [KOR, JPN, USA]}`;
+`pptkit fetch wb` output has `country`, `iso3`, `year`, `value`. KOSIS downloads become long tables with a `year` column.
+
 Numbers the user typed (no file) go inline: `values: {2026-01: 1.2, 2026-02: 1.6}` or
 `values: {ARR: {...}, 고객사: {...}}` instead of `data`/`x`/`y`. Quote any value that contains a comma inside
 `{...}` (`value: "2,400억 원"`): unquoted, YAML splits it and build warns.

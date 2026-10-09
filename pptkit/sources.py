@@ -69,7 +69,10 @@ def _get_json(url, cache_key, refresh=False):
         with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "pptkit"}), timeout=20) as r:
             body = json.loads(r.read().decode("utf-8"))
     except OSError as e:  # URLError, timeouts, proxy refusals
-        raise SystemExit(OFFLINE.format(err=getattr(e, "reason", e)))
+        reason = str(getattr(e, "reason", e))
+        if "403" in reason or "Forbidden" in reason:
+            reason = f"blocked by this network's policy ({reason}); retrying will not help"
+        raise SystemExit(OFFLINE.format(err=reason))
     cache.parent.mkdir(parents=True, exist_ok=True)
     cache.write_text(json.dumps(body, ensure_ascii=False), encoding="utf-8")
     return body, False

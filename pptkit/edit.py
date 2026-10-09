@@ -285,6 +285,13 @@ def patch(path, ops_path, out=None) -> str:
                 cats = list(dict.fromkeys(c for c, _ in new))
                 done.append(f"S{n} chart #{s.shape_id} {cats[0]}..{cats[-1]} ({len(cats)} cats)"
                             + (f"; existing points changed: {', '.join(diff[:6])}" if diff else ""))
+                old_last = list(dict.fromkeys(c for c, _ in old))[-1:] if old else []
+                if old_last and old_last[0] != cats[-1]:  # "2026Q1까지" left in a title or note after the range moved
+                    texts = [sh.text_frame.text for sh in slide.shapes if sh.has_text_frame]
+                    if slide.has_notes_slide:
+                        texts.append(slide.notes_slide.notes_text_frame.text)
+                    if any(old_last[0] in t for t in texts):
+                        done.append(f"S{n} WARN text or notes still mention {old_last[0]} (the old last period)")
     out = Path(out or path)
     if out == path:
         bak = path.with_suffix(".bak.pptx")
