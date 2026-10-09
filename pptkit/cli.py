@@ -8,6 +8,10 @@ import pandas as pd
 import yaml
 
 
+def fmt_s(s, f):
+    return "  ".join(f"{k}={'n/a' if pd.isna(v) else format(v, f)}" for k, v in s.items())
+
+
 def main(argv=None):
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")  # Windows consoles default to cp949
@@ -39,6 +43,8 @@ def main(argv=None):
     p.add_argument("--val", required=True)
     p.add_argument("--where", action="append", default=[], help="keep rows: col=v1,v2 (repeatable)")
     p.add_argument("--group", action="append", default=[], help="merge row labels: 수도권=서울,경기 (repeatable)")
+    p.add_argument("--percent", action="store_true", help="values are fractions (0.362): print them as % (36.2)")
+    p.add_argument("--change", action="store_true", help="with --pct row|col: change of the share vs previous period (%%p)")
     p.add_argument("--pct", choices=["row", "col", "growth", "diff"], help="shares within row/col, or %% change vs previous period")
     p.add_argument("--agg", default="sum", help="sum | mean | count | wmean (needs --weight)")
     p.add_argument("--weight", help="weight column for --agg wmean")
@@ -148,18 +154,28 @@ def main(argv=None):
                 pv = data.apply_pct(body, a.pct, data.is_time(body.index), data.is_time(body.columns))
         else:
             pv = data.pivot(df, a.rows, a.cols, a.val, a.agg, a.top, where=where, weight=a.weight, pct=a.pct)
-        if a.pct:
+        if a.percent:
+            pv = pv * 100
+        if a.change and a.pct in ("row", "col"):
+            body = pv.drop(index="합계", errors="ignore")
+            pv = data.apply_pct(body, "diff", data.is_time(body.index), data.is_time(body.columns))
+            print("%p change of the share vs previous row")
+        elif a.pct:
             print({"growth": "% change vs previous row", "diff": "change vs previous row (same unit)"}.get(
                 a.pct, f"% {a.pct} shares"))
         print(data.smart_round(pv, a.pct in ("growth", "row", "col")).to_string(max_rows=15, na_rep="-"))
+        if a.pct in ("growth", "diff") and not a.per:  # the summary of the underlying values helps the title
+            base = data.pivot(df, a.rows, a.cols, a.val, a.agg, a.top, where=where, weight=a.weight)
+            gs = data.growth_summary(base.drop(index="합계", errors="ignore").drop(columns="합계", errors="ignore"))
+            if gs is not None and a.agg == "sum":
+                print(f"first→last x {fmt_s(gs[2], '.2f')}\n{gs[0]} % {fmt_s(gs[1], '.1f')}")
         rows_t = data.is_time([i for i in pv.index if i != "합계"])  # keep the total row when years run across
         g = data.growth_summary((pv.drop(index="합계", errors="ignore") if rows_t else pv).drop(columns="합계", errors="ignore")) \
             if a.agg == "sum" and not a.pct else None
         if g is not None:
             label, rate, mult = g
-            fmt = lambda s, f: "  ".join(f"{k}={'n/a' if pd.isna(v) else format(v, f)}" for k, v in s.items())
-            print(f"first→last x {fmt(mult, '.2f')}")
-            print(f"{label} % {fmt(rate, '.1f')}")
+            print(f"first→last x {fmt_s(mult, '.2f')}")
+            print(f"{label} % {fmt_s(rate, '.1f')}")
         if a.out:
             pv.to_csv(a.out, encoding="utf-8-sig")
             print(f"-> {a.out}")

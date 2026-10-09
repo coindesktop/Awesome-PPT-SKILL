@@ -78,7 +78,8 @@ def p_compare_table(ctx, spec):
     c = ctx.c
     opts, crit, rec = spec.get("options", []), spec.get("criteria", []), spec.get("recommend")
     nr, nc = len(crit) + 1, len(opts) + 1
-    rh = min(0.85, h / nr)  # rows grow to use the body; a short table no longer leaves half the slide empty
+    marks = any(str(v) in ("●", "◐", "○") for row in crit for v in row.get("values", []))
+    rh = min(0.85, (h - (0.4 if marks else 0)) / nr)  # rows grow to use the body; room for the mark legend
     gt = slide.shapes.add_table(nr, nc, Inches(x), Inches(y), Inches(w), Inches(rh * nr))
     ctx.tables += 1
     tb = gt.table
@@ -113,6 +114,9 @@ def p_compare_table(ctx, spec):
             mark = str(v) in ("●", "◐", "○")
             cell(i, j, v, mix(c["surface"], c["card"], 0.6) if rec == j else c["surface"],
                  c["accent"] if mark else c["ink"], False, size=18 if mark else 13)
+    if marks:
+        text(ctx, slide, x, y + rh * nr + 0.08, w, 0.3, [spec.get("legend", "● 우수   ◐ 보통   ○ 미흡")], 11, c["muted"],
+             align=PP_ALIGN.RIGHT)
 
 
 def p_logic_tree(ctx, spec):
@@ -320,7 +324,7 @@ def p_market_size(ctx, spec):
 NEW = {
     "two-column": (p_two_column, {"columns"}), "before-after": (p_before_after, {"before", "after"}),
     "problem-solution": (p_problem_solution, {"problems", "solutions", "problem_title", "solution_title"}),
-    "swot": (p_swot, {"swot"}), "compare-table": (p_compare_table, {"options", "criteria", "recommend", "corner"}),
+    "swot": (p_swot, {"swot"}), "compare-table": (p_compare_table, {"options", "criteria", "recommend", "corner", "legend"}),
     "logic-tree": (p_logic_tree, {"root", "branches"}), "roadmap": (p_roadmap, {"phases", "lanes", "now"}),
     "gantt": (p_gantt, {"tasks", "data", "asof"}), "funnel": (p_funnel, {"stages", "callout", "callout_title"}),
     "big-number": (p_big_number, {"figure", "label", "support", "points"}), "market-size": (p_market_size, {"tam", "sam", "som"}),

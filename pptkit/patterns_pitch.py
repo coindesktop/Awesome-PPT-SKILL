@@ -141,16 +141,17 @@ def p_pricing(ctx, spec):
         hl = t.get("highlight")
         card(ctx, slide, cx, y, cw, ch, fill=c["surface"] if hl else None, line=c["accent"] if hl else None,
              line_pt=2 if hl else None)
-        if hl:
+        if t.get("badge"):  # highlight only frames the tier; a badge says why
             b = box(slide, cx + cw - 1.05, y + 0.25, 0.8, 0.34, fill=c["accent"], radius=0.17)
-            text(ctx, slide, 0, 0, 0.8, 0.34, [t.get("badge", "추천")], 11, "FFFFFF", bold=True, align=PP_ALIGN.CENTER,
+            text(ctx, slide, 0, 0, 0.8, 0.34, [str(t["badge"])], 11, "FFFFFF", bold=True, align=PP_ALIGN.CENTER,
                  anchor=MSO_ANCHOR.MIDDLE, shape=b)
         text(ctx, slide, cx + 0.3, y + 0.25, cw - 1.4, 0.45, [t.get("name", "")], 17, c["ink"], bold=True)
         price = str(t.get("price", ""))
         pp = _fit(price, cw - 0.6, 40, 22)
         text(ctx, slide, cx + 0.3, y + 0.75, cw - 0.6, 0.8, [price], pp, c["accent"] if hl else c["ink"], bold=True,
              min_pt=pp, anchor=MSO_ANCHOR.BOTTOM)
-        sub = " · ".join(str(t[k]) for k in ("unit", "for") if t.get(k))  # "/월 · 기획·재무 1개 팀" under the price
+        has_num = any(ch.isdigit() for ch in price)  # "별도 협의" takes no "/월"
+        sub = " · ".join(str(t[k]) for k in (("unit", "for") if has_num else ("for",)) if t.get(k))
         if sub:
             text(ctx, slide, cx + 0.3, y + 1.58, cw - 0.6, 0.4, [sub], 13, c["muted"], min_pt=10)
         hline(slide, cx + 0.3, y + 2.05, cw - 0.6, c["line"])

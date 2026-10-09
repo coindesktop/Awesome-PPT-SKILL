@@ -50,7 +50,9 @@ def profile_report() -> str:
     """One line when complete; otherwise what to infer/ask and which defaults to state."""
     prof = load_profile()
     missing = [k for k in PROFILE_ASK if not prof.get(k)]
-    assumed = {k: v for k, v in PROFILE_DEFAULTS.items() if not prof.get(k)}
+    defaults = {**PROFILE_DEFAULTS, **({"audiences": ["투자자"], "org_culture": "formal"}
+                                        if prof.get("industry") == "startup" else {})}
+    assumed = {k: v for k, v in defaults.items() if not prof.get(k)}
     if not missing and not assumed:
         return "PROFILE OK " + " | ".join(f"{k}={_fmt(prof[k])}" for k in [*PROFILE_ASK, *PROFILE_DEFAULTS])
     lines = []
@@ -127,6 +129,8 @@ def resolve_tone(brief: dict) -> tuple[dict, str]:
     if brief.get("formality") == "friendly" and voice in ("gaejosik", "formal"):
         voice = "friendly"  # friendly decks read better in ~합니다/~해요 than in report shorthand
     tone["voice"] = voice
+    if brief.get("length"):
+        tone["length"] = brief["length"]
     tone["callout_title"] = CATALOG["callout_titles"].get(voice, "시사점")
     conv = CATALOG["conventions"].get(prof.get("industry", "default"), {})
     tone["unit"] = brief.get("unit") or conv.get("unit", "")

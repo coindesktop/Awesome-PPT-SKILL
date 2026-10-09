@@ -32,6 +32,7 @@ SKELETON = {
     "kpi-tiles": "kpis:\n  - {label: \"TODO\", value: \"TODO\"}\n  - {label: \"TODO\", value: \"TODO\"}\n  - {label: \"TODO\", value: \"TODO\"}",
     "before-after": "before: {title: 도입 전, items: [TODO]}\nafter: {title: 도입 후, items: [TODO]}",
     "closing": "ask: TODO 청중에게 바라는 행동\nnext:\n  - {t: \"TODO\", who: \"TODO\", when: \"TODO\"}",
+    "chart-takeaway": "chart: bar-ranked\ndata: TODO.csv\nx: TODO\ny: TODO\ntakeaways: [TODO]",
     "chart-table": "chart: column-trend\ndata: TODO.csv\nx: TODO\ny: TODO\ngrowth: true",
     "chart-pair": "data: TODO.csv\ncharts:\n  - {subtitle: \"TODO\", chart: column-trend, x: TODO, y: TODO}\n"
                   "  - {subtitle: \"TODO\", chart: stacked-share, x: TODO, y: TODO, series: TODO}",

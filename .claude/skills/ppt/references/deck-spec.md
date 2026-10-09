@@ -53,7 +53,7 @@ paths are relative to deck.md. Unknown keys and overlong text produce `WARN` lin
 | `pillars` | `pillars: [{title, desc, figure, note}]` 3-4 | strengths, reasons, why now; `figure` replaces 01/02; `note` = proof line |
 | `traction` | `metrics: [{value, label}]` ≤4 + chart keys | headline numbers over a growth chart (`line-trend` default) |
 | `team` | `members: [{name, role, bio: [..], note}]` ≤8, `advisors: [..]` | initials badge; `note` = why this person |
-| `pricing` | `tiers: [{name, price, unit, for, features: [..], highlight: true, badge}]` ≤4 | |
+| `pricing` | `tiers: [{name, price, unit, for, features: [..], highlight: true, badge: 추천}]` ≤4 | `highlight` frames a tier, `badge` labels it; "별도 협의" prices drop the unit |
 | `product-shot` | `features: [{title, desc}]` ≤4, `frame: phone`, `screen` | empty frame: the user pastes a screenshot |
 | `funding-ask` | `amount`, `round`, `use: [{label, pct}]`, `milestones: [..]`, `milestones_title`, `use_title` | doughnut of use of funds; retitle for grants (`사업비 집행 계획`) |
 
@@ -81,7 +81,7 @@ above zero start near the data automatically). Up to 8 series get distinct colou
 | `stacked-share` | composition in % | needs `series`; shares computed for you |
 
 Icons: `icon: rocket` on `pillars` items, `process` steps, `kpi-tiles` tiles and `big-number` points draws a line icon
-as an editable vector shape (no image). `pptkit icons [word]` lists the 125 names (Lucide, ISC licence). Use one icon
+as an editable vector shape (no image). `pptkit icons [word]` lists the 136 names (Lucide, ISC licence). Use one icon
 per item only when it adds meaning; never invent names (build warns and suggests the closest).
 
 Callout boxes are headed `시사점` (report voices) or `핵심` (friendly); set `callout_title` per slide.

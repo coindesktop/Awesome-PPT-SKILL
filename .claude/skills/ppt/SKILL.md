@@ -35,7 +35,10 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
    - `pptkit plan <id> -o deck.md` writes the skeleton (one slide per step, `TODO`s) and prints the content
      questions. Ask the ones the request and files do not answer, in one message, together with any step 1 or
      brief questions. If the user says "알아서", draft from what you know and label invented figures `(예시)`.
-   - Fill every `TODO` (build warns on leftovers); delete steps the user does not need.
+   - Fill every `TODO` (build warns on leftovers); delete steps the user does not need or merge two to reach
+     the requested length (build notes a mismatch with `length`).
+   - Ask at most 5 questions in that first message. Anything with a safe default (mode → balanced, a provisional
+     year → mark "(잠정)", column meanings) is not asked: state the default in one line instead.
 3. **What** - write `brief.yaml` in the work folder:
    ```yaml
    purpose: report        # report | proposal | pitch | ir | sales | education | review

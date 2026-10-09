@@ -59,7 +59,7 @@ eyebrow: 트랙션
 # 팀 단위 구독으로 팔고, 엔터프라이즈로 확장합니다
 tiers:
   - {name: 팀, price: 49만 원, unit: /월, for: 기획·재무 1개 팀, features: [사용자 10명, 표준 템플릿 30종, 엑셀·구글 시트 연결]}
-  - {name: 비즈니스, price: 149만 원, unit: /월, for: 여러 부서, features: [사용자 50명, 회사 양식 학습, ERP 연결, 숫자 검증], highlight: true}
+  - {name: 비즈니스, price: 149만 원, unit: /월, for: 여러 부서, features: [사용자 50명, 회사 양식 학습, ERP 연결, 숫자 검증], highlight: true, badge: 추천}
   - {name: 엔터프라이즈, price: 별도 협의, for: 전사 도입, features: [사용자 무제한, 사내 설치, 전담 매니저]}
 eyebrow: 비즈니스 모델
 

@@ -39,7 +39,7 @@ Claude Code에서 "이 CSV로 본부장 보고용 PPT 8장 만들어줘"처럼 �
 | 개인화 | Profile(사람) × Brief(이번 덱) → 디자인·문체·밀도·업종 관례. 프로필은 `~/.pptkit/`에 저장되어 다시 묻지 않음 |
 | 디자인 | `pptkit/designs/*.md` 4종 + 사용자 DESIGN.md(`~/.pptkit/designs/`), 회사 템플릿 위 렌더링(마스터·로고 유지) |
 | 구성안 | `pptkit/storylines.yaml`: 목적 5종 × 구성안 11개, 장표별 내용 질문 |
-| 아이콘 | Lucide 선 아이콘 125종을 편집 가능한 벡터 도형으로(`icon: rocket`), 사진 없음 |
+| 아이콘 | Lucide 선 아이콘 136종을 편집 가능한 벡터 도형으로(`icon: rocket`), 사진 없음 |
 | 장표 패턴 | 34종: 피칭(pillars, traction, team, pricing, product-shot, funding-ask) 외 구조(표지·목차·섹션·요약·결론), 메시지, 비교(compare, compare-table, before-after, swot, matrix-2x2, logic-tree), 흐름(process, timeline, roadmap, gantt, funnel), 데이터(chart-takeaway, chart-table, chart-pair, pivot, heatmap, kpi-tiles, big-number, market-size) |
 | 차트 | column-trend, line-trend, bar-ranked, stacked, stacked-share (검증된 팔레트, 단일 강조색, 이중 축 없음) |
 | 데이터 | CSV/XLSX, KOSIS 다운로드 형식 자동 정리, 피벗(합계·상위 N+기타·가중 평균) |

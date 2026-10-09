@@ -19,7 +19,8 @@ layers workflow git-branch refresh-cw recycle arrow-right search scan eye globe 
 package truck forklift car plane ship shopping-cart smartphone monitor database server cloud wifi link share-2 download
 upload file-text clipboard-check list-checks list-todo presentation briefcase handshake megaphone message-circle mail phone
 bell headphones camera image video map-pin leaf sprout wheat tractor sun battery-charging plug hospital stethoscope pill
-microscope flask-conical ruler pen-tool palette graduation-cap book-open school baby""".split()
+microscope flask-conical ruler pen-tool palette graduation-cap book-open school baby mic mic-vocal audio-lines
+message-square clipboard-list notebook-pen user-round calendar-check chart-no-axes-combined hand-heart house""".split()
 
 
 def flatten(d, step=0.6):

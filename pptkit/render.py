@@ -815,6 +815,8 @@ def p_chart_table(ctx, spec):
     if spec.get("growth") and len(tbl.columns) == 1:
         tbl["증감률"] = tbl.iloc[:, 0].pct_change() * 100
     tbl.index.name = _label(ctx, spec, spec["x"])
+    if len(tbl) > 8:  # the chart shows the whole series; the table keeps the latest rows readable
+        tbl = tbl.tail(int(spec.get("table_rows", 6)))
     th = min(h - 0.3, 0.42 * (len(tbl) + 1))
     if spec.get("takeaways"):
         th = min(th, max(h - 1.9, 0.26 * (len(tbl) + 1)))  # leave the takeaways their room; rows get tighter
@@ -1106,7 +1108,7 @@ KEYS = {
     "exec-summary": {"points", "numbers"}, "closing": {"ask", "next", "support"},
     "compare": {"columns", "recommend"}, "matrix-2x2": {"quadrants", "x_axis", "y_axis", "items", "callout", "callout_title"},
     "process": {"steps", "highlight"}, "timeline": {"events"}, "kpi-tiles": {"kpis", "callout", "callout_title"},
-    "chart-takeaway": CHART_KEYS | {"takeaways", "callout_title"}, "chart-table": CHART_KEYS | {"takeaways", "growth"},
+    "chart-takeaway": CHART_KEYS | {"takeaways", "callout_title"}, "chart-table": CHART_KEYS | {"takeaways", "growth", "table_rows"},
     "chart-pair": {"charts", "data", "unit"},
     "pivot-table": {"data", "rows", "cols", "val", "agg", "weight", "top", "where", "unit", "max_rows"},
 }
@@ -1197,8 +1199,8 @@ def lint(ctx, spec):
         if len(items) > d["max_bullets"]:
             ctx.warn(f"{key} {len(items)}>{d['max_bullets']} items")
         long = [i for i in map(_s, items) if len(i) > d["max_chars"]]
-        if long:
-            ctx.warn(f"{key} {len(long)} item(s) >{d['max_chars']}자")
+        if long:  # name the items so the author can fix them without counting
+            ctx.warn(f"{key} {len(long)} item(s) >{d['max_chars']}자: " + "; ".join(f"'{i[:14]}…' {len(i)}자" for i in long[:3]))
         if voice == "gaejosik":
             bad = [i for i in map(_s, items) if re.search(r"(다|(어|아|해|에|예|세|지|네|게|래|까|죠)요)[.!]?$", i.strip())]
             if bad:
@@ -1238,6 +1240,9 @@ def build(md_path, out=None, sample=False, design=None):
     out = Path(out or md_path.with_suffix(".sample.pptx" if sample else ".pptx"))
     ctx.prs.save(out)
     head = f"OK {ctx.page} slides, {ctx.charts} charts, {ctx.tables} tables, design={tone['name']} -> {out}"
+    want = tone.get("length")
+    if want and not sample and abs(int(want) - ctx.page) >= 1:
+        head += f"\nNOTE {ctx.page} slides; the brief asked for {want}: add or drop a slide, or update `length`"
     drafts = [i + 1 for i, s in enumerate(slides) if re.search(r"\(예시\)|\(가정\)", yaml.safe_dump(s, allow_unicode=True))]
     if drafts:  # invented figures must not reach an audience unconfirmed
         head += f"\nNOTE (예시)/(가정) figures on slide(s) {drafts}: tell the user to replace or confirm them before use"

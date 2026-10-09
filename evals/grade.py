@@ -39,11 +39,20 @@ def questions(out: Path):
 
 
 def primary_fill(prs):
+    """The deck's brand colour: theme accent1 (pptkit writes the design's first series colour there), else the most
+    common non-white fill. White backgrounds alone say nothing about the look."""
+    try:
+        from pptx.opc.constants import RELATIONSHIP_TYPE as RT
+        from lxml import etree
+        root = etree.fromstring(prs.slide_master.part.part_related_by(RT.THEME).blob)
+        a1 = root.find(".//{http://schemas.openxmlformats.org/drawingml/2006/main}accent1")
+        clr = a1[0].get("val") if a1 is not None and len(a1) else None
+        if clr:
+            return clr.upper()
+    except Exception:
+        pass
     c = Counter()
     for sl in prs.slides:
-        bg = sl.background.fill
-        if bg.type == 1:
-            c[str(bg.fore_color.rgb)] += 3
         for s in sl.shapes:
             try:
                 if s.fill.type == 1 and str(s.fill.fore_color.rgb) not in ("FFFFFF", "000000"):
