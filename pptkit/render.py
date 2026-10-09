@@ -103,6 +103,19 @@ def mix(c1, c2, t_):
     return "".join(f"{round(a[i] + (b[i] - a[i]) * t_):02X}" for i in range(3))
 
 
+def _lum(h):
+    ch = [v / 255 for v in rgb(h)]
+    ch = [v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4 for v in ch]
+    return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2]
+
+
+def on_color(h):
+    """White or near-black text on a fill, whichever has the higher WCAG contrast."""
+    lw = (1.05) / (_lum(h) + 0.05)
+    ld = (_lum(h) + 0.05) / (_lum("1A1A1A") + 0.05)
+    return "FFFFFF" if lw >= ld else "1A1A1A"
+
+
 def dark_color(h):
     r, g, b = rgb(h)
     return 0.2126 * r + 0.7152 * g + 0.0722 * b < 140
@@ -893,7 +906,10 @@ def _chart(ctx, slide, x, y, w, h, spec):
     if unit:
         text(ctx, slide, x, y - 0.05, w, 0.3, [f"단위: {unit}"], 11, c["muted"], align=PP_ALIGN.RIGHT)
     cd = CategoryChartData()
-    cd.categories = [str(v) for v in wide.index]
+    cats = [str(v) for v in wide.index]
+    if len(cats) > 6 and all(re.fullmatch(r"(19|20)\d{2}-\d{2}", c_) for c_ in cats):
+        cats = [f"{c_[2:4]}.{c_[5:]}" for c_ in cats]  # 2026-01 -> 26.01 so long month axes do not wrap
+    cd.categories = cats
     for col in wide.columns:
         cd.add_series(_label(ctx, spec, col), [None if pd.isna(v) else round(float(v), 4) for v in wide[col]])
     ch = slide.shapes.add_chart(CHARTS[kind], Inches(x), Inches(y + 0.25), Inches(w), Inches(h - 0.25), cd).chart
@@ -966,7 +982,7 @@ def _chart(ctx, slide, x, y, w, h, spec):
                 dl.has_text_frame = True
                 dl.text_frame.text = _fmt_num(v, fmt) if fmt != "0%" else f"{v:.0%}"
                 dl.position = XL_LABEL_POSITION.CENTER
-                dl.font.size, dl.font.color.rgb = Pt(11), rgb("FFFFFF" if dark_color(col) else "1A1A1A")
+                dl.font.size, dl.font.color.rgb = Pt(11), rgb(on_color(col))
         return wide
     if not single:
         plot.overlap = -10
