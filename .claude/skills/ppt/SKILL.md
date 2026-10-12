@@ -54,7 +54,7 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
 4. **Tone** - `pptkit tone --brief brief.yaml`. It picks a DESIGN (look) and prints `VOICE` and `RULES`;
    obey them in every sentence you write (`friendly` overrides the profile's report shorthand for this deck).
    A `BRIEF MISSING` block means ask first.
-5. **Data** - `pptkit data <file>` for a summary (KOSIS and World Bank web downloads are normalized automatically).
+5. **Data** - `pptkit data a.csv b.xlsx` summarizes every file in one call (KOSIS and World Bank web downloads are normalized automatically).
    Every number in a title or bullet comes from `pptkit pivot <file> --rows .. [--cols ..] --val ..`: totals and
    CAGR are printed; `--pct row|col` gives shares, `--pct growth` the change vs the previous period;
    `--where year=2025,2026` filters, `--group 수도권=서울,경기,인천` merges rows (combined shares);
@@ -66,15 +66,19 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
    adds from pivot (`--pct growth`, `--pct diff`, multiples are printed), revenue per customer from
    `--val mrr --per customers`; a plain unit conversion like ARR = MRR×12 is fine if the slide says so.
    Achievement rates (목표 달성률): `--val actual --per target --percent` gives 100.7 per row and in total.
-6. **Deck** - complete `deck.md` per [references/deck-spec.md](references/deck-spec.md) (`pptkit icons` for icon names). Titles are conclusion
+6. **Deck** - complete `deck.md`. `pptkit spec <pattern|chart> ..` prints the keys of only the ones you use
+   (`pptkit spec` alone: shared rules + names); open [references/deck-spec.md](references/deck-spec.md) only for
+   what spec does not answer (`pptkit icons` for icon names). Titles are conclusion
    sentences backed by numbers you got from pptkit. Pick patterns by the order below and vary them; when a
    slide holds one chart, prefer `chart-table` or `chart-pair` if a second view adds information.
 7. **Tone sample** - `pptkit build deck.md --sample` → give the user `deck.sample.pptx` (cover + one data
    slide) and ask if the look and voice fit. Compare looks with `--design <name>`. Lasting preferences go to
    `pptkit profile set ...` (e.g. `design=forest`, `brand=0B5E7A`, `dislikes=..`); deck-only ones to `brief.yaml`.
-8. **Build** - `pptkit build deck.md` (`-o 이름.pptx` names the file). Its `WARN` lines are about content (keys, length, voice); `pptkit qa
-   deck.pptx` is about layout (overflow, overlap, `sparse`). Fix both by editing deck.md and rebuilding until
-   neither reports anything (on Windows with PowerPoint, `qa --com` measures text exactly).
+8. **Build** - `pptkit build deck.md` (`-o 이름.pptx` names the file). It prints `WARN` lines about content (keys,
+   length, voice) and `QA` lines about layout (overflow, overlap, `sparse`) in the same call. Fix both by editing
+   deck.md and rebuilding until it prints `QA OK` and no WARN (on Windows with PowerPoint, `qa --com` measures text
+   exactly). Do not render slides to images to check them: it costs more than the whole build; `pptkit read
+   deck.pptx -s N` shows what a slide says.
 9. **Deliver** the .pptx path (in a cloud/app session, send the file).
 
 ## Edit an existing deck (any .pptx, ours or not)

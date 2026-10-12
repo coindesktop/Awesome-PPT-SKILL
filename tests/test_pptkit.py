@@ -309,6 +309,19 @@ callout: [대구 근접]
     assert gs[0] == "증감률 2025Q3→2026Q3" and round(float(gs[1]["v"]), 1) == 10.0
 
 
+def test_spec_prints_only_the_named_keys_and_build_prints_qa(capsys=None):
+    import contextlib
+    import io
+    from pptkit import cli, spec
+    one = spec.report(["progress", "waterfall"])
+    assert "`progress`" in one and "`waterfall`" in one and "`gantt`" not in one and one.count("## Chart keys") == 1
+    assert "patterns: cover" in spec.report([])
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        cli.main(["build", str(ROOT / "examples" / "pitch" / "deck.md"), "-o", str(Path(tempfile.mkdtemp()) / "p.pptx")])
+    assert buf.getvalue().strip().splitlines()[-1] == "QA OK", buf.getvalue()
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

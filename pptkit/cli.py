@@ -1,5 +1,6 @@
 """pptkit: every command prints a short result meant to be read by a model, not a human dashboard."""
 import argparse
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -33,8 +34,8 @@ def main(argv=None):
     p = sub.add_parser("icons", help="line icons for pillars/process/kpi/points (`icon: rocket`)")
     p.add_argument("query", nargs="?", help="filter, e.g. chart")
 
-    p = sub.add_parser("data", help="summarize a csv/xlsx")
-    p.add_argument("file")
+    p = sub.add_parser("data", help="summarize csv/xlsx files (several at once)")
+    p.add_argument("files", nargs="+")
 
     p = sub.add_parser("pivot", help="pivot a csv/xlsx")
     p.add_argument("file")
@@ -104,6 +105,9 @@ def main(argv=None):
 
     sub.add_parser("sources", help="available data sources and key status")
 
+    p = sub.add_parser("spec", help="deck.md keys of the patterns/charts you use (no args: rules + names)")
+    p.add_argument("names", nargs="*")
+
     p = sub.add_parser("install-skill", help="copy the Claude skill to ~/.claude/skills/ppt")
     p.add_argument("--dest", default=str(Path.home() / ".claude" / "skills" / "ppt"))
 
@@ -136,7 +140,7 @@ def main(argv=None):
         names = [n for n in render.icon_names() if not a.query or a.query in n]
         print(f"{len(names)} icons: " + " ".join(names))
     elif a.cmd == "data":
-        print(data.summary(a.file))
+        print("\n\n".join(data.summary(f) for f in a.files))
     elif a.cmd == "pivot":
         df = data.load(a.file)
         bad = [c for c in (a.rows, a.cols, a.val, a.weight) if c and c not in df.columns]
@@ -210,7 +214,13 @@ def main(argv=None):
             d = persona.load_design(name)
             print(f"{name:10} [{d.get('formality', '')}] {d['description']}")
     elif a.cmd == "build":
-        print(render.build(a.deck, a.out, a.sample, a.design))
+        msg = render.build(a.deck, a.out, a.sample, a.design)
+        print(msg)
+        out = re.search(r"-> (.+\.pptx)", msg.splitlines()[0])
+        if out:  # geometry check in the same call: one round trip instead of build + qa
+            built = Path(out[1]) if Path(out[1]).exists() else Path(a.deck).parent / out[1]
+            issues = qa.check(built)
+            print("QA OK" if not issues else "\n".join(f"QA {i}" for i in issues))
     elif a.cmd == "qa":
         sl = {int(x) for x in a.slides.split(",")} if a.slides else None
         issues = (qa.check_com if a.com else qa.check)(a.pptx, sl)
@@ -234,6 +244,9 @@ def main(argv=None):
     elif a.cmd == "sources":
         from . import sources
         print(sources.sources_report())
+    elif a.cmd == "spec":
+        from . import spec
+        print(spec.report(a.names))
     elif a.cmd == "install-skill":
         src = Path(__file__).with_name("skill")
         if not src.exists():  # running from a source checkout
