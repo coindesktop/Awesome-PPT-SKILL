@@ -25,9 +25,10 @@ Claude Code에서 "이 CSV로 본부장 보고용 PPT 8장 만들어줘"처럼 �
 | 사람 파악 (한 번만) | `pptkit profile` / `pptkit style extract old.pptx` | 한 줄 또는 빈 항목 목록 |
 | 목적 → 구성안 선택 | `pptkit plan` → `pptkit plan pitch` → `pptkit plan pitch/vc-seed -o deck.md` | 구성안 목록, 뼈대와 내용 질문 |
 | 이번 덱 파악 | `brief.yaml` 작성 → `pptkit tone --brief brief.yaml` | 디자인·문체·규칙 3줄 |
-| 데이터 | `pptkit data file.csv` / `pptkit pivot ...` / `pptkit fetch wb ...` | 요약 약 100토큰 |
+| 데이터 | `pptkit data a.csv b.csv` / `pptkit pivot ... [--bridge 2025,2026]` / `pptkit fetch wb ...` | 파일당 요약 약 100토큰 |
+| 덱 문법 | `pptkit spec progress waterfall` | 쓰는 패턴의 키만 |
 | 톤 시안 | `pptkit build deck.md --sample` | 한 줄 |
-| 생성·점검 | `pptkit build deck.md` → `pptkit qa deck.pptx [--com]` | 한 줄, 문제만 |
+| 생성·점검 | `pptkit build deck.md` (qa 포함, Windows는 `pptkit qa --com`) | 한 줄, 문제만 |
 | 기존 덱 수정 | `pptkit map` → `pptkit read -s 3,5` → `pptkit patch deck.pptx ops.yaml` | 장당 한 줄 + 필요한 장만 |
 
 전체 명령: `pptkit -h`. 스킬 문서: [`.claude/skills/ppt/SKILL.md`](.claude/skills/ppt/SKILL.md), 덱 문법: [`deck-spec.md`](.claude/skills/ppt/references/deck-spec.md), 편집 문법: [`editing.md`](.claude/skills/ppt/references/editing.md).
@@ -38,7 +39,7 @@ Claude Code에서 "이 CSV로 본부장 보고용 PPT 8장 만들어줘"처럼 �
 |---|---|
 | 개인화 | Profile(사람) × Brief(이번 덱) → 디자인·문체·밀도·업종 관례. 프로필은 `~/.pptkit/`에 저장되어 다시 묻지 않음 |
 | 디자인 | `pptkit/designs/*.md` 4종 + 사용자 DESIGN.md(`~/.pptkit/designs/`), 회사 템플릿 위 렌더링(마스터·로고 유지) |
-| 구성안 | `pptkit/storylines.yaml`: 목적 5종 × 구성안 11개, 장표별 내용 질문 |
+| 구성안 | `pptkit/storylines.yaml`: 목적 5종 × 구성안 14개, 장표별 내용 질문 |
 | 아이콘 | Lucide 선 아이콘 136종을 편집 가능한 벡터 도형으로(`icon: rocket`), 사진 없음 |
 | 장표 패턴 | 36종: 피칭(pillars, traction, team, pricing, product-shot, funding-ask) 외 구조(표지·목차·섹션·요약·결론), 메시지, 비교(compare, compare-table, before-after, swot, matrix-2x2, logic-tree), 흐름(process, timeline, roadmap, gantt, funnel), 진척(progress, status-table), 데이터(chart-takeaway, chart-table, chart-pair, pivot, heatmap, kpi-tiles, big-number, market-size) |
 | 차트 | column-trend, line-trend, bar-ranked, stacked, stacked-share, waterfall(증감 요인), donut(구성비) (검증된 팔레트, 단일 강조색, 이중 축 없음) |
