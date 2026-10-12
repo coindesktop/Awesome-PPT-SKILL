@@ -75,11 +75,11 @@ name on multi-series charts: the rest go muted), `top`, `unit`, `fmt: pct`, `ymi
 above zero start near the data automatically). Up to 8 series get distinct colours; more should fold into 기타.
 Category x (regions, products) keeps the file order; `top: N` keeps the N largest, largest first. Periods as
 `series` (`series: quarter` → 2025Q3 vs 2026Q3) draw earlier periods gray and the latest in the accent, and
-`chart-table` with `growth: true` adds the first→last 증감률 column.
+`chart-table` with `growth: true` adds the first→last 증감률 column; category tables end with a 합계 row.
 
 | chart | use | notes |
 |---|---|---|
-| `column-trend` | change over ≤12 periods | `highlight: 2026` = one accent, rest gray |
+| `column-trend` | change over ≤12 periods; or categories side by side for 2-3 periods (`x: region, series: quarter`) | `highlight: 2026` = one accent, rest gray |
 | `line-trend` | longer series or several series | last point labeled |
 | `bar-ranked` | ranking categories | `top: 10`, `highlight: 서울` |
 | `stacked` | totals with composition | needs `series` |

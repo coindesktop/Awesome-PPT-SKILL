@@ -65,7 +65,9 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
    For a pitch, derived metrics persuade: growth rate, net adds, revenue per customer, ARR. Get growth and net
    adds from pivot (`--pct growth`, `--pct diff`, multiples are printed), revenue per customer from
    `--val mrr --per customers`; a plain unit conversion like ARR = MRR×12 is fine if the slide says so.
-   Achievement rates (목표 달성률): `--val actual --per target --percent` gives 100.7 per row and in total.
+   Achievement rates (목표 달성률): `--val actual --per target --percent` gives 100.7 per row and in total;
+   the shortfall in money: `--val actual --minus target`. Fractions (margin 0.3617) print as % with `--percent`
+   (also with `--agg wmean`).
 6. **Deck** - complete `deck.md`. `pptkit spec <pattern|chart> ..` prints the keys of only the ones you use
    (`pptkit spec` alone: shared rules + names); open [references/deck-spec.md](references/deck-spec.md) only for
    what spec does not answer (`pptkit icons` for icon names). Titles are conclusion

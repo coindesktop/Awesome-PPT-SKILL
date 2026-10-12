@@ -834,15 +834,22 @@ def p_chart_table(ctx, spec):
     elif spec.get("growth") and len(wide.columns) >= 2 and data.is_time(list(wide.columns)):  # periods as series
         tbl["증감률"] = (wide.iloc[:, -1] / wide.iloc[:, 0] - 1).values * 100
     tbl.index.name = _label(ctx, spec, spec["x"])
+    if not timed and spec.get("agg", "sum") == "sum" and not _is_share(spec) and len(tbl) > 2:  # regions: a total row
+        tot = wide.sum()
+        row = [tot[c] for c in wide.columns]
+        if "증감률" in tbl.columns:
+            row.append(np.nan if len(wide.columns) == 1 else (tot.iloc[-1] / tot.iloc[0] - 1) * 100)
+        tbl.loc["합계"] = row
     if timed and len(tbl) > 8:  # the chart shows the whole series; the table keeps the latest rows readable
         tbl = tbl.tail(int(spec.get("table_rows", 6)))
-    elif len(tbl) > 12:  # categories: every one fits up to 12 rows
-        ctx.warn(f"chart-table: table shows 12 of {len(tbl)} categories; use `top` or `where`")
-        tbl = tbl.head(12)
+    elif len(tbl) > 13:  # categories: up to 12 rows + 합계
+        ctx.warn(f"chart-table: table shows 12 of {len(tbl) - 1} categories; use `top` or `where`")
+        tbl = pd.concat([tbl.head(12), tbl.tail(1)]) if tbl.index[-1] == "합계" else tbl.head(12)
     th = min(h - 0.3, 0.42 * (len(tbl) + 1))
     if spec.get("takeaways"):
         th = min(th, max(h - 1.9, 0.26 * (len(tbl) + 1)))  # leave the takeaways their room; rows get tighter
-    _table(ctx, slide, x + w * 0.6, y + 0.3, w * 0.4, th, tbl, tbl, False, False, spec, pct_cols=["증감률"])
+    _table(ctx, slide, x + w * 0.6, y + 0.3, w * 0.4, th, tbl, tbl, False, tbl.index[-1] == "합계", spec,
+           pct_cols=["증감률"])
     if spec.get("takeaways") and h - th - 0.6 <= 1.0:
         ctx.warn("chart-table: no room for takeaways under the table (fewer rows via `where`, or use chart-takeaway)")
     if spec.get("takeaways") and h - th - 0.6 > 1.0:
@@ -867,10 +874,12 @@ def _is_share(spec):
     return spec.get("chart") == "stacked-share" or spec.get("fmt") == "pct"
 
 
-def _numfmt(vals, spec):
+def _numfmt(vals, spec, table=False):
     if spec.get("fmt") == "pct":
         return "0.0%"
     v = pd.Series(vals).dropna()
+    if table:  # tables have room: 818.8 stays 818.8 so chart-table and heatmap agree
+        return "#,##0" if v.abs().max() >= 100000 or (v.round(6) % 1 == 0).all() else "#,##0.0"
     return "#,##0" if v.abs().max() >= 1000 or (v.round(6) % 1 == 0).all() else "#,##0.0"  # 96.4 stays 96.4
 
 
@@ -1091,7 +1100,7 @@ def _table(ctx, slide, x, y, w, h, part, body, heat, has_total, spec, pct_cols=(
         tb.columns[j].width = Inches((w - first_w) / (nc - 1))
     numeric = body.drop(columns=["합계", *pct_cols], errors="ignore")
     vmin, vmax = float(numeric.min().min()), float(numeric.max().max())
-    fmt = _numfmt(numeric.values.ravel(), {})
+    fmt = _numfmt(numeric.values.ravel(), {}, table=True)
     pt = 12 if nr <= 10 else 11
     header = [_label(ctx, spec, part.index.name or "")] + [_label(ctx, spec, col) for col in part.columns]
     head_fill, head_fg = {"dark": (c["dark"], "FFFFFF"), "accent": (c["accent"], "FFFFFF")}.get(
@@ -1279,6 +1288,7 @@ def build(md_path, out=None, sample=False, design=None):
         meta["design"] = design
     base = md_path.parent
     tone = load_tone(meta, base)
+    every = slides
     if sample:  # tone check: cover + first data-bearing (or first content) slide
         rest = [s for s in slides if s["pattern"] not in ("cover", "section")]
         pick = next((s for s in rest if "chart" in s or "charts" in s or "rows" in s),
@@ -1306,6 +1316,13 @@ def build(md_path, out=None, sample=False, design=None):
                     ph._element.getparent().remove(ph._element)
         saved, ctx.page = ctx.page, first_page
         lint(ctx, spec)
+        ctx.page = saved
+    if sample:  # the slides not drawn still get their content checks, numbered as in deck.md
+        saved = ctx.page
+        for i, spec in enumerate(every, start=1):
+            if not any(spec is t for t in slides):
+                ctx.page = i
+                lint(ctx, spec)
         ctx.page = saved
     out = Path(out or md_path.with_suffix(".sample.pptx" if sample else ".pptx"))
     ctx.prs.save(out)

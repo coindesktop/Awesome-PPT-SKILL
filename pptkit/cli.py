@@ -49,6 +49,7 @@ def main(argv=None):
     p.add_argument("--pct", choices=["row", "col", "growth", "diff"], help="shares within row/col, or %% change vs previous period")
     p.add_argument("--agg", default="sum", help="sum | mean | count | wmean (needs --weight)")
     p.add_argument("--weight", help="weight column for --agg wmean")
+    p.add_argument("--minus", help="difference: sum(val) - sum(minus) per cell, e.g. --val actual --minus target")
     p.add_argument("--per", help="ratio: sum(val) / sum(per) per cell, e.g. --val mrr --per customers")
     p.add_argument("--top", type=int)
     p.add_argument("--bridge", metavar="START,END",
@@ -170,6 +171,12 @@ def main(argv=None):
                 print(f"  {k}: {n(v)} = {n(v / chg * 100, 0) if chg else 'n/a'}% of change"
                       + (f" (cumulative {n(cum / chg * 100, 0)}%)" if chg and k != items[-2][0] else ""))
             return 0
+        if a.minus:  # shortfall / surplus against a plan column, same unit
+            num = data.pivot(df, a.rows, a.cols, a.val, "sum", a.top, where=where)
+            sub = data.pivot(df, a.rows, a.cols, a.minus, "sum", a.top, where=where)
+            num.columns = sub.columns = [f"{a.val}-{a.minus}"] if not a.cols else num.columns
+            print(data.smart_round(num - sub).to_string(max_rows=15, na_rep="-"))
+            return 0
         if a.per:  # revenue per customer and similar ratios, computed per cell (not an average of ratios)
             num = data.pivot(df, a.rows, a.cols, a.val, "sum", a.top, where=where)
             den = data.pivot(df, a.rows, a.cols, a.per, "sum", a.top, where=where)
@@ -190,7 +197,7 @@ def main(argv=None):
             along = "column" if a.cols and data.is_time(list(pv.columns)) and not data.is_time(list(pv.index)) else "row"
             print({"growth": f"% change vs previous {along}", "diff": f"change vs previous {along} (same unit)"}.get(
                 a.pct, f"% {a.pct} shares"))
-        print(data.smart_round(pv, a.pct in ("growth", "row", "col")).to_string(max_rows=15, na_rep="-"))
+        print(data.smart_round(pv, a.pct in ("growth", "row", "col") or a.percent).to_string(max_rows=15, na_rep="-"))
         if a.pct in ("growth", "diff") and not a.per:  # the summary of the underlying values helps the title
             base = data.pivot(df, a.rows, a.cols, a.val, a.agg, a.top, where=where, weight=a.weight)
             gs = data.growth_summary(base.drop(index="합계", errors="ignore").drop(columns="합계", errors="ignore"))

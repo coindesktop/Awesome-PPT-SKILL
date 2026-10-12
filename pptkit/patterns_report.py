@@ -199,7 +199,7 @@ def p_progress(ctx, spec):
             text(ctx, slide, mx - 0.5, ry - 0.3, 1.0, 0.26, ["목표"], 10, c["muted"], align=PP_ALIGN.CENTER)
         text(ctx, slide, tx + tw + 0.15, ry, 1.65, rh, [f"{fnum(act)} / {fnum(tgt)}{unit}"], 12, c["body"],
              anchor=MSO_ANCHOR.MIDDLE, min_pt=9)
-        shown = f"{rate:.0%}" if _status_of(round(rate, 2))[0] == word else f"{rate:.1%}"  # 99.5% is not "100% 근접"
+        shown = f"{rate:.1%}"  # one decimal like `pivot --percent`: 99.5% never reads as 100%, titles match
         text(ctx, slide, tx + tw + 1.85, ry, 1.45, rh, [f"{shown} {word}"], 15 if rh >= 0.5 else 13, col, bold=True,
              anchor=MSO_ANCHOR.MIDDLE, align=PP_ALIGN.RIGHT, min_pt=11)
     if spec.get("callout"):

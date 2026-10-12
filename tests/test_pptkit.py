@@ -250,7 +250,7 @@ rows:
     tot = [s for s in wf.plots[0].series if s.name == "합계"][0]
     assert list(tot.values)[-1] == 120 and wf.value_axis.minimum_scale is not None
     texts = [s.text_frame.text for s in prs.slides[2].shapes if s.has_text_frame]
-    assert "105% 달성" in texts and "80% 미달" in texts
+    assert "105.0% 달성" in texts and "80.0% 미달" in texts
     cells = [c.text for s in prs.slides[3].shapes if s.has_table for r in s.table.rows for c in r.cells]
     assert "● 지연" in cells
     assert [f for f in qa.check(d / "deck.pptx") if "sparse" not in f] == []  # one-row table is sparse by design
@@ -301,7 +301,7 @@ callout: [대구 근접]
     ch = next(s.chart for s in prs.slides[0].shapes if s.has_chart)
     assert list(ch.plots[0].categories) == regions  # file order, not 가나다 sorted
     rows = [[c.text for c in r.cells] for s in prs.slides[0].shapes if s.has_table for r in s.table.rows]
-    assert len(rows) == 11 and rows[0][-1] == "증감률" and rows[1][1] == "10.0"
+    assert len(rows) == 12 and rows[0][-1] == "증감률" and rows[1][1] == "10.0" and rows[-1][0] == "합계"
     texts = [s.text_frame.text for s in prs.slides[1].shapes if s.has_text_frame]
     assert "99.5% 근접" in texts and "107.9 / 105.0" in texts
     assert qa.check(d / "deck.pptx") == []
@@ -320,6 +320,34 @@ def test_spec_prints_only_the_named_keys_and_build_prints_qa(capsys=None):
     with contextlib.redirect_stdout(buf):
         cli.main(["build", str(ROOT / "examples" / "pitch" / "deck.md"), "-o", str(Path(tempfile.mkdtemp()) / "p.pptx")])
     assert buf.getvalue().strip().splitlines()[-1] == "QA OK", buf.getvalue()
+
+
+def test_minus_sample_lint_and_category_table_total():
+    import contextlib
+    import io
+    from pptkit import cli
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        cli.main(["pivot", str(ROOT / "evals" / "data" / "q3_target.csv"), "--rows", "region",
+                  "--val", "actual_100m_krw", "--minus", "target_100m_krw"])
+    out = buf.getvalue()
+    assert "경기" in out and "-3.5" in out and "합계" in out and "2.3" in out
+    d = Path(tempfile.mkdtemp())
+    (d / "deck.md").write_text("""---
+design: corporate
+---
+
+# 표지
+pattern: cover
+
+# 요약
+bullets: [짧은 항목]
+
+# 상세
+bullets: ["이 문장은 일부러 아주 길게 써서 개조식 한 줄 기준인 마흔다섯 글자를 훌쩍 넘기도록 만든 문장임"]
+""", encoding="utf-8")
+    msg = render.build(d / "deck.md", sample=True)
+    assert msg.startswith("OK 2 slides") and "WARN S3" in msg, msg  # slide 3 is not drawn but still checked
 
 
 if __name__ == "__main__":
