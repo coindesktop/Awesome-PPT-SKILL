@@ -821,6 +821,8 @@ def p_chart(ctx, spec):
 
 def p_chart_table(ctx, spec):
     """Chart on the left, the same numbers as a compact table on the right (optionally with growth)."""
+    if spec.get("chart") in SPECIAL_CHARTS:  # a bridge or ring already carries its numbers
+        return p_chart(ctx, spec)
     slide, (x, y, w, h) = content_slide(ctx, spec)
     wide = _chart(ctx, slide, x, y, w * 0.56, h, spec)
     tbl = wide.copy()
@@ -883,11 +885,16 @@ CHARTS = {"column-trend": XL_CHART_TYPE.COLUMN_CLUSTERED, "bar-ranked": XL_CHART
           "stacked-share": XL_CHART_TYPE.COLUMN_STACKED}  # shares are precomputed
 
 
+SPECIAL_CHARTS = {}  # waterfall, donut (patterns_report): drawn their own way
+
+
 def _chart(ctx, slide, x, y, w, h, spec):
     c = ctx.c
     kind = spec.get("chart", "column-trend")
+    if kind in SPECIAL_CHARTS:
+        return SPECIAL_CHARTS[kind](ctx, slide, x, y, w, h, spec)
     if kind not in CHARTS:
-        raise SystemExit(f"unknown chart '{kind}'. known: {', '.join(CHARTS)}")
+        raise SystemExit(f"unknown chart '{kind}'. known: {', '.join([*CHARTS, *SPECIAL_CHARTS])}")
     if "values" in spec:  # numbers the user typed: {category: value} or {series: {category: value}}
         v = spec["values"]
         nested = all(isinstance(x, dict) for x in v.values())
@@ -1267,3 +1274,4 @@ def build(md_path, out=None, sample=False, design=None):
 
 from . import patterns_p1  # noqa: E402,F401  (registers the P1 patterns)
 from . import patterns_pitch  # noqa: E402,F401  (registers the pitch patterns)
+from . import patterns_report  # noqa: E402,F401  (registers report visuals)

@@ -55,6 +55,8 @@ paths are relative to deck.md. Unknown keys and overlong text produce `WARN` lin
 | `team` | `members: [{name, role, bio: [..], note}]` ≤8, `advisors: [..]` | initials badge; `note` = why this person |
 | `pricing` | `tiers: [{name, price, unit, for, features: [..], highlight: true, badge: 추천}]` ≤4 | `highlight` frames a tier, `badge` labels it; "별도 협의" prices drop the unit |
 | `product-shot` | `features: [{title, desc}]` ≤4, `frame: phone`, `screen` | empty frame: the user pastes a screenshot |
+| `progress` | `items: [{label, actual, target}]` or `data` + `x`, `actual`, `target`; `unit`, `callout` | must set `pattern: progress`; bars to 120%, 목표 marker, 달성/근접/미달 by rate (≥100%, ≥90%) |
+| `status-table` | `rows: [{item, owner, due, status, note}]` or `data`; `columns`, `headers` | must set `pattern: status-table`; status green/amber/red/done (or 정상/주의/지연/완료) as dot + word, counts below |
 | `funding-ask` | `amount`, `round`, `use: [{label, pct}]`, `milestones: [..]`, `milestones_title`, `use_title` | doughnut of use of funds; retitle for grants (`사업비 집행 계획`) |
 
 Public data files: a World Bank download (`.zip` or its `API_*.csv`) reads as columns `Country Name`,
@@ -79,6 +81,8 @@ above zero start near the data automatically). Up to 8 series get distinct colou
 | `bar-ranked` | ranking categories | `top: 10`, `highlight: 서울` |
 | `stacked` | totals with composition | needs `series` |
 | `stacked-share` | composition in % | needs `series`; shares computed for you |
+| `waterfall` | start → changes → end (매출 증감 요인) | `values: {2025 매출: 1174, 서울: 45, 감소 요인: -3, 2026 매출: "="}`; `"="` draws the running total; or `data`/`x`/`y` deltas with `start: {label, value}`, `end: label`; axis starts near the data (`zero: true` to keep 0) |
+| `donut` | composition of one total (≤6 parts) | `values` or `data`/`x`/`y`; `highlight` one part, `center`, `center_label` |
 
 Icons: `icon: rocket` on `pillars` items, `process` steps, `kpi-tiles` tiles and `big-number` points draws a line icon
 as an editable vector shape (no image). `pptkit icons [word]` lists the 136 names (Lucide, ISC licence). Use one icon

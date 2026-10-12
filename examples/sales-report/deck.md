@@ -72,6 +72,12 @@ takeaways:
 pattern: section
 number: 2
 
+# 2026년 매출 147억 원 증가분의 절반 이상이 비수도권에서 나옴
+chart: waterfall
+values: {2025 매출: 1174.2, 서울: 45.3, 경기: 21.6, 인천: 14.4, 부산: 27.3, 대구: 13.2, 기타 5개 지역: 25.1, 2026 매출: "="}
+unit: 억 원
+takeaways: ["비수도권 증가분 79.6억 원(54%)", "부산 +27.3억 원으로 서울 다음"]
+
 # 서울·경기가 매출 상위 2개 지역이고, 이익률은 품목 구성에 좌우됨
 data: ../../evals/data/sales.csv
 charts:
@@ -87,6 +93,13 @@ cols: year
 val: revenue_100m_krw
 top: 6
 unit: 억 원
+
+# 품목별 매출은 솔루션이 절반, 구독이 3분의 1임
+chart: donut
+values: {솔루션: 636, 구독: 458, 컨설팅: 228}
+highlight: 구독
+center_label: 2026 매출(억 원)
+takeaways: ["구독 458억 원, 비중 34.7%", "구독 매출총이익률 48%로 가장 높음"]
 
 # 품목별 매출 구성
 pattern: pivot-table

@@ -45,9 +45,9 @@ def test_weighted_mean_matches_manual():
 def test_example_deck_builds_native_and_passes_qa():
     out = Path(tempfile.mkdtemp()) / "deck.pptx"
     report = render.build(ROOT / "examples/sales-report/deck.md", out)
-    assert report.startswith("OK 20 slides, 5 charts, 3 tables") and "WARN" not in report, report
+    assert report.startswith("OK 22 slides, 7 charts, 3 tables") and "WARN" not in report, report
     prs = Presentation(out)
-    assert sum(s.has_chart for sl in prs.slides for s in sl.shapes) == 9  # 5 charts + 4 KPI sparklines
+    assert sum(s.has_chart for sl in prs.slides for s in sl.shapes) == 11  # 7 charts + 4 KPI sparklines
     assert qa.check(out) == []
     sample = render.build(ROOT / "examples/sales-report/deck.md", out.with_name("s.pptx"), sample=True)
     assert sample.startswith("OK 2 slides, 1 charts"), sample
@@ -103,7 +103,7 @@ def test_style_extract_then_build_on_the_template():
     out = d / "deck.pptx"
     assert "design=corp" in render.build(ROOT / "examples/sales-report/deck.md", out, design="corp")
     built = Presentation(out)
-    assert len(built.slides) == 20 and any(s.shape_type == 1 for s in built.slide_master.shapes)
+    assert len(built.slides) == 22 and any(s.shape_type == 1 for s in built.slide_master.shapes)
     assert qa.check(out) == []
 
 
@@ -216,6 +216,44 @@ pillars:
     shapes = [s for s in Presentation(d / "deck.pptx").slides[0].shapes if s.name.startswith("icon:")]
     assert [s.name for s in shapes] == ["icon:rocket", "icon:shield-check"]
     assert all(s._element.find(".//{http://schemas.openxmlformats.org/drawingml/2006/main}custGeom") is not None for s in shapes)
+
+
+def test_report_visuals_waterfall_donut_progress_status():
+    d = Path(tempfile.mkdtemp())
+    (d / "deck.md").write_text("""---
+design: corporate
+---
+
+# 증감
+chart: waterfall
+values: {2025: 100, 증가: 30, 감소: -10, 2026: "="}
+
+# 구성
+chart: donut
+values: {A: 60, B: 40}
+
+# 달성
+pattern: progress
+items:
+  - {label: 서울, actual: 105, target: 100}
+  - {label: 부산, actual: 80, target: 100}
+
+# 상태
+pattern: status-table
+rows:
+  - {item: 이관, owner: 팀, due: 9/30, status: red, note: 지연}
+""", encoding="utf-8")
+    msg = render.build(d / "deck.md")
+    assert msg.startswith("OK 4 slides, 2 charts, 1 tables") and "WARN" not in msg, msg
+    prs = Presentation(d / "deck.pptx")
+    wf = next(s.chart for s in prs.slides[0].shapes if s.has_chart)
+    tot = [s for s in wf.plots[0].series if s.name == "합계"][0]
+    assert list(tot.values)[-1] == 120 and wf.value_axis.minimum_scale is not None
+    texts = [s.text_frame.text for s in prs.slides[2].shapes if s.has_text_frame]
+    assert "105% 달성" in texts and "80% 미달" in texts
+    cells = [c.text for s in prs.slides[3].shapes if s.has_table for r in s.table.rows for c in r.cells]
+    assert "● 지연" in cells
+    assert [f for f in qa.check(d / "deck.pptx") if "sparse" not in f] == []  # one-row table is sparse by design
 
 
 if __name__ == "__main__":

@@ -24,6 +24,21 @@ callout:
   - 이관 실적 38%(계획 60%), 오픈 이슈 20건 → 36건으로 증가함
 callout_title: 시사점
 
+# 9개 과제 중 데이터 이관만 지연, 인터페이스는 주의 단계임
+pattern: status-table
+rows:
+  - {item: 요구사항 정의, owner: PMO·현업, due: 5/31, status: done, note: 승인 완료}
+  - {item: To-Be 설계, owner: 컨설팅팀, due: 6/30, status: done, note: 승인 완료}
+  - {item: "개발(FI/CO)", owner: 재무개발팀, due: 9/30, status: done, note: 단위 테스트 완료}
+  - {item: "개발(MM/SD)", owner: 물류개발팀, due: 10/10, status: green, note: 계획대로 진행}
+  - {item: 인터페이스 개발, owner: IF팀, due: 10/15, status: amber, note: 외부 API 사양 확정 대기}
+  - {item: 데이터 이관, owner: 이관팀, due: 10/31, status: red, note: "2주 지연, 전담 인력 투입 요청"}
+  - {item: 통합 테스트, owner: QA팀, due: 11/27, status: green, note: 이관 일정에 연동}
+  - {item: 사용자 교육, owner: 변화관리팀, due: 12/04, status: green, note: 교육 계획 수립}
+  - {item: "오픈(Go-Live)", owner: PMO, due: 12/14, status: amber, note: 11/30에서 조정안}
+eyebrow: 상황
+source: 가상 예시 데이터
+
 # 데이터 이관 2주 지연이 통합 테스트·교육·오픈으로 전이됨
 eyebrow: 상황
 message: 조정안 기준 일정 (오픈 11/30 → 12/14, 안정화 종료일 12/31은 유지)

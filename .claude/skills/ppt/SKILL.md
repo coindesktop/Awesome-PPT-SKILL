@@ -88,7 +88,8 @@ you cannot resolve from its message.
 1. sequence → `process` (dates → `timeline`, task bars → `gantt`, phases × workstreams → `roadmap`)
 2. alternatives → `compare` (many criteria → `compare-table`), change → `before-after` / `problem-solution`
 3. two-axis judgment → `matrix-2x2`; internal/external analysis → `swot`; causes → `logic-tree`
-4. data file → time series `chart-takeaway`/`chart-table`, composition `chart: stacked-share`,
+4. data file → change from A to B by factor `chart: waterfall`, parts of one total `chart: donut`, target vs actual
+   `progress`, task/RAG status `status-table`, time series `chart-takeaway`/`chart-table`, composition `chart: stacked-share`,
    category × category `heatmap-table`/`pivot-table`, two related views `chart-pair`, conversion → `funnel`
 5. 3-4 headline numbers → `kpi-tiles`; one number → `big-number`; market → `market-size`;
    growth with headline metrics → `traction`; 3-4 strengths/reasons → `pillars`; people → `team`;
