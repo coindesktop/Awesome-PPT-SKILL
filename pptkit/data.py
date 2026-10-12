@@ -191,6 +191,22 @@ def pivot(df, rows, cols=None, val=None, agg="sum", top=None, where=None, total=
     return p
 
 
+def bridge(p, start, end, top=6, other="기타"):
+    """Waterfall input from a rows x periods pivot: start total, the per-row changes (largest first, the tail
+    summed into one "기타 n개" bar), end total. Returns ([(label, value)], total change)."""
+    cols = {str(c): c for c in p.columns if c != "합계"}
+    if str(start) not in cols or str(end) not in cols:
+        raise KeyError(f"--bridge takes two of: {', '.join(cols)}")
+    a, b = cols[str(start)], cols[str(end)]
+    d = (p[b].fillna(0) - p[a].fillna(0)).drop(index="합계", errors="ignore")
+    d = d.reindex(d.abs().sort_values(ascending=False).index)
+    items = [(str(k), float(v)) for k, v in d.iloc[:top].items()]
+    if len(d) > top:
+        items.append((f"{other} {len(d) - top}개", float(d.iloc[top:].sum())))
+    tot_a = float(p[a].drop(index="합계", errors="ignore").sum())
+    return [(f"{a}", tot_a)] + items + [(f"{b}", "=")], float(d.sum())
+
+
 RATE = {"W": "주 복리 성장률", "M": "CMGR (월 복리)", "Q": "CQGR (분기 복리)", "H": "반기 복리 성장률", "Y": "CAGR (연 복리)"}
 
 

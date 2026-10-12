@@ -37,6 +37,14 @@ SKELETON = {
     "chart-pair": "data: TODO.csv\ncharts:\n  - {subtitle: \"TODO\", chart: column-trend, x: TODO, y: TODO}\n"
                   "  - {subtitle: \"TODO\", chart: stacked-share, x: TODO, y: TODO, series: TODO}",
     "heatmap-table": "pattern: heatmap-table\ndata: TODO.csv\nrows: TODO\ncols: TODO\nval: TODO",
+    "progress": "items:\n  - {label: \"TODO\", actual: 0, target: 0}\n  - {label: \"TODO\", actual: 0, target: 0}\nunit: TODO",
+    "waterfall": "pattern: chart-takeaway\nchart: waterfall\n"
+                 "values: {TODO 시작: 0, TODO 요인: 0, TODO 끝: \"=\"}\nunit: TODO\ntakeaways: [TODO]",
+    "donut": "pattern: chart-takeaway\nchart: donut\nvalues: {TODO 항목1: 0, TODO 항목2: 0}\ncenter_label: TODO\ntakeaways: [TODO]",
+    "status-table": "rows:\n  - {item: \"TODO\", owner: \"TODO\", due: \"TODO\", status: green, note: \"TODO\"}\n"
+                    "  - {item: \"TODO\", owner: \"TODO\", due: \"TODO\", status: amber, note: \"TODO\"}",
+    "gantt": "tasks:\n  - {name: \"TODO\", start: 2026-01-01, end: 2026-02-01, owner: \"TODO\"}\n"
+             "  - {name: \"TODO\", start: 2026-02-01, end: 2026-03-01, owner: \"TODO\", baseline_end: 2026-02-15}",
     "bullets-callout": "bullets: [TODO, TODO, TODO]\ncallout: [TODO]",
     "logic-tree": "root: \"TODO 문제\"\nbranches:\n  - {label: \"TODO\", leaves: [TODO]}\n  - {label: \"TODO\", leaves: [TODO]}",
     "swot": "swot: {S: [TODO], W: [TODO], O: [TODO], T: [TODO]}",

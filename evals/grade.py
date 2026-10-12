@@ -189,6 +189,25 @@ def grade_run(eval_id, out: Path, peers: dict):
                   ex("투자 요청: 15억 원과 자금 사용처(도넛 또는 50/30/20%)", "15억" in allt and (donut or all(k in allt for k in ("50%", "30%", "20%"))),
                      f"15억:{'15억' in allt} donut:{len(donut)}"),
                   ex("메모에 없는 시장 규모 수치를 지어내지 않음(넣었다면 예시·가정 표기)", not invented, invented[:1] or "none")]
+    elif eval_id == 8:
+        prs, e = common(out, p, 6, 12)
+        e.append(ex("첫 질문이 5개 이하", len(qs) <= 5, f"{len(qs)} questions"))
+        if prs:
+            allt = " ".join(t for sl in texts(prs) for t in sl)
+            charts = [s.chart for sl in prs.slides for s in sl.shapes if s.has_chart]
+            vals = [v for ch in charts for sr in ch.plots[0].series for v in sr.values if v is not None]
+            rate = re.search(r"100\.7\s*%", allt)
+            vs_target = re.findall(r"\d+%\s*(달성|근접|미달)", allt) or any(
+                "목표" in (sr.name or "") for ch in charts for sr in ch.plots[0].series)
+            bridge = [ch for ch in charts if any(abs(v - 285.6) < 0.06 for sr in ch.plots[0].series for v in sr.values if v)
+                      and any(abs(v - 319.3) < 0.06 for sr in ch.plots[0].series for v in sr.values if v)]
+            status = [c for sl in prs.slides for s in sl.shapes if s.has_table for r in s.table.rows for c in
+                      [r.cells[i].text for i in range(len(r.cells))] if re.search(r"지연|주의|정상|완료", c)]
+            e += [ex("전체 목표 달성률 100.7%가 들어감", rate, "100.7%" if rate else allt[:100]),
+                  ex("지역별 목표 대비 실적을 시각화(진척 막대 또는 목표 계열 차트)", vs_target, str(vs_target)[:80]),
+                  ex("전년 동기→올해 증감을 한 차트에 시작 285.6·끝 319.3으로 분해(워터폴 등)", bridge, f"{len(bridge)} chart(s)"),
+                  ex("과제 상태를 표로 정리(상태 단어 4개 이상)", len(status) >= 4, f"{len(status)} status cells"),
+                  ex("평택 대리점 재계약 지연이 드러남", "평택" in allt or "재계약" in allt, "평택/재계약")]
     passed = sum(x["passed"] for x in e)
     return {"expectations": e, "summary": {"passed": passed, "failed": len(e) - passed, "total": len(e),
                                            "pass_rate": round(passed / len(e), 2)}}

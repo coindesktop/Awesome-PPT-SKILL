@@ -63,6 +63,17 @@
       "files": [
         "evals/data/startup_memo.md"
       ]
+    },
+    {
+      "id": 8,
+      "name": "q3-performance-report",
+      "prompt": "3분기 실적 보고 PPT 만들어줘. 본부장 보고용이고, 지역별 목표랑 실적은 q3_target.csv, 작년 같은 분기와 비교할 매출은 q3_region.csv, 하반기 주요 과제 현황은 q3_tasks.md에 정리해 뒀어.",
+      "expected_output": "목표 대비 실적(지역별 달성률, 전체 319.3억/317.0억=100.7%)을 진척 막대 등으로 보이고, 전년 동기 대비 증감(285.6→319.3억, +33.7억)을 지역별 요인으로 분해하며(워터폴 등), 과제 6개의 상태(지연 1·주의 1·완료 1 등)를 상태표로 정리한다. 숫자는 pptkit으로 구하고 질문은 5개 이하.",
+      "files": [
+        "evals/data/q3_target.csv",
+        "evals/data/q3_region.csv",
+        "evals/data/q3_tasks.md"
+      ]
     }
   ]
 }

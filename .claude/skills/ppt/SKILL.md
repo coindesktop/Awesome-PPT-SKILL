@@ -30,7 +30,7 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
    - Purpose unclear from the request → ask it first (`pptkit plan` lists purposes: pitch, sales, report,
      proposal, education).
    - `pptkit plan <purpose>` lists proven storylines (pitch: VC seed, Sequoia, traction-first, demo day,
-     정부지원사업 PSST, ...). Show them to the user as choices (AskUserQuestion if you have it), your
+     정부지원사업 PSST, ...; report: 결론 먼저, SCR, 목표 대비 실적, 프로젝트 진척). Show them to the user as choices (AskUserQuestion if you have it), your
      recommendation first with one reason. Skip the choice only if the user already named a structure.
    - `pptkit plan <id> -o deck.md` writes the skeleton (one slide per step, `TODO`s) and prints the content
      questions. Ask the ones the request and files do not answer, in one message, together with any step 1 or
@@ -59,7 +59,9 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
    CAGR are printed; `--pct row|col` gives shares, `--pct growth` the change vs the previous period;
    `--where year=2025,2026` filters, `--group 수도권=서울,경기,인천` merges rows (combined shares);
    `--agg wmean --weight <col>` gives weighted averages (e.g. revenue-weighted margin) with weighted totals.
-   `--pct diff` gives net adds. Do not do arithmetic on pivot output yourself.
+   `--pct diff` gives net adds; `--cols year --bridge 2025,2026 [--top 5]` prints the `values:` line of a
+   `chart: waterfall` (start, changes largest first, the rest as 기타, end) and each change's share of the total
+   change. Do not do arithmetic on pivot output yourself.
    For a pitch, derived metrics persuade: growth rate, net adds, revenue per customer, ARR. Get growth and net
    adds from pivot (`--pct growth`, `--pct diff`, multiples are printed), revenue per customer from
    `--val mrr --per customers`; a plain unit conversion like ARR = MRR×12 is fine if the slide says so.
@@ -103,7 +105,8 @@ Slide order comes from the storyline the user picked (`pptkit plan`), not from t
 
 Only put numbers on slides that come from the user's files or from pptkit (`data`, `pivot`, `fetch`). When a
 storyline step has no source (e.g. market size not ready), ask for it; if the user cannot supply it, delete
-that slide rather than fill it with `(예시)` placeholders (build lists any that remain). Never
+that slide rather than fill it with `(예시)` placeholders (build lists any that remain). A `data:` file that is
+not there yet builds as a "데이터 대기" placeholder slide with a WARN; tell the user which file it waits for. Never
 fill a chart with figures from memory or loose web snippets: they differ run to run. Public statistics:
 `pptkit fetch wb <indicator> --country KOR,JPN --years 2021-2025` needs no key (World Bank); if it reports the
 network is unreachable, ask the user to download the table as CSV (KOSIS, e-나라지표, 한국은행) and use

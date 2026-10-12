@@ -256,6 +256,20 @@ rows:
     assert [f for f in qa.check(d / "deck.pptx") if "sparse" not in f] == []  # one-row table is sparse by design
 
 
+def test_bridge_gives_waterfall_values_and_missing_data_builds_a_placeholder():
+    import pandas as pd
+    df = pd.DataFrame({"r": list("abcd") * 2, "y": [2025] * 4 + [2026] * 4, "v": [10, 20, 30, 40, 15, 18, 31, 44]})
+    items, chg = data.bridge(data.pivot(df, "r", "y", "v"), "2025", "2026", top=2)
+    assert items == [("2025", 100.0), ("a", 5.0), ("d", 4.0), ("기타 2개", -1.0), ("2026", "=")] and chg == 8
+    from pptkit import plan
+    d = Path(tempfile.mkdtemp())
+    (d / "deck.md").write_text(plan.skeleton("report/performance"), encoding="utf-8")
+    msg = render.build(d / "deck.md")
+    assert msg.startswith("OK 9 slides") and "data file 'TODO.csv' not found" in msg, msg
+    assert any("데이터 대기" in s.text_frame.text for s in Presentation(d / "deck.pptx").slides[5].shapes
+               if s.has_text_frame)
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

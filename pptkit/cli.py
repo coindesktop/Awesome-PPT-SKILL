@@ -50,6 +50,8 @@ def main(argv=None):
     p.add_argument("--weight", help="weight column for --agg wmean")
     p.add_argument("--per", help="ratio: sum(val) / sum(per) per cell, e.g. --val mrr --per customers")
     p.add_argument("--top", type=int)
+    p.add_argument("--bridge", metavar="START,END",
+                   help="waterfall input: change per row between two --cols values, printed as a values: line")
     p.add_argument("-o", "--out", help="also save the pivot as csv (nothing is written without it)")
 
     sub.add_parser("design", help="list designs (DESIGN.md files; user ones in ~/.pptkit/designs override)")
@@ -144,6 +146,23 @@ def main(argv=None):
         for g in a.group:
             name, _, members = g.partition("=")
             df[a.rows] = df[a.rows].where(~df[a.rows].astype(str).isin(members.split(",")), name)
+        if a.bridge:
+            if not a.cols or a.pct or a.per:
+                raise SystemExit("--bridge needs --cols (the period column) and no --pct/--per")
+            pv = data.pivot(df, a.rows, a.cols, a.val, a.agg, None, where=where, weight=a.weight)
+            try:
+                items, chg = data.bridge(pv, *a.bridge.split(","), top=a.top or 6)
+            except KeyError as e:
+                raise SystemExit(e.args[0])
+            except TypeError:
+                raise SystemExit("--bridge takes START,END")
+            n = lambda v, d=1: f"{round(v, d):g}"
+            print("values: {" + ", ".join(f'{k}: {chr(34) + "=" + chr(34) if v == "=" else n(v)}' for k, v in items) + "}")
+            start = items[0][1]
+            print(f"change {n(chg)} ({n(chg / start * 100) if start else 'n/a'}%)")
+            for k, v in items[1:-1]:
+                print(f"  {k}: {n(v)} = {n(v / chg * 100, 0) if chg else 'n/a'}% of change")
+            return 0
         if a.per:  # revenue per customer and similar ratios, computed per cell (not an average of ratios)
             num = data.pivot(df, a.rows, a.cols, a.val, "sum", a.top, where=where)
             den = data.pivot(df, a.rows, a.cols, a.per, "sum", a.top, where=where)

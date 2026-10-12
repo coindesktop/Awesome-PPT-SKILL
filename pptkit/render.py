@@ -11,6 +11,7 @@ from pptx import Presentation
 from pptx.chart.data import CategoryChartData
 from pptx.dml.color import RGBColor
 from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION, XL_LEGEND_POSITION, XL_MARKER_STYLE, XL_TICK_MARK
+from pptx.enum.dml import MSO_LINE
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
 from pptx.opc.constants import RELATIONSHIP_TYPE as RT
@@ -1116,6 +1117,27 @@ def _table(ctx, slide, x, y, w, h, part, body, heat, has_total, spec, pct_cols=(
                 _border(ce, "T", c["ink"], 1)
 
 
+def _drop_slides(prs, start):
+    lst = prs.slides._sldIdLst
+    for sid in list(lst)[start:]:
+        prs.part.drop_rel(sid.rId)
+        lst.remove(sid)
+
+
+def p_waiting(ctx, spec, missing):
+    """Placeholder for a slide whose data file is missing: the title stays, the body says what to supply."""
+    slide, (x, y, w, h) = content_slide(ctx, {k: spec[k] for k in ("title", "eyebrow", "message") if k in spec})
+    c = ctx.c
+    b = box(slide, x, y, w, h, fill=c["surface"], line=c["muted"], radius=0.08)
+    b.line.dash_style = MSO_LINE.DASH
+    what = spec.get("chart") or spec["pattern"]
+    text(ctx, slide, x, y + h / 2 - 0.55, w, 0.5, [f"데이터 대기: {missing}"], 20, c["ink"], True,
+         align=PP_ALIGN.CENTER)
+    text(ctx, slide, x, y + h / 2, w, 0.4, [f"{what} 장표에 쓸 데이터 파일을 넣고 다시 빌드하세요"], 14, c["muted"],
+         align=PP_ALIGN.CENTER)
+    ctx.warn(f"data file '{missing}' not found: drew a placeholder; add the file or replace `data:`")
+
+
 PATTERNS = {
     "cover": p_cover, "agenda": p_agenda, "section": p_section, "key-message": p_key_message,
     "bullets-callout": p_bullets_callout, "exec-summary": p_exec_summary, "closing": p_closing,
@@ -1250,7 +1272,12 @@ def build(md_path, out=None, sample=False, design=None):
             raise SystemExit(f"unknown pattern '{spec['pattern']}' on '{spec['title']}'. known: {', '.join(PATTERNS)}")
         first_page = ctx.page + 1
         ctx.body = None
-        fn(ctx, spec)
+        try:
+            fn(ctx, spec)
+        except FileNotFoundError as e:  # a data file not there yet: keep the slide as a placeholder, keep building
+            _drop_slides(ctx.prs, first_page - 1)
+            ctx.page = first_page - 1
+            p_waiting(ctx, spec, Path(e.filename or "?").name)
         if ctx.body and ctx.body[0] is ctx.prs.slides[-1]:
             balance(ctx)
         for sl in list(ctx.prs.slides)[first_page - 1:]:  # template layouts may carry unused placeholders
