@@ -74,6 +74,18 @@
         "evals/data/q3_region.csv",
         "evals/data/q3_tasks.md"
       ]
+    },
+    {
+      "id": 9,
+      "name": "monthly-refresh",
+      "prompt": "지난달에 만든 월간 실적 보고(monthly_refresh 폴더의 deck.pptx)를 10월 데이터로 갱신해줘. monthly.csv에 10월분 추가해 뒀어.",
+      "expected_output": "10월 기준으로 제목·KPI·차트·워터폴을 갱신하고, 숫자만이 아니라 바뀐 상황(전월 대비 감소, 목표 달성 팀 없음, 최저 달성 팀 변경)에 맞게 문장을 고친다. 9월 수치나 틀린 서술이 남지 않는다.",
+      "files": [
+        "evals/data/monthly_refresh/deck.pptx",
+        "evals/data/monthly_refresh/deck.md",
+        "evals/data/monthly_refresh/monthly.csv",
+        "evals/data/monthly_refresh/.deck.vars.json"
+      ]
     }
   ]
 }

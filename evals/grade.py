@@ -208,6 +208,19 @@ def grade_run(eval_id, out: Path, peers: dict):
                   ex("전년 동기→올해 증감을 한 차트에 시작 285.6·끝 319.3으로 분해(워터폴 등)", bridge, f"{len(bridge)} chart(s)"),
                   ex("과제 상태를 표로 정리(상태 단어 4개 이상)", len(status) >= 4, f"{len(status)} status cells"),
                   ex("평택 대리점 재계약 지연이 드러남", "평택" in allt or "재계약" in allt, "평택/재계약")]
+    elif eval_id == 9:
+        prs, e = common(out, p, 5, 8)
+        if prs:
+            allt = " ".join(t for sl in texts(prs) for t in sl)
+            charts = [s.chart for sl in prs.slides for s in sl.shapes if s.has_chart]
+            cats = [str(c) for ch in charts for c in ch.plots[0].categories]
+            stale = [w for w in ("170.5", "2026-09 매출 170", "영남팀만 목표를 넘", "늘어", "증가분 대부분",
+                                 "영남팀 증가가 가장 큼", "중부팀만 소폭 감소", "호남팀 달성률이 가장 낮") if w in allt]
+            e += [ex("10월 매출 166.3이 들어감", "166.3" in allt, "166.3"),
+                  ex("차트가 10월까지 갱신됨(범주에 2026-10)", any("2026-10" in c or "26.10" in c for c in cats), cats[-3:]),
+                  ex("전체 달성률 92.8%가 들어감", "92.8" in allt, "92.8"),
+                  ex("9월 수치·틀린 서술이 남지 않음", not stale, stale or "none"),
+                  ex("감소를 감소로 서술함(감소/하락/줄)", any(w in allt for w in ("감소", "하락", "줄")), "감소 words")]
     passed = sum(x["passed"] for x in e)
     return {"expectations": e, "summary": {"passed": passed, "failed": len(e) - passed, "total": len(e),
                                            "pass_rate": round(passed / len(e), 2)}}
