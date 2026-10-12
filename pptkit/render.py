@@ -828,11 +828,17 @@ def p_chart_table(ctx, spec):
     wide = _chart(ctx, slide, x, y, w * 0.56, h, spec)
     tbl = wide.copy()
     tbl.columns = [_label(ctx, spec, col) for col in tbl.columns]
+    timed = data.is_time(list(wide.index))
     if spec.get("growth") and len(tbl.columns) == 1:
         tbl["증감률"] = tbl.iloc[:, 0].pct_change() * 100
+    elif spec.get("growth") and len(wide.columns) >= 2 and data.is_time(list(wide.columns)):  # periods as series
+        tbl["증감률"] = (wide.iloc[:, -1] / wide.iloc[:, 0] - 1).values * 100
     tbl.index.name = _label(ctx, spec, spec["x"])
-    if len(tbl) > 8:  # the chart shows the whole series; the table keeps the latest rows readable
+    if timed and len(tbl) > 8:  # the chart shows the whole series; the table keeps the latest rows readable
         tbl = tbl.tail(int(spec.get("table_rows", 6)))
+    elif len(tbl) > 12:  # categories: every one fits up to 12 rows
+        ctx.warn(f"chart-table: table shows 12 of {len(tbl)} categories; use `top` or `where`")
+        tbl = tbl.head(12)
     th = min(h - 0.3, 0.42 * (len(tbl) + 1))
     if spec.get("takeaways"):
         th = min(th, max(h - 1.9, 0.26 * (len(tbl) + 1)))  # leave the takeaways their room; rows get tighter
@@ -865,7 +871,7 @@ def _numfmt(vals, spec):
     if spec.get("fmt") == "pct":
         return "0.0%"
     v = pd.Series(vals).dropna()
-    return "#,##0" if v.abs().max() >= 100 or (v % 1 == 0).all() else "#,##0.0"
+    return "#,##0" if v.abs().max() >= 1000 or (v.round(6) % 1 == 0).all() else "#,##0.0"  # 96.4 stays 96.4
 
 
 def _no_fill(chart):
@@ -906,6 +912,12 @@ def _chart(ctx, slide, x, y, w, h, spec):
         df = data.load(ctx.base / spec["data"])
         wide = data.aggregate(df, spec["x"], spec["y"], spec.get("series"), spec.get("agg", "sum"), spec.get("where"),
                               spec.get("weight"))
+        if not data.is_time(list(wide.index)):  # categories (regions, products): largest first with `top`, else file order
+            if spec.get("top") and kind != "bar-ranked":
+                wide = wide.loc[wide.iloc[:, -1].sort_values(ascending=False).index[:int(spec["top"])]]
+            else:
+                order = [k for k in dict.fromkeys(df[spec["x"]]) if k in wide.index]
+                wide = wide.loc[order + [k for k in wide.index if k not in order]]
     if kind == "bar-ranked":
         wide = wide.sort_values(wide.columns[0]).tail(spec.get("top", 10))  # ascending: largest drawn on top
     if kind == "stacked-share":
@@ -933,7 +945,9 @@ def _chart(ctx, slide, x, y, w, h, spec):
         ch.legend.font.color.rgb = rgb(c["body"])
     va, ca = ch.value_axis, ch.category_axis
     va.format.line.fill.background()
-    va.tick_labels.number_format, va.tick_labels.number_format_is_linked = fmt, False
+    axis_fmt = "#,##0" if fmt == "#,##0.0" and np.nanmax(np.abs(wide.values.astype(float))) >= 10 else \
+        "0%" if fmt == "0.0%" else fmt
+    va.tick_labels.number_format, va.tick_labels.number_format_is_linked = axis_fmt, False  # ticks stay round
     va.has_major_gridlines = True
     va.major_gridlines.format.line.color.rgb = rgb(c["line"])
     va.major_gridlines.format.line.width = Pt(0.75)
@@ -949,6 +963,9 @@ def _chart(ctx, slide, x, y, w, h, spec):
     if not single and hls & (set(names) | {str(col) for col in wide.columns}):  # emphasise one series, mute the rest
         series_c = [c["accent"] if (n in hls or str(col) in hls) else mix(c["bg"], c["muted"], 0.55)
                     for n, col in zip(names, wide.columns)]
+    elif not single and not kind.startswith("stacked") and data.is_time(list(wide.columns)):
+        series_c = [mix(c["bg"], c["muted"], 0.3 + 0.25 * i / max(1, len(names) - 2)) for i in range(len(names) - 1)] \
+            + [c["accent"]]  # periods as series (2025Q3 vs 2026Q3): the latest carries the accent
     if kind == "line-trend" or spec.get("ymin") is not None:
         lo_, hi_ = float(np.nanmin(wide.values)), float(np.nanmax(wide.values))
         ymin = spec.get("ymin")
@@ -994,7 +1011,10 @@ def _chart(ctx, slide, x, y, w, h, spec):
         return wide
     if not single:
         plot.overlap = -10
-    dense = len(wide) * len(wide.columns) > 24
+    slot = w * 0.88 / max(1, len(wide)) / (len(wide.columns) + (0.55 if single else 0.7))  # one bar's width (in)
+    longest = max((len(_fmt_num(v, fmt)) for v in wide.values.ravel() if pd.notna(v)), default=1)
+    dense = len(wide) * len(wide.columns) > 24 or (kind != "bar-ranked" and longest * 12 * 0.62 / 72 > slot * 1.15)
+    # ^ column labels wider than their bar collide; horizontal bars put labels at the bar end, so length is free
     if single and not dense:  # labels carry the values, so the axis can go
         va.visible, va.has_major_gridlines = False, False
     if not dense:
@@ -1293,7 +1313,8 @@ def build(md_path, out=None, sample=False, design=None):
     want = tone.get("length")
     if want and not sample and abs(int(want) - ctx.page) >= 1:
         head += f"\nNOTE {ctx.page} slides; the brief asked for {want}: add or drop a slide, or update `length`"
-    drafts = [i + 1 for i, s in enumerate(slides) if re.search(r"\(예시\)|\(가정\)", yaml.safe_dump(s, allow_unicode=True))]
+    drafts = [i + 1 for i, s in enumerate(slides) if s["pattern"] != "cover" and re.search(  # a figure marked as made up
+        r"\d[^\n]{0,15}\((예시|가정)\)|\((예시|가정)\)[^\n]{0,15}\d", yaml.safe_dump(s, allow_unicode=True))]
     if drafts:  # invented figures must not reach an audience unconfirmed
         head += f"\nNOTE (예시)/(가정) figures on slide(s) {drafts}: tell the user to replace or confirm them before use"
     return "\n".join([head] + [f"WARN {w}" for w in ctx.warnings])

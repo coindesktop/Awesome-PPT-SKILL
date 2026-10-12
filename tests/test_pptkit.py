@@ -270,6 +270,45 @@ def test_bridge_gives_waterfall_values_and_missing_data_builds_a_placeholder():
                if s.has_text_frame)
 
 
+def test_category_chart_table_keeps_every_region_and_progress_keeps_the_miss_visible():
+    import pandas as pd
+    d = Path(tempfile.mkdtemp())
+    regions = list("가나다라마바사아자차")
+    pd.DataFrame({"r": regions * 2, "q": ["2025Q3"] * 10 + ["2026Q3"] * 10,
+                  "v": [float(10 + i) for i in range(10)] + [11.5 + i for i in range(10)]}).to_csv(d / "q.csv", index=False)
+    (d / "deck.md").write_text("""---
+design: corporate
+---
+
+# 비교
+pattern: chart-table
+chart: column-trend
+data: q.csv
+x: r
+y: v
+series: q
+growth: true
+
+# 달성
+pattern: progress
+items:
+  - {label: 대구, actual: 21.9, target: 22.0}
+  - {label: 서울, actual: 107.9, target: 105}
+callout: [대구 근접]
+""", encoding="utf-8")
+    render.build(d / "deck.md")
+    prs = Presentation(d / "deck.pptx")
+    ch = next(s.chart for s in prs.slides[0].shapes if s.has_chart)
+    assert list(ch.plots[0].categories) == regions  # file order, not 가나다 sorted
+    rows = [[c.text for c in r.cells] for s in prs.slides[0].shapes if s.has_table for r in s.table.rows]
+    assert len(rows) == 11 and rows[0][-1] == "증감률" and rows[1][1] == "10.0"
+    texts = [s.text_frame.text for s in prs.slides[1].shapes if s.has_text_frame]
+    assert "99.5% 근접" in texts and "107.9 / 105.0" in texts
+    assert qa.check(d / "deck.pptx") == []
+    gs = data.growth_summary(pd.DataFrame({"v": [100.0, 110.0]}, index=["2025Q3", "2026Q3"]))
+    assert gs[0] == "증감률 2025Q3→2026Q3" and round(float(gs[1]["v"]), 1) == 10.0
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

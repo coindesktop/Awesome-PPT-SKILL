@@ -43,7 +43,7 @@ def main(argv=None):
     p.add_argument("--val", required=True)
     p.add_argument("--where", action="append", default=[], help="keep rows: col=v1,v2 (repeatable)")
     p.add_argument("--group", action="append", default=[], help="merge row labels: 수도권=서울,경기 (repeatable)")
-    p.add_argument("--percent", action="store_true", help="values are fractions (0.362): print them as % (36.2)")
+    p.add_argument("--percent", action="store_true", help="values are fractions (0.362): print them as %% (36.2); with --per: a rate in %% (actual/target)")
     p.add_argument("--change", action="store_true", help="with --pct row|col: change of the share vs previous period (%%p)")
     p.add_argument("--pct", choices=["row", "col", "growth", "diff"], help="shares within row/col, or %% change vs previous period")
     p.add_argument("--agg", default="sum", help="sum | mean | count | wmean (needs --weight)")
@@ -160,8 +160,11 @@ def main(argv=None):
             print("values: {" + ", ".join(f'{k}: {chr(34) + "=" + chr(34) if v == "=" else n(v)}' for k, v in items) + "}")
             start = items[0][1]
             print(f"change {n(chg)} ({n(chg / start * 100) if start else 'n/a'}%)")
+            cum = 0.0
             for k, v in items[1:-1]:
-                print(f"  {k}: {n(v)} = {n(v / chg * 100, 0) if chg else 'n/a'}% of change")
+                cum += v
+                print(f"  {k}: {n(v)} = {n(v / chg * 100, 0) if chg else 'n/a'}% of change"
+                      + (f" (cumulative {n(cum / chg * 100, 0)}%)" if chg and k != items[-2][0] else ""))
             return 0
         if a.per:  # revenue per customer and similar ratios, computed per cell (not an average of ratios)
             num = data.pivot(df, a.rows, a.cols, a.val, "sum", a.top, where=where)
@@ -180,7 +183,8 @@ def main(argv=None):
             pv = data.apply_pct(body, "diff", data.is_time(body.index), data.is_time(body.columns))
             print("%p change of the share vs previous row")
         elif a.pct:
-            print({"growth": "% change vs previous row", "diff": "change vs previous row (same unit)"}.get(
+            along = "column" if a.cols and data.is_time(list(pv.columns)) and not data.is_time(list(pv.index)) else "row"
+            print({"growth": f"% change vs previous {along}", "diff": f"change vs previous {along} (same unit)"}.get(
                 a.pct, f"% {a.pct} shares"))
         print(data.smart_round(pv, a.pct in ("growth", "row", "col")).to_string(max_rows=15, na_rep="-"))
         if a.pct in ("growth", "diff") and not a.per:  # the summary of the underlying values helps the title

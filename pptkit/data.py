@@ -222,6 +222,8 @@ def growth_summary(p):
     a, b = p.loc[idx[0]].astype(float), p.loc[idx[-1]].astype(float)
     ok = (a > 0) & (b >= 0)
     mult = (b / a).where(ok)
+    if len(idx) == 2:  # two points: a plain change (2025Q3→2026Q3), not a compound rate per period
+        return f"증감률 {idx[0]}→{idx[-1]}", (mult - 1) * 100, mult
     rate = ((mult ** (1 / steps)) - 1) * 100
     return RATE[ua], rate, mult
 
@@ -244,4 +246,6 @@ def smart_round(p, pct=False):
     m = p.abs().max().max() if p.size else 0
     if pd.isna(m) or m >= 100:
         return p.round(1)
+    if m < 10 and (p.abs() >= 0.5).all().all():  # ratios around 1 (achievement 1.007) need 3 places to read as %
+        return p.round(3)
     return p.round(2 if m >= 1 else 4)

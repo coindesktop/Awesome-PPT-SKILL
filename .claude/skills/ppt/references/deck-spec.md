@@ -73,6 +73,9 @@ Numbers the user typed (no file) go inline: `values: {2026-01: 1.2, 2026-02: 1.6
 `agg` (sum | mean | count | wmean), `weight` (for wmean), `highlight` (a category, a list of them, or a series
 name on multi-series charts: the rest go muted), `top`, `unit`, `fmt: pct`, `ymin` (axis start; line charts far
 above zero start near the data automatically). Up to 8 series get distinct colours; more should fold into 기타.
+Category x (regions, products) keeps the file order; `top: N` keeps the N largest, largest first. Periods as
+`series` (`series: quarter` → 2025Q3 vs 2026Q3) draw earlier periods gray and the latest in the accent, and
+`chart-table` with `growth: true` adds the first→last 증감률 column.
 
 | chart | use | notes |
 |---|---|---|

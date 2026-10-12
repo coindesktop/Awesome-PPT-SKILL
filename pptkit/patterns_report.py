@@ -9,7 +9,7 @@ from pptx.util import Inches, Pt
 
 from . import data
 from .render import (KEYS, PATTERNS, SPECIAL_CHARTS, _border, _callout, _no_fill, _s, box,
-                     content_slide, mix, on_color, rgb, text, text_width)
+                     content_slide, mix, on_color, rgb, text, text_height, text_width)
 
 WARN_C = "D08A00"  # amber for 주의; status always carries a word, never colour alone
 
@@ -169,8 +169,14 @@ def p_progress(ctx, spec):
         rows = [{"label": r[spec["x"]], "actual": r[spec["actual"]], "target": r[spec["target"]]}
                 for r in df.to_dict("records")]
     n = max(len(rows), 1)
-    rh = min(1.0, h / n)
-    lw, rw = min(2.8, w * 0.24), 3.0
+    co = spec.get("callout")
+    co = co if isinstance(co, list) else [co] if co else []
+    room = text_height([_s(t) for t in co], w - 0.74, ctx.tone["density"]["body_pt"]) + 1.15 if co else 0
+    y, h = y + 0.28, h - 0.28  # the 목표 marker label sits above the first row
+    rh = min(1.0, (h - room) / n)  # the callout keeps its height; rows get tighter instead
+    dec = any(not float(v).is_integer() for r in rows for v in (r["actual"], r["target"]))
+    fnum = (lambda v: f"{float(v):,.1f}") if dec and max(abs(float(r["actual"])) for r in rows) < 1000 else _num
+    lw, rw = min(2.8, w * 0.24), 3.3
     tx, tw = x + lw, w - lw - rw
     cap = float(spec.get("cap", 1.2))  # the bar track ends at 120% so overachievement stays visible
     unit = spec.get("unit", "")
@@ -180,7 +186,8 @@ def p_progress(ctx, spec):
         rate = act / tgt if tgt else 0
         word, tone = _status_of(rate)
         col = {"positive": c["positive"], "accent": c["accent"], "negative": c["negative"]}[tone]
-        text(ctx, slide, x, ry, lw - 0.2, rh, [str(r["label"])], 15, c["ink"], bold=True, anchor=MSO_ANCHOR.MIDDLE,
+        text(ctx, slide, x, ry, lw - 0.2, rh, [str(r["label"])], 15 if rh >= 0.5 else 13, c["ink"], bold=True,
+             anchor=MSO_ANCHOR.MIDDLE,
              min_pt=11)
         bh = min(0.32, rh * 0.42)
         by = ry + (rh - bh) / 2
@@ -189,10 +196,11 @@ def p_progress(ctx, spec):
         mx = tx + tw / cap
         box(slide, mx - 0.01, by - 0.08, 0.02, bh + 0.16, fill=c["ink"])
         if i == 0:
-            text(ctx, slide, mx - 0.5, by - 0.38, 1.0, 0.28, ["목표"], 10, c["muted"], align=PP_ALIGN.CENTER)
-        text(ctx, slide, tx + tw + 0.15, ry, 1.35, rh, [f"{_num(act)} / {_num(tgt)}{unit}"], 12, c["body"],
+            text(ctx, slide, mx - 0.5, ry - 0.3, 1.0, 0.26, ["목표"], 10, c["muted"], align=PP_ALIGN.CENTER)
+        text(ctx, slide, tx + tw + 0.15, ry, 1.65, rh, [f"{fnum(act)} / {fnum(tgt)}{unit}"], 12, c["body"],
              anchor=MSO_ANCHOR.MIDDLE, min_pt=9)
-        text(ctx, slide, tx + tw + 1.55, ry, 1.45, rh, [f"{rate:.0%} {word}"], 15, col, bold=True,
+        shown = f"{rate:.0%}" if _status_of(round(rate, 2))[0] == word else f"{rate:.1%}"  # 99.5% is not "100% 근접"
+        text(ctx, slide, tx + tw + 1.85, ry, 1.45, rh, [f"{shown} {word}"], 15 if rh >= 0.5 else 13, col, bold=True,
              anchor=MSO_ANCHOR.MIDDLE, align=PP_ALIGN.RIGHT, min_pt=11)
     if spec.get("callout"):
         _callout(ctx, slide, x, y + n * rh + 0.2, w, h - n * rh - 0.2,
