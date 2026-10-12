@@ -350,6 +350,28 @@ bullets: ["이 문장은 일부러 아주 길게 써서 개조식 한 줄 기준
     assert msg.startswith("OK 2 slides") and "WARN S3" in msg, msg  # slide 3 is not drawn but still checked
 
 
+def test_vars_follow_the_latest_period_on_refresh():
+    import shutil
+    import pandas as pd
+    d = Path(tempfile.mkdtemp())
+    for f in ("deck.md", "monthly.csv"):
+        shutil.copy(ROOT / "examples" / "monthly-report" / f, d / f)
+    msg = render.build(d / "deck.md")
+    assert msg.startswith("OK 6 slides") and "WARN" not in msg, msg
+    def title():
+        return next(s.text_frame.text for s in Presentation(d / "deck.pptx").slides[1].shapes
+                    if s.has_text_frame and "매출" in s.text_frame.text)
+    assert title().startswith("2026-09 매출 170.5억 원")
+    df = pd.read_csv(d / "monthly.csv")
+    nxt = df[df.month == "2026-09"].assign(month="2026-10", revenue_100m_krw=lambda x: (x.revenue_100m_krw * 0.9).round(1))
+    pd.concat([df, nxt]).to_csv(d / "monthly.csv", index=False)
+    msg = render.build(d / "deck.md")
+    assert title().startswith("2026-10 매출") and "VARS $mon 2026-09 -> 2026-10" in msg, msg
+    assert "SIGN FLIPPED" in msg  # +1.6% -> -10.0%: the 증가 wording must be re-read
+    wf = next(s.chart for s in Presentation(d / "deck.pptx").slides[4].shapes if s.has_chart)
+    assert list(wf.plots[0].categories)[-1] == "2026-10 매출"
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

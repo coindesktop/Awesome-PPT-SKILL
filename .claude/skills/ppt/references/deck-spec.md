@@ -67,6 +67,29 @@ Numbers the user typed (no file) go inline: `values: {2026-01: 1.2, 2026-02: 1.6
 `values: {ARR: {...}, 고객사: {...}}` instead of `data`/`x`/`y`. Quote any value that contains a comma inside
 `{...}` (`value: "2,400억 원"`): unquoted, YAML splits it and build warns.
 
+## Live numbers (`vars:`)
+
+For a deck that will be rebuilt with new data (monthly/quarterly reports), name each figure by how it is
+computed and write `$name` in titles, bullets, KPI values or notes. Build fills them from the data; a new data
+file moves every title with the charts, and build prints `VARS $x old -> new (slides ..)` (plus `SIGN FLIPPED`
+when a change turns from + to -) so you re-read only those sentences. `pptkit vars deck.md` prints the values.
+
+```yaml
+vars:
+  mon: {data: m.csv, col: month, at: latest}                          # the period label: 2026-09
+  rev: {data: m.csv, val: revenue, where: {month: latest}, unit: 억 원}  # 170.5억 원
+  mom: {data: m.csv, val: revenue, growth: {month: [prev, latest]}}   # +1.6% (diff: same unit)
+  ach: {data: m.csv, val: revenue, per: target, where: {month: latest}}  # 96.9% (pct: false for a ratio)
+  gap: {data: m.csv, val: revenue, minus: target, where: {month: latest}, unit: 억 원}  # -5.5억 원
+  on:  {data: m.csv, val: revenue, where: {month: latest, channel: 온라인}, of: {month: latest}}  # share %
+```
+
+`agg: mean|count|wmean` (+ `weight`), `fmt: ",.2f"` override the default formatting. Period words work in every
+`where` (charts, `progress`, `status-table`, pivot `--where`/`--bridge`): `latest`, `prev`, `latest-4` (four
+steps back: same quarter last year, `latest-12` for months). `highlight: latest` marks the newest bar. Live
+versions of the static keys: `chart: waterfall` with `data`, `x`, `y`, `bridge: {month: [latest-3, latest]}`
+(`top`, `suffix: " 매출"`); KPI `spark: {data, x, y, per?, last: 6}`.
+
 ## Chart keys
 
 `chart`, `data`, `x`, `y`, `series` (long data → one series per value), `where: {year: 2026}`,

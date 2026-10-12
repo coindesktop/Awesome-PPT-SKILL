@@ -67,13 +67,37 @@ def summary(path) -> str:
 
 
 def coerce(col, v):
-    """CLI values are strings; match the column's type (years are numbers)."""
+    """CLI values are strings; match the column's type (years are numbers). latest/prev stay words."""
+    if isinstance(v, str) and PERIOD.fullmatch(v.strip()):
+        return v.strip()
     return pd.to_numeric(v) if pd.api.types.is_numeric_dtype(col) else v
+
+
+PERIOD = re.compile(r"latest(-\d+)?|prev")
+
+
+def period(col, word):
+    """latest = the newest value of a period column, prev = the one before, latest-4 = four steps back
+    (same quarter last year). Order is chronological for time labels, else sorted."""
+    vals = list(dict.fromkeys(col.dropna()))
+    order = sorted(vals, key=lambda v: time_pos(v)[1]) if is_time(vals) else sorted(vals)
+    word = str(word).strip()
+    back = 1 if word == "prev" else int(word.split("-")[1]) if "-" in word else 0
+    if back >= len(order):
+        raise SystemExit(f"'{word}' goes back {back} steps but {col.name} has only {len(order)} values")
+    return order[-1 - back]
+
+
+def _resolve(df, k, v):
+    vs = v if isinstance(v, list) else [v]
+    return [period(df[k], x) if isinstance(x, str) and PERIOD.fullmatch(x.strip()) else x for x in vs]
 
 
 def _filter(df, where):
     for k, v in (where or {}).items():
-        df = df[df[k].isin(v if isinstance(v, list) else [v])]
+        if k not in df.columns:
+            raise SystemExit(f"where: unknown column '{k}'. columns: {', '.join(map(str, df.columns))}")
+        df = df[df[k].isin(_resolve(df, k, v))]
     return df
 
 

@@ -40,7 +40,10 @@ def report(names):
         pats = [n for n, (h, _) in rows.items() if h.startswith("| pattern")]
         charts = [n for n, (h, _) in rows.items() if h.startswith("| chart")]
         return "\n".join([intro, "", "patterns: " + ", ".join(pats), "charts: " + ", ".join(charts),
-                          "`pptkit spec <name> ..` prints the keys of the ones you use."])
+                          "`pptkit spec <name> ..` prints the keys of the ones you use; `pptkit spec vars` the live "
+                          "numbers ($name, latest/prev) for decks rebuilt with new data."])
+    live = "vars" in names  # `pptkit spec vars`: the live-numbers section for recurring decks
+    names = [n for n in names if n != "vars"]
     unknown = [n for n in names if n not in rows]
     if unknown:
         raise SystemExit(f"unknown {unknown}. `pptkit spec` lists the names")
@@ -53,4 +56,6 @@ def report(names):
         lines += ["", _section(doc, "## Chart keys", "| chart |")]
     if any(n in ("waterfall", "donut") or n in CHARTY for n in names):
         lines += ["", _section(doc, "Numbers the user typed", "## Chart keys")]
+    if live:
+        lines += ["", _section(doc, "## Live numbers", "## Chart keys")]
     return "\n".join(lines).strip()

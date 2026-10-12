@@ -83,6 +83,14 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
    deck.pptx -s N` shows what a slide says.
 9. **Deliver** the .pptx path (in a cloud/app session, send the file).
 
+## Recurring reports (월간·분기 보고)
+
+When the user says the deck repeats (매월, 분기마다, 주간), write it once with `vars:` and period words
+(`where: {month: latest}`, `growth: {month: [prev, latest]}`, waterfall `bridge:`) instead of typed figures
+(`pptkit spec vars` prints the keys). Next time: replace the data file, `pptkit build deck.md`, and
+fix only the sentences the `VARS ... -> ...` lines point to (always on `SIGN FLIPPED`). Qualitative claims in a
+title ("영남팀만 목표 초과") are not live: check them against `pptkit pivot` after a refresh.
+
 ## Edit an existing deck (any .pptx, ours or not)
 
 A pptkit deck: change `deck.md` and rebuild. Any other deck: `pptkit map deck.pptx` (one line per slide with

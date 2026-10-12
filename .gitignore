@@ -9,3 +9,4 @@ dev/ppt-workspace/
 dist/
 examples/*/deck.preview.jpg
 examples/*/*.preview.jpg
+.*.vars.json

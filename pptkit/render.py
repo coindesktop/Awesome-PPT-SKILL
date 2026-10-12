@@ -741,10 +741,21 @@ def p_timeline(ctx, spec):
              ctx.tone["density"]["body_pt"], c["body"], align=PP_ALIGN.CENTER)
 
 
+def _spark_values(ctx, sp):
+    """`spark: {data, x, y, per?, where?, last: 6}` -> the latest values, so a monthly refresh moves the line too."""
+    df = data.load(ctx.base / sp["data"])
+    agg = lambda col: data.aggregate(df, sp["x"], col, None, sp.get("agg", "sum"), sp.get("where"), sp.get("weight"))
+    s = agg(sp["y"]).iloc[:, 0]
+    if sp.get("per"):
+        s = s / agg(sp["per"]).iloc[:, 0] * 100
+    return [round(float(v), 4) for v in s.tail(int(sp.get("last", 6)))]
+
+
 def p_kpi(ctx, spec):
     slide, (x, y, w, h) = content_slide(ctx, spec)
     c, ty = ctx.c, ctx.ty
-    kpis = spec.get("kpis", [])
+    kpis = [{**k, "spark": _spark_values(ctx, k["spark"])} if isinstance(k.get("spark"), dict) else k
+            for k in spec.get("kpis", [])]
     gap = 0.28
     tw = (w - gap * (len(kpis) - 1)) / max(len(kpis), 1)
     sp = 0.85 if any(k.get("spark") for k in kpis) else 0  # room for a sparkline under the delta
@@ -966,7 +977,9 @@ def _chart(ctx, slide, x, y, w, h, spec):
     plot = ch.plots[0]
     series_c = [c["accent"]] if single else ctx.series  # one series = the design accent
     hls = spec.get("highlight")
-    hls = {str(v) for v in (hls if isinstance(hls, list) else [hls])} if hls is not None else set()
+    hls = [hls] if hls is not None and not isinstance(hls, list) else (hls or [])
+    hls = {str(data.period(pd.Series(list(wide.index), name=spec.get("x", "x")), v)
+               if isinstance(v, str) and data.PERIOD.fullmatch(v) else v) for v in hls}  # latest -> 2026
     hl = next(iter(hls)) if hls else None
     names = [_label(ctx, spec, col) for col in wide.columns]
     if not single and hls & (set(names) | {str(col) for col in wide.columns}):  # emphasise one series, mute the rest
@@ -1195,15 +1208,25 @@ INFER = [("charts", "chart-pair"), ("growth", "chart-table"), ("chart", "chart-t
 
 # ---------- deck.md ----------
 
+class _Yaml(yaml.SafeLoader):
+    """YAML 1.1 reads on/off/yes/no (and 'y') as booleans; in a deck those are words, only true/false are not."""
+
+
+_Yaml.yaml_implicit_resolvers = {k: [r for r in v if r[0] != "tag:yaml.org,2002:bool"]
+                                 for k, v in yaml.SafeLoader.yaml_implicit_resolvers.items()}
+_Yaml.add_implicit_resolver("tag:yaml.org,2002:bool", re.compile(r"^(?:true|True|TRUE|false|False|FALSE)$"),
+                            list("tTfF"))
+
+
 def parse(md: str):
     meta = {}
     if md.lstrip().startswith("---"):
         _, fm, md = md.lstrip().split("---", 2)
-        meta = yaml.safe_load(fm) or {}
+        meta = yaml.load(fm, Loader=_Yaml) or {}
     slides = []
     for block in re.split(r"(?m)^# ", md)[1:]:
         title, _, body = block.partition("\n")
-        spec = yaml.safe_load(body) if body.strip() else {}
+        spec = yaml.load(body, Loader=_Yaml) if body.strip() else {}
         if isinstance(spec, list):
             spec = {"bullets": spec}
         spec = dict(spec or {})
@@ -1288,6 +1311,9 @@ def build(md_path, out=None, sample=False, design=None):
         meta["design"] = design
     base = md_path.parent
     tone = load_tone(meta, base)
+    from . import numvars
+    values, missing, raw = (numvars.resolve(meta, base) if meta.get("vars") else {}), set(), slides
+    slides = [numvars.substitute(s_, values, missing) for s_ in slides]  # $name -> the computed figure
     every = slides
     if sample:  # tone check: cover + first data-bearing (or first content) slide
         rest = [s for s in slides if s["pattern"] not in ("cover", "section")]
@@ -1324,6 +1350,8 @@ def build(md_path, out=None, sample=False, design=None):
                 ctx.page = i
                 lint(ctx, spec)
         ctx.page = saved
+    for name in sorted(missing):
+        ctx.warnings.append(f"${name} is not defined under `vars:` (left as typed)")
     out = Path(out or md_path.with_suffix(".sample.pptx" if sample else ".pptx"))
     ctx.prs.save(out)
     head = f"OK {ctx.page} slides, {ctx.charts} charts, {ctx.tables} tables, design={tone['name']} -> {out}"
@@ -1334,7 +1362,8 @@ def build(md_path, out=None, sample=False, design=None):
         r"\d[^\n]{0,15}\((예시|가정)\)|\((예시|가정)\)[^\n]{0,15}\d", yaml.safe_dump(s, allow_unicode=True))]
     if drafts:  # invented figures must not reach an audience unconfirmed
         head += f"\nNOTE (예시)/(가정) figures on slide(s) {drafts}: tell the user to replace or confirm them before use"
-    return "\n".join([head] + [f"WARN {w}" for w in ctx.warnings])
+    moved = numvars.changes(md_path, values, raw, save=not sample) if values else []
+    return "\n".join([head] + moved + [f"WARN {w}" for w in ctx.warnings])
 
 
 from . import patterns_p1  # noqa: E402,F401  (registers the P1 patterns)

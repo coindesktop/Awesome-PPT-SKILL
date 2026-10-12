@@ -45,6 +45,7 @@ Claude Code에서 "이 CSV로 본부장 보고용 PPT 8장 만들어줘"처럼 �
 | 차트 | column-trend, line-trend, bar-ranked, stacked, stacked-share, waterfall(증감 요인), donut(구성비) (검증된 팔레트, 단일 강조색, 이중 축 없음) |
 | 데이터 | CSV/XLSX, KOSIS 다운로드 형식 자동 정리, 피벗(합계·상위 N+기타·가중 평균) |
 | 통계 | World Bank(키 없음), KOSIS(사용자 키, 터미널에서 직접 등록), 캐시와 출처 자동 각주 |
+| 반복 보고 | `vars:`로 숫자를 데이터에 연결(`$rev`), `latest`/`prev` 기간 단어: 새 달 데이터를 넣고 다시 빌드하면 제목·KPI·차트가 함께 갱신되고 바뀐 숫자를 알려 줌 |
 | 편집 | 아무 .pptx나 map/read/patch: 텍스트·위치·차트 데이터·표·일괄 치환·겹침 정리·노트 |
 | 점검 | 겹침·넘침·이탈·잔여 placeholder, Windows에서는 PowerPoint로 글자 높이 실측(`--com`) |
 
@@ -69,7 +70,7 @@ Claude Code에서 "이 CSV로 본부장 보고용 PPT 8장 만들어줘"처럼 �
 ```
 pptkit/                CLI (render, patterns_p1, edit, qa, data, persona, style, sources) + designs/ + catalog.yaml
 .claude/skills/ppt/    배포되는 스킬 (pptkit install-skill 이 복사)
-examples/              예제 덱 10종: 보고(매출·마케팅·인사·프로젝트), 제안(신사업·고객), 피칭(VC·PSST), 교육, 패턴 모음
+examples/              예제 덱 11종: 보고(매출·월간·마케팅·인사·프로젝트), 제안(신사업·고객), 피칭(VC·PSST), 교육, 패턴 모음
 evals/                 평가 시나리오, 가상 데이터, 채점기
 references/            참고한 MIT 스킬·DESIGN.md 원본 (비활성)
 .claude/skills/        개발 세션용 스킬들 (ppt 외에는 개발 보조용)

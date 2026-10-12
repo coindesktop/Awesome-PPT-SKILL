@@ -106,6 +106,9 @@ def main(argv=None):
 
     sub.add_parser("sources", help="available data sources and key status")
 
+    p = sub.add_parser("vars", help="values of the deck's `vars:` (live numbers referenced as $name)")
+    p.add_argument("deck")
+
     p = sub.add_parser("spec", help="deck.md keys of the patterns/charts you use (no args: rules + names)")
     p.add_argument("names", nargs="*")
 
@@ -156,7 +159,8 @@ def main(argv=None):
                 raise SystemExit("--bridge needs --cols (the period column) and no --pct/--per")
             pv = data.pivot(df, a.rows, a.cols, a.val, a.agg, None, where=where, weight=a.weight)
             try:
-                items, chg = data.bridge(pv, *a.bridge.split(","), top=a.top or 6)
+                ends = [data.period(df[a.cols], e) if data.PERIOD.fullmatch(e.strip()) else e for e in a.bridge.split(",")]
+                items, chg = data.bridge(pv, *ends, top=a.top or 6)
             except KeyError as e:
                 raise SystemExit(e.args[0])
             except TypeError:
@@ -251,6 +255,9 @@ def main(argv=None):
     elif a.cmd == "sources":
         from . import sources
         print(sources.sources_report())
+    elif a.cmd == "vars":
+        from . import numvars
+        print(numvars.report(a.deck))
     elif a.cmd == "spec":
         from . import spec
         print(spec.report(a.names))

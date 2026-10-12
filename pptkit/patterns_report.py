@@ -23,6 +23,12 @@ def _items(ctx, spec):
     if "values" in spec:
         return [(str(k), v) for k, v in spec["values"].items()]
     df = data.load(ctx.base / spec["data"])
+    if spec.get("bridge"):  # `bridge: {year: [prev, latest]}`: the same bars `pivot --bridge` prints, live from data
+        (col, (a, b)), = spec["bridge"].items()
+        a, b = (data.period(df[col], v) if isinstance(v, str) and data.PERIOD.fullmatch(v) else v for v in (a, b))
+        pv = data.pivot(df, spec["x"], col, spec["y"], "sum", None, where=spec.get("where"))
+        items, _ = data.bridge(pv, a, b, top=int(spec.get("top", 6)))
+        return [(f"{k}{spec.get('suffix', '')}" if i in (0, len(items) - 1) else k, v) for i, (k, v) in enumerate(items)]
     wide = data.aggregate(df, spec["x"], spec["y"], None, spec.get("agg", "sum"), spec.get("where"), spec.get("weight"))
     out = [(str(i), float(v)) for i, v in wide.iloc[:, 0].items()]
     if spec.get("start"):
@@ -42,19 +48,22 @@ def waterfall(ctx, slide, x, y, w, h, spec):
     """First item is the starting total, then signed changes; "=" draws the running total (bridge chart)."""
     c = ctx.c
     items = _items(ctx, spec)
+    nums = [float(v) for _, v in items if v != "=" and str(v).strip() not in ("합계", "total")]
+    dec = any(not round(v, 6).is_integer() for v in nums) and max(map(abs, nums), default=0) < 10000
+    fnum = (lambda v: f"{v:,.1f}") if dec else _num  # 163.9 and +2.7 read alike
     base, total, up, down, labels = [], [], [], [], []
     run = 0.0
     for i, (k, v) in enumerate(items):
         if i == 0 or v == "=" or str(v).strip() in ("=", "합계", "total"):
             run = float(v) if i == 0 and v != "=" else run
             base.append(0), total.append(run), up.append(None), down.append(None)
-            labels.append(_num(run))
+            labels.append(fnum(run))
             continue
         v = float(v)
         lo = run + min(v, 0)
         base.append(lo), total.append(None)
         up.append(v if v > 0 else None), down.append(-v if v < 0 else None)
-        labels.append(("+" if v > 0 else "−") + _num(abs(v)))
+        labels.append(("+" if v > 0 else "−") + fnum(abs(v)))
         run += v
     _unit(ctx, slide, x, y, w, spec)
     tops = [b + (t or 0) + (u or 0) + (d or 0) for b, t, u, d in zip(base, total, up, down)]
@@ -165,9 +174,9 @@ def p_progress(ctx, spec):
     c = ctx.c
     rows = spec.get("items") or []
     if not rows and spec.get("data"):
-        df = data.load(ctx.base / spec["data"])
-        rows = [{"label": r[spec["x"]], "actual": r[spec["actual"]], "target": r[spec["target"]]}
-                for r in df.to_dict("records")]
+        df = data._filter(data.load(ctx.base / spec["data"]), spec.get("where"))  # where: {month: latest}
+        g = df.groupby(spec["x"], sort=False)[[spec["actual"], spec["target"]]].sum()
+        rows = [{"label": k, "actual": r[spec["actual"]], "target": r[spec["target"]]} for k, r in g.iterrows()]
     n = max(len(rows), 1)
     co = spec.get("callout")
     co = co if isinstance(co, list) else [co] if co else []
@@ -176,7 +185,7 @@ def p_progress(ctx, spec):
     rh = min(1.0, (h - room) / n)  # the callout keeps its height; rows get tighter instead
     dec = any(not float(v).is_integer() for r in rows for v in (r["actual"], r["target"]))
     fnum = (lambda v: f"{float(v):,.1f}") if dec and max(abs(float(r["actual"])) for r in rows) < 1000 else _num
-    lw, rw = min(2.8, w * 0.24), 3.3
+    lw, rw = min(2.8, w * 0.24), 3.6
     tx, tw = x + lw, w - lw - rw
     cap = float(spec.get("cap", 1.2))  # the bar track ends at 120% so overachievement stays visible
     unit = spec.get("unit", "")
@@ -200,7 +209,7 @@ def p_progress(ctx, spec):
         text(ctx, slide, tx + tw + 0.15, ry, 1.65, rh, [f"{fnum(act)} / {fnum(tgt)}{unit}"], 12, c["body"],
              anchor=MSO_ANCHOR.MIDDLE, min_pt=9)
         shown = f"{rate:.1%}"  # one decimal like `pivot --percent`: 99.5% never reads as 100%, titles match
-        text(ctx, slide, tx + tw + 1.85, ry, 1.45, rh, [f"{shown} {word}"], 15 if rh >= 0.5 else 13, col, bold=True,
+        text(ctx, slide, tx + tw + 1.85, ry, 1.75, rh, [f"{shown} {word}"], 15 if rh >= 0.5 else 13, col, bold=True,
              anchor=MSO_ANCHOR.MIDDLE, align=PP_ALIGN.RIGHT, min_pt=11)
     if spec.get("callout"):
         _callout(ctx, slide, x, y + n * rh + 0.2, w, h - n * rh - 0.2,
@@ -215,7 +224,8 @@ def p_status_table(ctx, spec):
     """Project/task status: item, owner, due, status (dot + word), note. Rows from `rows` or a data file."""
     slide, (x, y, w, h) = content_slide(ctx, spec)
     c = ctx.c
-    rows = spec.get("rows") or (data.load(ctx.base / spec["data"]).to_dict("records") if spec.get("data") else [])
+    rows = spec.get("rows") or (data._filter(data.load(ctx.base / spec["data"]), spec.get("where")).to_dict("records")
+                                if spec.get("data") else [])
     cols = spec.get("columns", ["item", "owner", "due", "status", "note"])
     heads = spec.get("headers", {"item": "과제", "owner": "담당", "due": "일정", "status": "상태", "note": "비고"})
     widths = {"item": 3.2, "owner": 1.5, "due": 1.4, "status": 1.3}
@@ -267,9 +277,10 @@ def p_status_table(ctx, spec):
         text(ctx, slide, x, y + rh * nr + 0.1, w, 0.3, [summary], 12, c["muted"], align=PP_ALIGN.RIGHT)
 
 
-NEW = {"progress": (p_progress, {"items", "data", "x", "actual", "target", "unit", "cap", "callout", "callout_title"}),
-       "status-table": (p_status_table, {"rows", "data", "columns", "headers"})}
+NEW = {"progress": (p_progress, {"items", "data", "x", "actual", "target", "unit", "cap", "callout", "callout_title",
+                                 "where"}),
+       "status-table": (p_status_table, {"rows", "data", "columns", "headers", "where"})}
 for name, (fn, keys) in NEW.items():
     PATTERNS[name], KEYS[name] = fn, keys
 for k in ("chart-takeaway", "traction"):  # waterfall/donut extras ride on the chart patterns
-    KEYS[k] = KEYS[k] | {"start", "end", "center", "center_label"}
+    KEYS[k] = KEYS[k] | {"start", "end", "center", "center_label", "bridge", "suffix"}
