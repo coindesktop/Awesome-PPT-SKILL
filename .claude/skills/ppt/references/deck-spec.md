@@ -78,7 +78,8 @@ when a change turns from + to -) so you re-read only those sentences. `pptkit va
 vars:
   mon: {data: m.csv, col: month, at: latest}                          # the period label: 2026-09
   rev: {data: m.csv, val: revenue, where: {month: latest}, unit: 억 원}  # 170.5억 원
-  mom: {data: m.csv, val: revenue, growth: {month: [prev, latest]}}   # +1.6% (diff: same unit)
+  mom: {data: m.csv, val: revenue, growth: {month: [prev, latest]}}   # +1.6%
+  add: {data: m.csv, val: revenue, diff: {month: [prev, latest]}, unit: 억 원}   # +2.7억 원 (same unit)
   ach: {data: m.csv, val: revenue, per: target, where: {month: latest}}  # 96.9% (pct: false for a ratio)
   gap: {data: m.csv, val: revenue, minus: target, where: {month: latest}, unit: 억 원}  # -5.5억 원
   on:  {data: m.csv, val: revenue, where: {month: latest, channel: 온라인}, of: {month: latest}}  # share %
@@ -86,8 +87,8 @@ vars:
 
 A particle right after a reference follows the value (`$rev를` → `166.3억 원을`, `$c가` → `257건이`); `$mom.abs`
 drops the sign for sentences that already say 증가/감소 (`전월 대비 $mom.abs 감소`). On a refresh that moves the
-period, build keeps the old deck as `deck.2026-09.pptx` and lists slides whose text has no `$var` (claims to
-re-check). `agg: mean|count|wmean` (+ `weight`), `fmt: ",.2f"` override the default formatting. Period words work in every
+period, build keeps the old deck as `deck.2026-09.pptx`, prints the sentences that have no `$var` (claims to
+re-check) and says when `date:` is still last period's. `agg: mean|count|wmean` (+ `weight`), `fmt: ",.2f"` override the default formatting. Period words work in every
 `where` (charts, `progress`, `status-table`, pivot `--where`/`--bridge`): `latest`, `prev`, `latest-4` (four
 steps back: same quarter last year, `latest-12` for months). `highlight: latest` marks the newest bar. Live
 versions of the static keys: `chart: waterfall` with `data`, `x`, `y`, `bridge: {month: [latest-3, latest]}`

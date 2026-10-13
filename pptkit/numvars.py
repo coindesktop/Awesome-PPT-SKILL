@@ -51,6 +51,22 @@ def _value(df, spec, where):
     return float(getattr(d[val], {"sum": "sum", "mean": "mean", "count": "count"}[agg])())
 
 
+KNOWN = {"data", "val", "agg", "weight", "where", "per", "minus", "growth", "diff", "of", "pct", "col", "at", "unit",
+         "fmt"}
+
+
+def _check(name, spec):
+    if not isinstance(spec, dict) or "data" not in spec:
+        raise SystemExit(f"vars: ${name} needs a mapping with `data:` (see `pptkit spec vars`)")
+    bad = set(spec) - KNOWN
+    if bad:
+        raise SystemExit(f"vars: ${name} has unknown key(s) {sorted(bad)}. known: {', '.join(sorted(KNOWN))}")
+    for k in ("growth", "diff"):
+        if k in spec and not (isinstance(spec[k], dict) and len(spec[k]) == 1
+                              and isinstance(next(iter(spec[k].values())), list)):
+            raise SystemExit(f"vars: ${name} {k} takes {{column: [from, to]}}, e.g. {k}: {{month: [prev, latest]}}")
+
+
 def compute(spec, base: Path, cache: dict):
     """One var. Kinds: plain value; per (ratio), minus, growth/diff between two periods, of (share %),
     or `col` + `at` for a period label itself (2026Q3)."""
@@ -84,13 +100,14 @@ def fmt(v, kind, spec):
     sign = "+" if kind in ("signed",) or (kind == "pct" and ("growth" in spec or "diff" in spec)) else ""
     body = f"{v:{sign},.0f}" if kind != "pct" and float(round(v, 1)).is_integer() and abs(v) >= 100 \
         else f"{v:{sign},.1f}"  # rates always to one decimal (102.0%, 99.4%)
-    return body + ("%" if kind == "pct" else "") + spec.get("unit", "")
+    return body + ("%" if kind == "pct" else spec.get("unit", ""))  # a rate never takes the money unit
 
 
 def resolve(meta, base: Path):
     """{name: text} for every var in the front matter."""
     out, cache = {}, {}
     for name, spec in (meta.get("vars") or {}).items():
+        _check(name, spec)
         v, kind = compute(spec, base, cache)
         out[name] = fmt(v, kind, spec)
     return out
@@ -113,7 +130,21 @@ def substitute(obj, values, missing):
     return obj
 
 
-def changes(md_path: Path, values, slides, save=True):
+def _said(s):
+    """The sentences of a slide that carry claims (title, takeaways, callout, bullets ...), shortened."""
+    out = []
+    for k in ("title", "statement", "takeaways", "callout", "bullets", "ask"):
+        v = s.get(k)
+        for t in (v if isinstance(v, list) else [v] if v else []):
+            if isinstance(t, str) and "$" not in t:
+                out.append(t if len(t) <= 34 else t[:33] + "…")
+    for n in s.get("next") or []:  # closing steps carry dates that do not move either
+        if isinstance(n, dict) and "$" not in json.dumps(n, ensure_ascii=False):
+            out.append(f"{n.get('t', '')} ({n.get('when', '')})"[:40])
+    return out
+
+
+def changes(md_path: Path, values, slides, save=True, date=None, label=None):
     """Lines naming vars whose value moved since the last build, and the slides that quote them."""
     store = md_path.with_name(f".{md_path.stem}.vars.json")
     old = json.loads(store.read_text(encoding="utf-8")) if store.exists() else {}
@@ -128,22 +159,29 @@ def changes(md_path: Path, values, slides, save=True):
     if lines:
         lines.insert(0, "VARS changed since the last build: re-read the sentences on the slides listed")
     if lines:  # sentences without a $var did not move with the data: they are the likeliest to be wrong now
-        static = [str(i) for i, s in enumerate(slides, 1) if s.get("pattern") not in ("cover", "section") and any(
-            "$" not in json.dumps(s.get(k, ""), ensure_ascii=False) and s.get(k)
-            for k in ("title", "takeaways", "callout", "bullets", "statement", "ask"))]
+        static = [(i, _said(s)) for i, s in enumerate(slides, 1) if s.get("pattern") not in ("cover", "section")]
+        static = [(i, said) for i, said in static if said]
         if static:
-            lines.append(f"VARS text without $vars on slides {','.join(static)} did not change with the data: "
-                         "check each claim against `pptkit pivot`")
+            lines.append("VARS text without $vars did not change with the data; check each claim against "
+                         "`pptkit pivot`:")
+            lines += [f"  S{i}: " + " | ".join(said[:4]) for i, said in static]
+        if label and old.get(label) != values.get(label) and date and str(date) == old.get("__date"):
+            lines.append(f"VARS date: is still {date} from the last build; update `date:` in the front matter")
     if save and values:
-        store.write_text(json.dumps(values, ensure_ascii=False, indent=0), encoding="utf-8")
+        store.write_text(json.dumps({**values, "__date": str(date or "")}, ensure_ascii=False, indent=0),
+                         encoding="utf-8")
     return lines
+
+
+def label_var(meta):
+    return next((k for k, sp in (meta.get("vars") or {}).items() if isinstance(sp, dict) and "col" in sp), None)
 
 
 def backup(md_path: Path, meta, values, out: Path):
     """Before a rebuild moves the period label (2026-09 -> 2026-10), keep the old deck as deck.2026-09.pptx."""
     store = md_path.with_name(f".{md_path.stem}.vars.json")
     old = json.loads(store.read_text(encoding="utf-8")) if store.exists() else {}
-    label = next((k for k, sp in (meta.get("vars") or {}).items() if "col" in sp), None)
+    label = label_var(meta)
     if not (label and out.exists() and old.get(label) and old[label] != values.get(label)):
         return None
     keep = out.with_name(f"{out.stem}.{re.sub(r'[^0-9A-Za-z가-힣_-]', '_', old[label])}.pptx")

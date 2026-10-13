@@ -368,11 +368,19 @@ def test_vars_follow_the_latest_period_on_refresh():
     msg = render.build(d / "deck.md")
     assert title().startswith("2026-10 매출") and "VARS $mon 2026-09 -> 2026-10" in msg, msg
     assert "SIGN FLIPPED" in msg  # +1.6% -> -10.0%: the 증가 wording must be re-read
-    assert (d / "deck.2026-09.pptx").exists() and "text without $vars on slides" in msg
+    assert (d / "deck.2026-09.pptx").exists() and "S4: 호남팀 달성률이 가장 낮아" in msg
+    assert "date: is still 2026-10-05" in msg  # the period moved but the cover date did not
     from pptkit import numvars
     vals = {"rev": "166.3억 원", "g": "-2.5%", "c": "257건"}
     got = numvars.substitute("$rev를 기록, $g.abs 감소, $c가 늘고 $rev으로", vals, set())
     assert got == "166.3억 원을 기록, 2.5% 감소, 257건이 늘고 166.3억 원으로", got
+    try:
+        numvars.resolve({"vars": {"x": {"data": "monthly.csv", "val": "deals", "growth": {"month": ["prev", "latest"]},
+                                        "diff": True}}}, d)
+        raise AssertionError("bad diff accepted")
+    except SystemExit as e:
+        assert "diff takes" in str(e)
+    assert numvars.fmt(-6.5, "pct", {"growth": {}, "unit": "억 원"}) == "-6.5%"  # no money unit on a rate
     wf = next(s.chart for s in Presentation(d / "deck.pptx").slides[4].shapes if s.has_chart)
     assert list(wf.plots[0].categories)[-1] == "2026-10 매출"
 

@@ -1363,7 +1363,8 @@ def build(md_path, out=None, sample=False, design=None):
         r"\d[^\n]{0,15}\((예시|가정)\)|\((예시|가정)\)[^\n]{0,15}\d", yaml.safe_dump(s, allow_unicode=True))]
     if drafts:  # invented figures must not reach an audience unconfirmed
         head += f"\nNOTE (예시)/(가정) figures on slide(s) {drafts}: tell the user to replace or confirm them before use"
-    moved = numvars.changes(md_path, values, raw, save=not sample) if values else []
+    moved = numvars.changes(md_path, values, raw, save=not sample, date=meta.get("date"),
+                            label=numvars.label_var(meta)) if values else []
     return "\n".join([head] + ([kept] if kept else []) + moved + [f"WARN {w}" for w in ctx.warnings])
 
 
