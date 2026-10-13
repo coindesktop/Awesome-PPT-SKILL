@@ -1,5 +1,6 @@
 """Smallest checks that fail if the core logic breaks. Run: python -m pytest tests -q  (or python tests/test_pptkit.py)"""
 import os
+import re
 import tempfile
 from pathlib import Path
 
@@ -363,12 +364,16 @@ def test_vars_follow_the_latest_period_on_refresh():
                     if s.has_text_frame and "매출" in s.text_frame.text)
     assert title().startswith("2026-09 매출 170.5억 원")
     df = pd.read_csv(d / "monthly.csv")
-    nxt = df[df.month == "2026-09"].assign(month="2026-10", revenue_100m_krw=lambda x: (x.revenue_100m_krw * 0.9).round(1))
+    nxt = df[df.month == "2026-09"].assign(month="2026-10", revenue_100m_krw=lambda x: (
+        x.revenue_100m_krw * x.team.map(lambda t: 0.8 if t == "수도권1팀" else 0.92)).round(1))
     pd.concat([df, nxt]).to_csv(d / "monthly.csv", index=False)
     msg = render.build(d / "deck.md")
     assert title().startswith("2026-10 매출") and "VARS $mon 2026-09 -> 2026-10" in msg, msg
     assert "SIGN FLIPPED" in msg  # +1.6% -> -10.0%: the 증가 wording must be re-read
-    assert (d / "deck.2026-09.pptx").exists() and "S4: 호남팀 달성률이 가장 낮아" in msg
+    assert (d / "deck.2026-09.pptx").exists() and "S6: " in msg and "(10월 3주)" in msg  # dates stay static
+    texts = [s.text_frame.text for sl in Presentation(d / "deck.pptx").slides for s in sl.shapes if s.has_text_frame]
+    assert any(re.search(r"\d% 감소", t) for t in texts)  # $mom.abs $mom.dir follows the sign
+    assert any("수도권1팀 달성률이 가장 낮" in t for t in texts)  # $low picked the new lowest team
     assert "date: is still 2026-10-05" in msg  # the period moved but the cover date did not
     from pptkit import numvars
     vals = {"rev": "166.3억 원", "g": "-2.5%", "c": "257건"}
@@ -381,6 +386,7 @@ def test_vars_follow_the_latest_period_on_refresh():
     except SystemExit as e:
         assert "diff takes" in str(e)
     assert numvars.fmt(-6.5, "pct", {"growth": {}, "unit": "억 원"}) == "-6.5%"  # no money unit on a rate
+    assert numvars.substitute("$g.dir, $g.rise, $z.dir", {"g": "-2.5%", "z": "+0.0%"}, set()) == "감소, 하락, 보합"
     wf = next(s.chart for s in Presentation(d / "deck.pptx").slides[4].shapes if s.has_chart)
     assert list(wf.plots[0].categories)[-1] == "2026-10 매출"
 

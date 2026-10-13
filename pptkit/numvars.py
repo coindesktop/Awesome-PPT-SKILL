@@ -8,10 +8,11 @@ import re
 import shutil
 from pathlib import Path
 
-
 from . import data
 
-REF = re.compile(r"\$([A-Za-z_][A-Za-z0-9_]*?)(\.abs)?(?![A-Za-z0-9_])(으로|로|을|를|이|가|은|는|과|와|이나|나)?")
+REF = re.compile(r"\$([A-Za-z_][A-Za-z0-9_]*?)(\.(?:abs|dir|rise|val))?(?![A-Za-z0-9_])"
+                 r"(으로|로|을|를|이|가|은|는|과|와|이나|나)?")
+WORDS = {".dir": ("증가", "감소", "보합"), ".rise": ("상승", "하락", "보합")}  # from the sign of the value
 DIGIT_FINAL = {"0": 21, "1": 8, "2": 0, "3": 16, "4": 0, "5": 0, "6": 1, "7": 8, "8": 8, "9": 0}  # 영 일 이 삼 ...
 PAIRS = {"을": ("을", "를"), "를": ("을", "를"), "이": ("이", "가"), "가": ("이", "가"), "은": ("은", "는"),
          "는": ("은", "는"), "과": ("과", "와"), "와": ("과", "와"), "이나": ("이나", "나"), "나": ("이나", "나")}
@@ -52,7 +53,8 @@ def _value(df, spec, where):
 
 
 KNOWN = {"data", "val", "agg", "weight", "where", "per", "minus", "growth", "diff", "of", "pct", "col", "at", "unit",
-         "fmt"}
+         "fmt", "by", "pick", "count"}
+TEST = re.compile(r"\s*(over|under|>=|<=|>|<)\s*(-?[\d.]+)\s*")
 
 
 def _check(name, spec):
@@ -61,6 +63,11 @@ def _check(name, spec):
     bad = set(spec) - KNOWN
     if bad:
         raise SystemExit(f"vars: ${name} has unknown key(s) {sorted(bad)}. known: {', '.join(sorted(KNOWN))}")
+    if "by" in spec and not ("pick" in spec or "count" in spec):
+        raise SystemExit(f"vars: ${name} by: needs `pick: max|min|over 100` or `count: over 100`")
+    for k in ("pick", "count"):
+        if k in spec and not (spec[k] in ("max", "min") and k == "pick" or TEST.fullmatch(str(spec[k]))):
+            raise SystemExit(f"vars: ${name} {k}: takes max | min | 'over 100' | 'under 90' (count: only the tests)")
     for k in ("growth", "diff"):
         if k in spec and not (isinstance(spec[k], dict) and len(spec[k]) == 1
                               and isinstance(next(iter(spec[k].values())), list)):
@@ -92,6 +99,35 @@ def compute(spec, base: Path, cache: dict):
     return v * (100 if spec.get("pct") else 1), "pct" if spec.get("pct") else "num"
 
 
+def _passes(v, test):
+    op, n = TEST.fullmatch(str(test)).groups()
+    n = float(n)
+    return {"over": v >= n, ">=": v >= n, ">": v > n, "under": v < n, "<": v < n, "<=": v <= n}[op]
+
+
+def ranked(spec, base: Path, cache: dict):
+    """`by: team` + `pick: min` -> ('수도권1팀', its value text); `pick: over 100` -> the names that pass (or 없음);
+    `count: over 100` -> how many pass. The metric per category is the rest of the spec (per, growth, ...)."""
+    inner = {k: v for k, v in spec.items() if k not in ("by", "pick", "count", "unit", "fmt")}
+    path = base / spec["data"]
+    if path not in cache:
+        cache[path] = data.load(path)
+    names = list(dict.fromkeys(data._filter(cache[path], spec.get("where"))[spec["by"]]))
+    got = {}
+    for n in names:
+        sub = {**inner, "where": {**(spec.get("where") or {}), spec["by"]: n}}
+        got[n] = compute(sub, base, cache)
+    kind = next(iter(got.values()))[1] if got else "num"
+    if "count" in spec:
+        c = sum(_passes(v, spec["count"]) for v, _ in got.values())
+        return f"{c}{spec.get('unit', '')}", None
+    if spec["pick"] in ("max", "min"):
+        n = (max if spec["pick"] == "max" else min)(got, key=lambda k: got[k][0])
+        return n, fmt(got[n][0], kind, {**inner, "unit": spec.get("unit", "")})
+    hits = [n for n, (v, _) in got.items() if _passes(v, spec["pick"])]
+    return ("·".join(hits) if hits else "없음"), None
+
+
 def fmt(v, kind, spec):
     if kind == "label":
         return v
@@ -108,6 +144,11 @@ def resolve(meta, base: Path):
     out, cache = {}, {}
     for name, spec in (meta.get("vars") or {}).items():
         _check(name, spec)
+        if "by" in spec:
+            out[name], val = ranked(spec, base, cache)
+            if val is not None:
+                out[f"{name}.val"] = val  # $low.val: the picked team's figure
+            continue
         v, kind = compute(spec, base, cache)
         out[name] = fmt(v, kind, spec)
     return out
@@ -120,7 +161,17 @@ def substitute(obj, values, missing):
             if m[1] not in values:
                 missing.add(m[1])
                 return m[0]
-            v = values[m[1]].lstrip("+-") if m[2] else values[m[1]]  # $mom.abs: 감소 2.5% instead of 감소 -2.5%
+            v = values[m[1]]
+            if m[2] == ".abs":  # 감소 2.5% instead of 감소 -2.5%
+                v = v.lstrip("+-")
+            elif m[2] in WORDS:  # $mom.dir -> 증가 / 감소 by the sign, so the verb follows the data
+                up, down, flat = WORDS[m[2]]
+                v = down if v.startswith("-") else flat if re.fullmatch(r"[+]?0(\.0+)?%?.*", v) else up
+            elif m[2] == ".val":
+                if f"{m[1]}.val" not in values:
+                    missing.add(f"{m[1]}.val")
+                    return m[0]
+                v = values[f"{m[1]}.val"]
             return v + josa(v, m[3])  # 166.3억 원을, 2.5%를: the particle follows the value
         return REF.sub(rep, obj)
     if isinstance(obj, list):
@@ -134,12 +185,14 @@ def _said(s):
     """The sentences of a slide that carry claims (title, takeaways, callout, bullets ...), shortened."""
     out = []
     for k in ("title", "statement", "takeaways", "callout", "bullets", "ask"):
+        if k == "title" and s.get("pattern") == "closing":
+            continue  # "# 요청 사항" is a label, not a claim
         v = s.get(k)
         for t in (v if isinstance(v, list) else [v] if v else []):
             if isinstance(t, str) and "$" not in t:
                 out.append(t if len(t) <= 34 else t[:33] + "…")
-    for n in s.get("next") or []:  # closing steps carry dates that do not move either
-        if isinstance(n, dict) and "$" not in json.dumps(n, ensure_ascii=False):
+    for n in s.get("next") or []:  # closing steps carry dates: a live step name does not move its date
+        if isinstance(n, dict) and "$" not in str(n.get("when", "$")):
             out.append(f"{n.get('t', '')} ({n.get('when', '')})"[:40])
     return out
 
@@ -151,7 +204,7 @@ def changes(md_path: Path, values, slides, save=True, date=None, label=None):
     lines = []
     for k, v in values.items():
         if k in old and old[k] != v:
-            used = [str(i) for i, s in enumerate(slides, 1) if re.search(rf"\${k}(?![A-Za-z0-9_])",
+            used = [str(i) for i, s in enumerate(slides, 1) if re.search(rf"\${re.escape(k)}(?![A-Za-z0-9_])",
                                                                           json.dumps(s, ensure_ascii=False))]
             flip = old[k][:1] in "+-" and v[:1] in "+-" and old[k][:1] != v[:1]
             lines.append(f"VARS ${k} {old[k]} -> {v} (S{','.join(used) or '-'})"

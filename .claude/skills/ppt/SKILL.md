@@ -86,8 +86,8 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
 ## Recurring reports (월간·분기 보고)
 
 When the user says the deck repeats (매월, 분기마다, 주간), write it once with `vars:` and period words
-(`where: {month: latest}`, `growth: {month: [prev, latest]}`, waterfall `bridge:`) instead of typed figures
-(`pptkit spec vars` prints the keys). Next time: replace the data file, `pptkit build deck.md`, and
+(`where: {month: latest}`, `growth: {month: [prev, latest]}`, waterfall `bridge:`) instead of typed figures, and
+make claims live as well: `$x.dir` for 증가/감소, `by: team, pick: min` for "the lowest team" (`pptkit spec vars`). Next time: replace the data file, `pptkit build deck.md`, and
 fix the sentences the `VARS ... -> ...` lines point to (always on `SIGN FLIPPED`; write `$x.abs 감소`) and check
 the slides listed as "text without $vars" against `pptkit pivot`: qualitative claims ("영남팀만 목표 초과"),
 names and dates there do not move with the data. Last period's deck is kept as `deck.<period>.pptx`.

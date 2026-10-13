@@ -83,7 +83,15 @@ vars:
   ach: {data: m.csv, val: revenue, per: target, where: {month: latest}}  # 96.9% (pct: false for a ratio)
   gap: {data: m.csv, val: revenue, minus: target, where: {month: latest}, unit: 억 원}  # -5.5억 원
   on:  {data: m.csv, val: revenue, where: {month: latest, channel: 온라인}, of: {month: latest}}  # share %
+  low: {data: m.csv, val: revenue, per: target, where: {month: latest}, by: team, pick: min}   # 수도권1팀 ($low.val 88.9%)
+  hit: {data: m.csv, val: revenue, per: target, where: {month: latest}, by: team, pick: over 100}  # 영남팀 (or 없음)
+  nhit: {data: m.csv, val: revenue, per: target, where: {month: latest}, by: team, count: over 100, unit: 개 팀}
 ```
+
+Claims can be live too: `by:` + `pick: max|min` names the top/bottom category (`$low.val` is its figure),
+`pick: over 100` / `under 90` lists the ones that pass, `count:` counts them. Direction words follow the sign:
+`$mom.dir` → 증가/감소, `$mom.rise` → 상승/하락 (`전월 대비 $mom.abs $mom.dir`, `$q3m.dir해`). Write sentences that
+stay true either way ("목표 달성 $nhit, 최저는 $low($low.val)") rather than "$hit만 목표 초과" (reads badly at 없음).
 
 A particle right after a reference follows the value (`$rev를` → `166.3억 원을`, `$c가` → `257건이`); `$mom.abs`
 drops the sign for sentences that already say 증가/감소 (`전월 대비 $mom.abs 감소`). On a refresh that moves the

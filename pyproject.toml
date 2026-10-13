@@ -1,6 +1,6 @@
 [project]
 name = "pptkit"
-version = "0.1.0"
+version = "0.2.0"
 description = "Personalized, token-lean PowerPoint generation CLI (Claude skill included)"
 requires-python = ">=3.10"
 dependencies = ["python-pptx>=1.0", "pandas>=2", "openpyxl", "pyyaml", "lxml"]
