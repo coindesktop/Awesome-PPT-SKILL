@@ -389,6 +389,13 @@ def test_vars_follow_the_latest_period_on_refresh():
     assert numvars.substitute("$g.dir, $g.rise, $z.dir", {"g": "-2.5%", "z": "+0.0%"}, set()) == "감소, 하락, 보합"
     wf = next(s.chart for s in Presentation(d / "deck.pptx").slides[4].shapes if s.has_chart)
     assert list(wf.plots[0].categories)[-1] == "2026-10 매출"
+    from pptkit import numvars as nv
+    assert nv.embedded(d / "deck.pptx")["mon"] == "2026-10"  # the figures travel inside the deck too
+    (d / ".deck.vars.json").unlink()
+    df2 = pd.read_csv(d / "monthly.csv")
+    pd.concat([df2, df2[df2.month == "2026-10"].assign(month="2026-11")]).to_csv(d / "monthly.csv", index=False)
+    msg2 = render.build(d / "deck.md")
+    assert (d / "deck.2026-10.pptx").exists() and "VARS $mon 2026-10 -> 2026-11" in msg2, msg2
 
 
 if __name__ == "__main__":

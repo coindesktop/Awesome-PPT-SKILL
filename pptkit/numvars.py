@@ -197,10 +197,66 @@ def _said(s):
     return out
 
 
-def changes(md_path: Path, values, slides, save=True, date=None, label=None):
+RT_CUSTOM = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/custom-properties"
+CT_CUSTOM = "application/vnd.openxmlformats-officedocument.custom-properties+xml"
+NS_CP = "http://schemas.openxmlformats.org/officeDocument/2006/custom-properties"
+NS_VT = "http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"
+PROP = "pptkit_vars"
+FMTID = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}"
+
+
+def embed(prs, values, date):
+    """Last build's figures travel inside the .pptx (custom document property), so a copied folder without the
+    hidden .vars.json still gets the backup and the change report. Other custom properties are kept."""
+    from lxml import etree
+    from pptx.opc.package import Part
+    from pptx.opc.packuri import PackURI
+    payload = json.dumps({**values, "__date": str(date or "")}, ensure_ascii=False)
+    pkg = prs.part.package
+    part = next((r.target_part for r in pkg.iter_rels() if r.reltype == RT_CUSTOM), None)
+    root = etree.fromstring(part.blob) if part is not None else etree.Element(
+        f"{{{NS_CP}}}Properties", nsmap={None: NS_CP, "vt": NS_VT})
+    for el in root.findall(f"{{{NS_CP}}}property"):
+        if el.get("name") == PROP:
+            root.remove(el)
+    pids = [int(el.get("pid", 1)) for el in root.findall(f"{{{NS_CP}}}property")]
+    prop = etree.SubElement(root, f"{{{NS_CP}}}property", fmtid=FMTID, pid=str(max(pids + [1]) + 1), name=PROP)
+    etree.SubElement(prop, f"{{{NS_VT}}}lpwstr").text = payload
+    blob = etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+    if part is None:
+        pkg.relate_to(Part(PackURI("/docProps/custom.xml"), CT_CUSTOM, pkg, blob), RT_CUSTOM)
+    else:
+        part._blob = blob
+
+
+def embedded(pptx_path: Path):
+    """The figures a previous pptkit build stored in that deck, or {}."""
+    try:
+        from pptx import Presentation
+        pkg = Presentation(pptx_path).part.package
+        part = next((r.target_part for r in pkg.iter_rels() if r.reltype == RT_CUSTOM), None)
+        if part is None:
+            return {}
+        from lxml import etree
+        for el in etree.fromstring(part.blob).findall(f"{{{NS_CP}}}property"):
+            if el.get("name") == PROP:
+                return json.loads(el[0].text or "{}")
+    except Exception:  # not a pptkit deck, or unreadable: nothing to compare with
+        pass
+    return {}
+
+
+def previous(md_path: Path, out: Path):
+    """Last build's figures: the hidden .vars.json next to deck.md, else the ones inside the deck being replaced."""
+    store = md_path.with_name(f".{md_path.stem}.vars.json")
+    if store.exists():
+        return json.loads(store.read_text(encoding="utf-8"))
+    return embedded(out) if out.exists() else {}
+
+
+def changes(md_path: Path, old, values, slides, save=True, date=None, label=None):
     """Lines naming vars whose value moved since the last build, and the slides that quote them."""
     store = md_path.with_name(f".{md_path.stem}.vars.json")
-    old = json.loads(store.read_text(encoding="utf-8")) if store.exists() else {}
     lines = []
     for k, v in values.items():
         if k in old and old[k] != v:
@@ -230,12 +286,17 @@ def label_var(meta):
     return next((k for k, sp in (meta.get("vars") or {}).items() if isinstance(sp, dict) and "col" in sp), None)
 
 
-def backup(md_path: Path, meta, values, out: Path):
-    """Before a rebuild moves the period label (2026-09 -> 2026-10), keep the old deck as deck.2026-09.pptx."""
-    store = md_path.with_name(f".{md_path.stem}.vars.json")
-    old = json.loads(store.read_text(encoding="utf-8")) if store.exists() else {}
+def backup(old, meta, values, out: Path):
+    """Before a rebuild moves the period label (2026-09 -> 2026-10), keep the old deck as deck.2026-09.pptx.
+    A deck being replaced with no record of its period is kept as deck.prev.pptx rather than lost."""
     label = label_var(meta)
-    if not (label and out.exists() and old.get(label) and old[label] != values.get(label)):
+    if not (label and out.exists()):
+        return None
+    if not old.get(label):
+        keep = out.with_name(f"{out.stem}.prev.pptx")
+        shutil.copy2(out, keep)
+        return f"SAVED the deck being replaced -> {keep.name} (no record of its period)"
+    if old[label] == values.get(label):
         return None
     keep = out.with_name(f"{out.stem}.{re.sub(r'[^0-9A-Za-z가-힣_-]', '_', old[label])}.pptx")
     if not keep.exists():

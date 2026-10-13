@@ -1353,7 +1353,10 @@ def build(md_path, out=None, sample=False, design=None):
     for name in sorted(missing):
         ctx.warnings.append(f"${name} is not defined under `vars:` (left as typed)")
     out = Path(out or md_path.with_suffix(".sample.pptx" if sample else ".pptx"))
-    kept = numvars.backup(md_path, meta, values, out) if values and not sample else None
+    old = numvars.previous(md_path, out) if values and not sample else {}
+    kept = numvars.backup(old, meta, values, out) if values and not sample else None
+    if values and not sample:
+        numvars.embed(ctx.prs, values, meta.get("date"))
     ctx.prs.save(out)
     head = f"OK {ctx.page} slides, {ctx.charts} charts, {ctx.tables} tables, design={tone['name']} -> {out}"
     want = tone.get("length")
@@ -1363,7 +1366,7 @@ def build(md_path, out=None, sample=False, design=None):
         r"\d[^\n]{0,15}\((예시|가정)\)|\((예시|가정)\)[^\n]{0,15}\d", yaml.safe_dump(s, allow_unicode=True))]
     if drafts:  # invented figures must not reach an audience unconfirmed
         head += f"\nNOTE (예시)/(가정) figures on slide(s) {drafts}: tell the user to replace or confirm them before use"
-    moved = numvars.changes(md_path, values, raw, save=not sample, date=meta.get("date"),
+    moved = numvars.changes(md_path, old, values, raw, save=not sample, date=meta.get("date"),
                             label=numvars.label_var(meta)) if values else []
     return "\n".join([head] + ([kept] if kept else []) + moved + [f"WARN {w}" for w in ctx.warnings])
 

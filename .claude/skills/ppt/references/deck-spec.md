@@ -95,10 +95,12 @@ stay true either way ("목표 달성 $nhit, 최저는 $low($low.val)") rather th
 
 A particle right after a reference follows the value (`$rev를` → `166.3억 원을`, `$c가` → `257건이`); `$mom.abs`
 drops the sign for sentences that already say 증가/감소 (`전월 대비 $mom.abs 감소`). On a refresh that moves the
-period, build keeps the old deck as `deck.2026-09.pptx`, prints the sentences that have no `$var` (claims to
+period, build keeps the old deck as `deck.2026-09.pptx` (the figures of each build are stored inside the .pptx,
+so a copied folder works without the hidden `.deck.vars.json`), prints the sentences that have no `$var` (claims to
 re-check) and says when `date:` is still last period's. `agg: mean|count|wmean` (+ `weight`), `fmt: ",.2f"` override the default formatting. Period words work in every
 `where` (charts, `progress`, `status-table`, pivot `--where`/`--bridge`): `latest`, `prev`, `latest-4` (four
-steps back: same quarter last year, `latest-12` for months). `highlight: latest` marks the newest bar. Live
+steps back: same quarter last year, `latest-12` for months, which needs 13 months of data; with 12, `latest-11`
+is the first month, so label it with `{col: month, at: latest-11}` rather than calling it 전년 동월). `highlight: latest` marks the newest bar. Live
 versions of the static keys: `chart: waterfall` with `data`, `x`, `y`, `bridge: {month: [latest-3, latest]}`
 (`top`, `suffix: " 매출"`); KPI `spark: {data, x, y, per?, last: 6}`.
 

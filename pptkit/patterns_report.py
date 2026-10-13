@@ -140,7 +140,8 @@ def donut(ctx, slide, x, y, w, h, spec):
     if hole is None:
         hole = etree.SubElement(dn, qn("c:holeSize"))
     hole.set("val", "60")
-    centre = spec.get("center") or _num(tot)
+    dec = any(not round(v, 6).is_integer() for _, v in items) and tot < 10000
+    centre = spec.get("center") or (f"{tot:,.1f}" if dec else _num(tot))  # 170.5 like the title, not 170
     hx, hw = x + d * 0.22, d * 0.56  # inside the hole
     text(ctx, slide, hx, y + h / 2 - 0.42, hw, 0.5, [str(centre)], 22, c["ink"], bold=True, align=PP_ALIGN.CENTER,
          anchor=MSO_ANCHOR.BOTTOM, min_pt=14)
