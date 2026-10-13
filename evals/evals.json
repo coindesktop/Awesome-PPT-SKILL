@@ -86,6 +86,15 @@
         "evals/data/monthly_refresh/monthly.csv",
         "evals/data/monthly_refresh/.deck.vars.json"
       ]
+    },
+    {
+      "id": 10,
+      "name": "monthly-template",
+      "prompt": "매달 쓸 영업 실적 월간 보고 PPT 틀 만들어줘. 데이터는 monthly.csv(팀별 월 매출·목표·계약, 9월까지)야. 다음 달부터는 csv에 그 달 데이터만 추가해서 갱신할 거야.",
+      "expected_output": "숫자와 판단(증감 방향, 최저 팀 등)을 vars와 latest/prev로 데이터에 연결해, 10월 행을 추가하고 다시 빌드하면 손대지 않아도 10월 기준의 맞는 문장이 나온다.",
+      "files": [
+        "evals/data/monthly_template/monthly.csv"
+      ]
     }
   ]
 }

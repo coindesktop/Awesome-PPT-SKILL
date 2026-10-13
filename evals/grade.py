@@ -223,6 +223,30 @@ def grade_run(eval_id, out: Path, peers: dict):
                   ex("전체 달성률 92.8%가 들어감", "92.8" in allt, "92.8"),
                   ex("9월 수치·틀린 서술이 남지 않음", not stale, stale or "none"),
                   ex("감소를 감소로 서술함(감소/하락/줄)", any(w in allt for w in ("감소", "하락", "줄")), "감소 words")]
+    elif eval_id == 10:  # build it, then refresh with October rows and rebuild without any edit
+        import shutil
+        import tempfile
+        prs, e = common(out, p, 4, 10)
+        md = next(iter(sorted(out.glob("*.md"), key=lambda f: "deck" not in f.name)), None)
+        e.append(ex("deck.md에 vars와 latest가 있음", md and "vars:" in md.read_text(encoding="utf-8")
+                    and "latest" in md.read_text(encoding="utf-8"), md.name if md else "no deck.md"))
+        if md:
+            tmp = Path(tempfile.mkdtemp())
+            for f in out.iterdir():
+                if f.is_file():
+                    shutil.copy(f, tmp / f.name)
+            shutil.copy(ROOT / "evals" / "data" / "monthly_refresh" / "monthly.csv", tmp / "monthly.csv")
+            r = subprocess.run(["pptkit", "build", md.name, "-o", "oct.pptx"], cwd=tmp, capture_output=True, text=True)
+            ok = r.returncode == 0 and (tmp / "oct.pptx").exists()
+            e.append(ex("10월 데이터로 손대지 않고 다시 빌드됨", ok, (r.stdout + r.stderr)[-200:]))
+            if ok:
+                o = Presentation(tmp / "oct.pptx")
+                prose = " ".join(pp.text for sl in o.slides for s in sl.shapes if s.has_text_frame
+                                 for pp in s.text_frame.paragraphs)
+                stale = [w for w in ("170.5", "96.9%", "+1.6%", "1.6% 증가", "4.0% 증가") if w in prose]
+                e += [ex("갱신본에 10월 매출 166.3이 나옴", "166.3" in prose, "166.3"),
+                      ex("갱신본에 9월 수치·증가 서술이 남지 않음", not stale, stale or "none"),
+                      ex("갱신본이 감소를 서술함", "감소" in prose or "하락" in prose, "감소/하락")]
     passed = sum(x["passed"] for x in e)
     return {"expectations": e, "summary": {"passed": passed, "failed": len(e) - passed, "total": len(e),
                                            "pass_rate": round(passed / len(e), 2)}}
