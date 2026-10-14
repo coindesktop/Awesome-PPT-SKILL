@@ -150,10 +150,12 @@ def grade_run(eval_id, out: Path, peers: dict):
             e += [ex("텍스트만 있는 장표가 2장 이하임 (도형·차트·표로 구성)", len(text_only) <= 2, f"text-only slides {text_only}"),
                   ex("메모의 핵심 사실(월 49만 원, 2026년 11월 베타)을 반영함", "49" in allt and ("11월" in allt or "2026.11" in allt),
                      f"49:{'49' in allt} 11월:{'11월' in allt or '2026.11' in allt}")]
-            paras = [t for sl in texts(prs) for t in sl if len(t) >= 8]
+            # sentences only: labels, legends, price items and next-step names end in nouns in any voice
+            paras = [t for sl in texts(prs) for t in sl
+                     if len(t) >= 8 and re.search(r"(다|요|죠|함|임|음|됨)[.!?]?$", t)]
             soft = [t for t in paras if re.search(r"(니다|요|죠|세요)[.!?]?$", t)]
-            e.append(ex("'너무 딱딱하지 않게'를 문체에 반영함(8자 이상 문장의 40% 이상이 경어체·해요체)",
-                        len(soft) >= 0.4 * max(len(paras), 1), f"{len(soft)}/{len(paras)}"))
+            e.append(ex("'너무 딱딱하지 않게'를 문체에 반영함(문장의 60% 이상이 경어체·해요체)",
+                        len(soft) >= 0.6 * max(len(paras), 1), f"{len(soft)}/{len(paras)}"))
     elif eval_id == 5:
         reply = " ".join((out / f).read_text(encoding="utf-8") for f in ("reply.md", "report.md") if (out / f).exists())
         e = [ex("사용자에게 API 키를 요구하지 않음", not any(re.search(r"(API|인증|api)\s*키|api key", q, re.I) for q in qs),
@@ -162,7 +164,8 @@ def grade_run(eval_id, out: Path, peers: dict):
         if p:
             t = texts(Presentation(p))
             n_slides = len(t)
-            gdp = [i for i, sl in enumerate(t) if any("GDP" in x or "성장률" in x and ("일본" in x or "미국" in x) for x in sl)]
+            gdp = [i for i, sl in enumerate(t) if any("GDP" in x or "성장률" in x and ("일본" in x or "미국" in x) for x in sl)
+                   and not any("데이터 대기" in x for x in sl)]  # a waiting placeholder carries no figures
         verified = list(out.rglob("*.meta.json"))  # written by `pptkit fetch` (or an equivalent provenance file)
         e += [ex("검증되지 않은 수치를 넣지 않음 (GDP 장표가 있으면 수집 메타데이터가 있어야 함)", not gdp or verified,
                  f"gdp slides {[g + 1 for g in gdp]}, meta files {[m.name for m in verified]}"),

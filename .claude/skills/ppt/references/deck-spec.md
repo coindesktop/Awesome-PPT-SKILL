@@ -53,15 +53,19 @@ paths are relative to deck.md. Unknown keys and overlong text produce `WARN` lin
 | `pillars` | `pillars: [{title, desc, figure, note}]` 3-4 | strengths, reasons, why now; `figure` replaces 01/02; `note` = proof line |
 | `traction` | `metrics: [{value, label}]` ≤4 + chart keys | headline numbers over a growth chart (`line-trend` default) |
 | `team` | `members: [{name, role, bio: [..], note}]` ≤8, `advisors: [..]` | initials badge; `note` = why this person |
-| `pricing` | `tiers: [{name, price, unit, for, features: [..], highlight: true, badge: 추천}]` ≤4 | `highlight` frames a tier, `badge` labels it; "별도 협의" prices drop the unit |
+| `pricing` | `tiers: [{name, price, unit, for, features: [..], highlight: true, badge: 추천}]` ≤4, `common: [..]` | `highlight` frames a tier, `badge` labels it; a price not set yet is `price: 별도 협의` (the unit is dropped), never a guess; features every tier shares go in `common` once |
 | `product-shot` | `features: [{title, desc}]` ≤4, `frame: phone`, `screen` | empty frame: the user pastes a screenshot |
 | `progress` | `items: [{label, actual, target}]` or `data` + `x`, `actual`, `target`; `unit`, `callout` | must set `pattern: progress`; bars to 120%, 목표 marker, 달성/근접/미달 by rate (≥100%, ≥90%) |
 | `status-table` | `rows: [{item, owner, due, status, note}]` or `data`; `columns`, `headers` | must set `pattern: status-table`; status green/amber/red/done (or 정상/주의/지연/완료) as dot + word, counts below |
 | `funding-ask` | `amount`, `round`, `use: [{label, pct}]`, `milestones: [..]`, `milestones_title`, `use_title` | doughnut of use of funds; retitle for grants (`사업비 집행 계획`) |
 
+`labels:` (deck or slide) renames columns, series values and categories alike: `labels: {revenue: 매출, KOR: 한국,
+2026: 2026(잠정)}` marks a provisional year on the axis and in the table.
+
 Public data files: a World Bank download (`.zip` or its `API_*.csv`) reads as columns `Country Name`,
 `Country Code`, `year`, `value` → chart keys `x: year, y: value, series: Country Name, where: {Country Code: [KOR, JPN, USA]}`;
-`pptkit fetch wb` output has `country`, `iso3`, `year`, `value`. KOSIS downloads become long tables with a `year` column.
+`pptkit fetch wb` output has `country`, `iso3`, `year`, `value`. A pattern in `data:` (`data: API_NY.GDP*.zip`)
+takes the newest matching file, so a fresh download needs no renaming. KOSIS downloads become long tables with a `year` column.
 
 Numbers the user typed (no file) go inline: `values: {2026-01: 1.2, 2026-02: 1.6}` or
 `values: {ARR: {...}, 고객사: {...}}` instead of `data`/`x`/`y`. Quote any value that contains a comma inside

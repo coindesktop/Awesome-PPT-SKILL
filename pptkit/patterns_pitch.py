@@ -1,4 +1,6 @@
 """Pitch patterns: pillars, team, traction, pricing, product-shot, funding-ask. Registered on import."""
+from pathlib import Path
+
 from lxml import etree
 from pptx.chart.data import CategoryChartData
 from pptx.enum.chart import XL_CHART_TYPE
@@ -8,7 +10,7 @@ from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
 from .render import (INFER, KEYS, PATTERNS, CHART_KEYS, _chart, _no_fill, _s, box, card, content_slide, dark_color,
-                     hline, icon, icon_badge, mix, rgb, text, text_height, text_width)
+                     hline, icon, icon_badge, mix, rgb, text, text_height, text_width, waiting_box)
 
 
 def _lines(v):
@@ -122,7 +124,10 @@ def p_traction(ctx, spec):
     if "data" in spec or "values" in spec:
         cs = {k: v for k, v in spec.items() if k in CHART_KEYS}
         cs.setdefault("chart", "line-trend")
-        _chart(ctx, slide, x, y + top, w, h - top, cs)
+        try:
+            _chart(ctx, slide, x, y + top, w, h - top, cs)
+        except FileNotFoundError as e:  # the metrics come from the memo: keep them, stub only the chart
+            waiting_box(ctx, slide, x, y + top, w, h - top, cs, Path(e.filename or "?").name)
 
 
 def p_pricing(ctx, spec):
@@ -135,7 +140,12 @@ def p_pricing(ctx, spec):
     cw = min((w - gap * (n - 1)) / n, 3.9)
     x0 = x + (w - (cw * n + gap * (n - 1))) / 2
     need = max(text_height(["✓ " + f for f in _lines(t.get("features"))], cw - 0.6, pt, gap_pt=6) for t in tiers) if tiers else 0
-    ch = min(h, max(need + 2.6, h * 0.8))
+    common = _lines(spec.get("common"))  # features every tier has: said once under the cards, not repeated
+    room = 0.55 if common else 0
+    ch = min(h - room, max(need + 2.6, (h - room) * 0.8))
+    if common:
+        text(ctx, slide, x, y + ch + 0.2, w, 0.4, [f"{spec.get('common_title', '모든 요금제 공통')}: " + " · ".join(common)],
+             pt - 1, c["body"], align=PP_ALIGN.CENTER, min_pt=10)
     for k, t in enumerate(tiers):
         cx = x0 + k * (cw + gap)
         hl = t.get("highlight")
@@ -249,7 +259,7 @@ NEW = {
     "pillars": (p_pillars, {"pillars"}),
     "team": (p_team, {"members", "advisors"}),
     "traction": (p_traction, CHART_KEYS | {"metrics"}),
-    "pricing": (p_pricing, {"tiers"}),
+    "pricing": (p_pricing, {"tiers", "common", "common_title"}),
     "product-shot": (p_product_shot, {"features", "frame", "screen"}),
     "funding-ask": (p_funding_ask, {"amount", "round", "use", "milestones", "milestones_title", "use_title"}),
 }

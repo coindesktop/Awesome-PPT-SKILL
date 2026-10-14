@@ -126,8 +126,11 @@ def resolve_tone(brief: dict) -> tuple[dict, str]:
     mode = brief.get("mode") or _storyline(brief).get("mode", "balanced")
     tone["density"] = dict(CATALOG["density"].get(mode, CATALOG["density"]["balanced"]))
     voice = brief.get("voice") or prof.get("org_culture", "gaejosik")
-    if brief.get("formality") == "friendly" and voice in ("gaejosik", "formal"):
+    formality = brief.get("formality")
+    if formality == "friendly" and voice in ("gaejosik", "formal"):
         voice = "friendly"  # friendly decks read better in ~합니다/~해요 than in report shorthand
+    elif formality == "neutral" and voice == "gaejosik":
+        voice = "formal"  # full sentences in ~합니다, neither report shorthand nor 해요체
     tone["voice"] = voice
     if brief.get("length"):
         tone["length"] = brief["length"]
@@ -144,6 +147,8 @@ def resolve_tone(brief: dict) -> tuple[dict, str]:
         f"VOICE {voice}: {CATALOG['voices'][voice]} | bullets<={d['max_bullets']} x {d['max_chars']}자",
         "RULES: " + "; ".join(rules),
     ]
+    if formality and formality not in ("formal", "friendly", "neutral"):
+        summary.append(f"NOTE formality={formality} is not used: formal (org voice) | neutral (~합니다) | friendly")
     missing = [f"- {k}: {q}" for k, q in BRIEF_REQUIRED.items() if not brief.get(k)
                and not (k == "mode" and brief.get("storyline"))]
     if missing:

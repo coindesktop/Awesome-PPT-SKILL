@@ -398,6 +398,54 @@ def test_vars_follow_the_latest_period_on_refresh():
     assert (d / "deck.2026-10.pptx").exists() and "VARS $mon 2026-10 -> 2026-11" in msg2, msg2
 
 
+def test_regression_round_11_fixes():
+    import pandas as pd
+    from pptkit import persona, plan
+    sk = plan.skeleton("sales/pre-launch")
+    assert "# 요청 사항\npattern: closing\nask: \"TODO" in sk  # the closing headline is ask, the # line a label
+    assert "ambiguous" in plan.report()
+    d = Path(tempfile.mkdtemp())
+    pd.DataFrame({"year": [2025, 2026, 2025, 2026], "c": ["KOR", "KOR", "JPN", "JPN"], "v": [1.4, 2.0, 0.1, 0.9]}
+                 ).to_csv(d / "API_X_v2_123.csv", index=False)
+    (d / "deck.md").write_text("""---
+design: corporate
+labels: {KOR: 한국, 2026: 2026(잠정)}
+---
+
+# 성장률
+chart: line-trend
+data: API_X*.csv
+x: year
+y: v
+series: c
+
+# 트랙션
+pattern: traction
+metrics:
+  - {value: 86곳, label: 유료 기관}
+data: traction.csv
+x: month
+y: mrr
+
+# 요금
+tiers:
+  - {name: 베이직, price: 29만 원, unit: /월}
+  - {name: 프로, price: 별도 협의, unit: /월}
+common: [모바일 기록, 자동 보고서]
+""", encoding="utf-8")
+    msg = render.build(d / "deck.md")
+    assert "needs columns month, mrr" in msg, msg
+    prs = Presentation(d / "deck.pptx")
+    ch = next(s.chart for s in prs.slides[0].shapes if s.has_chart)
+    assert list(ch.plots[0].categories)[-1] == "2026(잠정)" and "한국" in [x.name for x in ch.plots[0].series]
+    t1 = [s.text_frame.text for s in prs.slides[1].shapes if s.has_text_frame]
+    assert "86곳" in t1 and any("데이터 대기" in t for t in t1)  # metrics stay, only the chart waits
+    assert any("모든 요금제 공통: 모바일 기록 · 자동 보고서" in s.text_frame.text
+               for s in prs.slides[2].shapes if s.has_text_frame)
+    _, summary = persona.resolve_tone({"formality": "casual"})
+    assert "formality=casual is not used" in summary
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

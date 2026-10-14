@@ -54,6 +54,8 @@ def report(names):
         lines += ["", head, "|---|---|---|", *rs]
     if any(n in CHARTY or rows[n][0].startswith("| chart") for n in names):
         lines += ["", _section(doc, "## Chart keys", "| chart |")]
+    if any(n in CHARTY or rows[n][0].startswith("| chart") for n in names):  # file columns and labels
+        lines += ["", _section(doc, "`labels:` (deck or slide)", "Numbers the user typed")]
     if any(n in ("waterfall", "donut") or n in CHARTY for n in names):
         lines += ["", _section(doc, "Numbers the user typed", "## Chart keys")]
     if live:

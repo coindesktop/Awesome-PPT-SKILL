@@ -949,6 +949,7 @@ def _chart(ctx, slide, x, y, w, h, spec):
     cats = [str(v) for v in wide.index]
     if len(cats) > 6 and all(re.fullmatch(r"(19|20)\d{2}-\d{2}", c_) for c_ in cats):
         cats = [f"{c_[2:4]}.{c_[5:]}" for c_ in cats]  # 2026-01 -> 26.01 so long month axes do not wrap
+    cats = [_label(ctx, spec, raw) if _label(ctx, spec, raw) != str(raw) else c_ for raw, c_ in zip(wide.index, cats)]
     cd.categories = cats
     for col in wide.columns:
         cd.add_series(_label(ctx, spec, col), [None if pd.isna(v) else round(float(v), 4) for v in wide[col]])
@@ -1059,8 +1060,10 @@ def _chart(ctx, slide, x, y, w, h, spec):
 
 
 def _label(ctx, spec, name):
-    """Display name for a data column/value: slide `labels:` beats deck `labels:`."""
-    return str({**ctx.meta.get("labels", {}), **spec.get("labels", {})}.get(name, name))
+    """Display name for a data column, series value or category: slide `labels:` beats deck `labels:`
+    (`labels: {KOR: 한국, 2026: 2026(잠정)}`; keys match as text, so 2026 and "2026" are the same)."""
+    merged = {str(k): v for k, v in {**ctx.meta.get("labels", {}), **spec.get("labels", {})}.items()}
+    return str(merged.get(str(name), name))
 
 
 def _fmt_num(v, fmt):
@@ -1116,6 +1119,8 @@ def _table(ctx, slide, x, y, w, h, part, body, heat, has_total, spec, pct_cols=(
     fmt = _numfmt(numeric.values.ravel(), {}, table=True)
     pt = 12 if nr <= 10 else 11
     header = [_label(ctx, spec, part.index.name or "")] + [_label(ctx, spec, col) for col in part.columns]
+    part = part.rename(index=lambda i: _label(ctx, spec, i) if str(i) != "합계" else i)  # 2026 -> 2026(잠정)
+    body = body.rename(index=lambda i: _label(ctx, spec, i) if str(i) != "합계" else i)
     head_fill, head_fg = {"dark": (c["dark"], "FFFFFF"), "accent": (c["accent"], "FFFFFF")}.get(
         "dark" if public else ctx.st["table_head"], (c["card"], c["ink"]))
     zebra = ctx.st["table_head"] != "card" and not heat
@@ -1166,18 +1171,25 @@ def _drop_slides(prs, start):
         lst.remove(sid)
 
 
-def p_waiting(ctx, spec, missing):
-    """Placeholder for a slide whose data file is missing: the title stays, the body says what to supply."""
-    slide, (x, y, w, h) = content_slide(ctx, {k: spec[k] for k in ("title", "eyebrow", "message") if k in spec})
+def waiting_box(ctx, slide, x, y, w, h, spec, missing):
+    """Dashed box where a chart will go once its data file exists; says which file and which columns."""
     c = ctx.c
     b = box(slide, x, y, w, h, fill=c["surface"], line=c["muted"], radius=0.08)
     b.line.dash_style = MSO_LINE.DASH
-    what = spec.get("chart") or spec["pattern"]
+    cols = [str(spec[k]) for k in ("x", "y", "series", "rows", "cols", "val", "actual", "target") if spec.get(k)]
+    need = f" (열: {', '.join(dict.fromkeys(cols))})" if cols else ""
     text(ctx, slide, x, y + h / 2 - 0.55, w, 0.5, [f"데이터 대기: {missing}"], 20, c["ink"], True,
          align=PP_ALIGN.CENTER)
-    text(ctx, slide, x, y + h / 2, w, 0.4, [f"{what} 장표에 쓸 데이터 파일을 넣고 다시 빌드하세요"], 14, c["muted"],
-         align=PP_ALIGN.CENTER)
-    ctx.warn(f"data file '{missing}' not found: drew a placeholder; add the file or replace `data:`")
+    text(ctx, slide, x, y + h / 2, w, 0.4, [f"{spec.get('chart') or spec['pattern']} 데이터 파일{need}을 넣고 다시 빌드"],
+         14, c["muted"], align=PP_ALIGN.CENTER, min_pt=10)
+    ctx.warn(f"data file '{missing}' not found: placeholder drawn; it needs columns {', '.join(cols) or '?'}. "
+             "When it arrives, rebuild and rewrite the title as a conclusion from the data")
+
+
+def p_waiting(ctx, spec, missing):
+    """Placeholder for a slide whose data file is missing: the title stays, the body says what to supply."""
+    slide, (x, y, w, h) = content_slide(ctx, {k: spec[k] for k in ("title", "eyebrow", "message") if k in spec})
+    waiting_box(ctx, slide, x, y, w, h, spec, missing)
 
 
 PATTERNS = {
@@ -1348,7 +1360,10 @@ def build(md_path, out=None, sample=False, design=None):
         for i, spec in enumerate(every, start=1):
             if not any(spec is t for t in slides):
                 ctx.page = i
+                n = len(ctx.warnings)
                 lint(ctx, spec)
+                ctx.warnings[n:] = [w.replace(f"S{i} ", f"S{i} (deck.md slide, not in the sample) ", 1)
+                                    for w in ctx.warnings[n:]]
         ctx.page = saved
     for name in sorted(missing):
         ctx.warnings.append(f"${name} is not defined under `vars:` (left as typed)")

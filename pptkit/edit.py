@@ -214,7 +214,7 @@ def patch(path, ops_path, out=None) -> str:
     ops = yaml.safe_load(ops_path.read_text(encoding="utf-8")) or []
     prs = Presentation(path)
     sh_in = Emu(prs.slide_height).inches
-    done, touched = [], set()
+    done, touched, stale = [], set(), []
     for op in ops:
         n = op.get("slide")
         slide = prs.slides[n - 1] if n else None
@@ -286,12 +286,14 @@ def patch(path, ops_path, out=None) -> str:
                 done.append(f"S{n} chart #{s.shape_id} {cats[0]}..{cats[-1]} ({len(cats)} cats)"
                             + (f"; existing points changed: {', '.join(diff[:6])}" if diff else ""))
                 old_last = list(dict.fromkeys(c for c, _ in old))[-1:] if old else []
-                if old_last and old_last[0] != cats[-1]:  # "2026Q1까지" left in a title or note after the range moved
-                    texts = [sh.text_frame.text for sh in slide.shapes if sh.has_text_frame]
-                    if slide.has_notes_slide:
-                        texts.append(slide.notes_slide.notes_text_frame.text)
-                    if any(old_last[0] in t for t in texts):
-                        done.append(f"S{n} WARN text or notes still mention {old_last[0]} (the old last period)")
+                if old_last and old_last[0] != cats[-1]:  # "2026Q1까지" left in a title or note: checked after all ops
+                    stale.append((n, slide, old_last[0]))
+    for n, slide, period in stale:  # a note edit later in the same ops.yaml already fixed it
+        texts = [sh.text_frame.text for sh in slide.shapes if sh.has_text_frame]
+        if slide.has_notes_slide:
+            texts.append(slide.notes_slide.notes_text_frame.text)
+        if any(period in t for t in texts):
+            done.append(f"S{n} WARN text or notes still mention {period} (the old last period)")
     out = Path(out or path)
     if out == path:
         bak = path.with_suffix(".bak.pptx")

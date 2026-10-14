@@ -58,6 +58,8 @@ def report(arg=None) -> str:
     if not arg:
         lines = ["ASK THE USER what the deck is for (skip if the request already says), then `pptkit plan <purpose>`:"]
         lines += [f"  {k:10} {v}" for k, v in CAT["purposes"].items()]
+        lines.append("  ('회사 소개' / '서비스 소개' is ambiguous: ask who the audience is. investors -> pitch, "
+                     "customers -> sales, new hires -> education)")
         return "\n".join(lines)
     if arg in CAT["purposes"]:
         opts = {k: v for k, v in CAT["storylines"].items() if k.startswith(arg + "/")}
@@ -69,12 +71,13 @@ def report(arg=None) -> str:
         lines.append("then: `pptkit plan <id> -o deck.md`")
         return "\n".join(lines)
     s = _get(arg)
-    qs = [sl[3] for sl in s["slides"] if sl[3]]
-    return "\n".join([f"STORYLINE {arg}: {s['name']} · {s['length']}장 · mode={s['mode']}"
-                      + (f" · design={s['design']}" if s.get("design") else ""),
-                      "FLOW " + " → ".join(sl[0] for sl in s["slides"]),
-                      "ASK THE USER in one message (skip what the request or files already answer; offer to draft "
-                      "from what you know if they prefer):"] + [f"- {q}" for q in dict.fromkeys(qs)])
+    qs = list(dict.fromkeys(sl[3] for sl in s["slides"] if sl[3]))
+    lines = [f"STORYLINE {arg}: {s['name']} · {s['length']}장 · mode={s['mode']}"
+             + (f" · design={s['design']}" if s.get("design") else ""),
+             "FLOW " + " → ".join(sl[0] for sl in s["slides"]),
+             "ASK THE USER in one message, at most 5 (drop what the request or files already answer, then the "
+             "first 5 left; offer to draft from what you know if they prefer):"] + [f"- {q}" for q in qs]
+    return "\n".join(lines)
 
 
 def _get(sid):
@@ -93,5 +96,9 @@ def skeleton(sid, brief="brief.yaml") -> str:
             body = f"pattern: {pattern}\n" + body
         if pattern not in ("cover", "closing"):
             body += f"\neyebrow: {role}"  # the storyline step labels the slide (문제, 트랙션, 1. 문제 인식 ...)
+        if pattern == "closing":  # the headline is `ask`; the # line is only the short label above it
+            ask = 'ask: "TODO ' + hint + '"'
+            out.append("# 요청 사항\n" + body.replace("ask: TODO 청중에게 바라는 행동", ask) + "\n")
+            continue
         out.append(f"# TODO {hint}\n{body}\n")
     return "\n".join(out)

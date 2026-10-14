@@ -7,6 +7,11 @@ import pandas as pd
 
 def load(path) -> pd.DataFrame:
     path = Path(path)
+    if any(ch in path.name for ch in "*?["):  # `data: API_NY.GDP*.zip`: downloads get a new name each time
+        hits = sorted(path.parent.glob(path.name), key=lambda f: f.stat().st_mtime)
+        if not hits:
+            raise FileNotFoundError(2, "no file matches", str(path))
+        path = hits[-1]  # the newest download wins
     if path.suffix.lower() == ".zip":  # World Bank / OECD downloads: the data file, not the metadata files
         import tempfile
         import zipfile
