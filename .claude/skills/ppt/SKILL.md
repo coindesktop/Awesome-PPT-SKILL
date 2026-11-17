@@ -74,7 +74,8 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
    sentences backed by numbers you got from pptkit. Pick patterns by the order below and vary them; when a
    slide holds one chart, prefer `chart-table` or `chart-pair` if a second view adds information.
 7. **Tone sample** - `pptkit build deck.md --sample` → give the user `deck.sample.pptx` (cover + one data
-   slide) and ask if the look and voice fit. Compare looks with `--design <name>`. Lasting preferences go to
+   slide) and ask if the look and voice fit. Compare looks with `--design <name>`; when the user asks what
+   designs exist or wants to pick one first, `pptkit design show <name>` gives a specimen deck of that look. Lasting preferences go to
    `pptkit profile set ...` (e.g. `design=forest`, `brand=0B5E7A`, `dislikes=..`); deck-only ones to `brief.yaml`.
 8. **Build** - `pptkit build deck.md` (`-o 이름.pptx` names the file). It prints `WARN` lines about content (keys,
    length, voice) and `QA` lines about layout (overflow, overlap, `sparse`) in the same call. Fix both by editing

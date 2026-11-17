@@ -183,11 +183,47 @@ def box(slide, x, y, w, h, fill=None, line=None, shape=MSO_SHAPE.RECTANGLE, line
     return s
 
 
+def shadow(shape, blur=16, dist=4, alpha=12, color="0B1F3A"):
+    """Soft drop shadow (points, percent): the elevated card style. Sits after the line in spPr."""
+    sp = shape._element.spPr
+    for old in sp.findall(qn("a:effectLst")):
+        sp.remove(old)
+    eff = etree.SubElement(sp, qn("a:effectLst"))
+    sh = etree.SubElement(eff, qn("a:outerShdw"), blurRad=str(int(blur * 12700)), dist=str(int(dist * 12700)),
+                          dir="5400000", algn="t", rotWithShape="0")
+    clr = etree.SubElement(sh, qn("a:srgbClr"), val=color)
+    etree.SubElement(clr, qn("a:alpha"), val=str(int(alpha * 1000)))
+    return shape
+
+
 def card(ctx, slide, x, y, w, h, fill=None, line=None, line_pt=None):
-    sh = ctx.tone["shape"]
-    border = line or (ctx.c["line"] if sh["border_pt"] else None)
-    return box(slide, x, y, w, h, fill=fill or ctx.c["card"], line=border, line_pt=line_pt or sh["border_pt"] or 0.75,
-               radius=sh["radius"] or None)
+    """A surface for grouped content. `shape.card` in the design picks the look:
+    fill (tinted panel, default) | outline (hairline, no tint) | elevated (surface colour + soft shadow)."""
+    sh, c = ctx.tone["shape"], ctx.c
+    style = sh.get("card", "fill")
+    border = line or (c["line"] if sh["border_pt"] else None)
+    pt = line_pt or sh["border_pt"] or 0.75
+    if style == "outline":
+        fill, border, pt = fill or c["surface"], line or c["line"], line_pt or max(sh["border_pt"], 1)
+    elif style == "elevated":
+        fill = fill or c["surface"]
+    s = box(slide, x, y, w, h, fill=fill or c["card"], line=border, line_pt=pt, radius=sh["radius"] or None)
+    if style == "elevated":
+        shadow(s, **{"color": mix(c["dark"], "000000", 0.3), **sh.get("shadow", {})})
+    return s
+
+
+def plain_table(graphic_frame):
+    """Drop PowerPoint's default table style (white grid, banding): only the borders drawn here remain,
+    so dark designs get no white lines."""
+    tblPr = graphic_frame._element.graphic.graphicData.tbl.tblPr
+    sid = tblPr.find(qn("a:tableStyleId"))
+    if sid is None:
+        sid = etree.SubElement(tblPr, qn("a:tableStyleId"))
+    sid.text = "{2D5ABB26-0587-4C30-8999-92F81FD0307C}"  # No Style, No Grid
+    for k in ("firstRow", "bandRow"):
+        tblPr.set(k, "0")
+    return graphic_frame
 
 
 def hline(slide, x, y, w, color, pt=0.75):
@@ -499,8 +535,13 @@ def p_section(ctx, spec):
     ttl = slide.shapes.title
     ttl.left, ttl.top, ttl.width, ttl.height = Inches(0.9), Inches(3.45), Inches(11.5), Inches(1.1)
     text(ctx, slide, 0, 0, 11.5, 1.1, [spec["title"]], 36, fg, bold=True, shape=ttl, min_pt=24, align=PP_ALIGN.LEFT)
+    lone = bool(tag) and len(ctx.sections) <= 1 and not ctx.template
     if spec.get("subtitle"):
-        text(ctx, slide, 0.9, 4.6, 7, 0.6, [spec["subtitle"]], 16, mix(fill, fg, 0.7))
+        text(ctx, slide, 0.9, 4.6, 5.6 if lone else 7, 0.6, [spec["subtitle"]], 16, mix(fill, fg, 0.7))
+    if lone:  # a lone section: the number, very faint, fills the empty side
+        ttl.width = Inches(5.6)
+        text(ctx, slide, 6.7, 0.8, 6.0, 5.9, [tag], 220, mix(fill, fg, 0.07), bold=True, align=PP_ALIGN.RIGHT,
+             anchor=MSO_ANCHOR.MIDDLE, min_pt=220)
     if len(ctx.sections) > 1 and not ctx.template:  # where we are in the deck
         ttl.width = Inches(6.6)
         lx, ly = 8.4, max(1.2, H / 2 - 0.4 * len(ctx.sections))
@@ -565,22 +606,30 @@ def p_closing(ctx, spec):
     fg = "FFFFFF" if dark else c["ink"]
     sub = mix(fill, fg, 0.7)
     label = spec.get("eyebrow") or (spec["title"] if spec.get("ask") and len(spec["title"]) <= 24 else "요청 사항")
-    text(ctx, slide, 0.9, 0.9, 6.4, 0.4, [label], 14, _label_on(c, fill), bold=True)
+    ask = spec.get("ask") or spec["title"]
+    steps = [s if isinstance(s, dict) else {"t": _s(s)} for s in spec.get("next", [])][:4]
+    ask_h = min(2.6, text_height([_s(ask)], 6.4, 32, spacing=1.1) + 0.15)
+    sup_h = min(1.4, text_height([_s(spec["support"])], 6.2, 16) + 0.1) if spec.get("support") else 0
+    sh = min(1.1, (H - 2.4) / len(steps) - 0.18) if steps else 0
+    left_h = 0.45 + ask_h + (0.15 + sup_h if sup_h else 0)
+    right_h = 0.5 + len(steps) * (sh + 0.18) - 0.18 if steps else 0
+    top = max(0.9, (H - max(left_h, right_h)) / 2 - 0.15)  # both blocks share a top line, centred as a pair
+    text(ctx, slide, 0.9, top, 6.4, 0.4, [label], 14, _label_on(c, fill), bold=True)
+    box(slide, 0.9, top - 0.22, 0.5, 0.05, fill=_label_on(c, fill))  # short accent rule above the label
     ttl = slide.shapes.title
-    ttl.left, ttl.top, ttl.width, ttl.height = Inches(0.9), Inches(1.35), Inches(6.4), Inches(2.6)
-    text(ctx, slide, 0, 0, 6.4, 2.6, [spec.get("ask") or spec["title"]], 32, fg, bold=True, shape=ttl, min_pt=22,
+    ttl.left, ttl.top, ttl.width, ttl.height = Inches(0.9), Inches(top + 0.45), Inches(6.4), Inches(ask_h)
+    text(ctx, slide, 0, 0, 6.4, ask_h, [ask], 32, fg, bold=True, shape=ttl, min_pt=22,
          align=PP_ALIGN.LEFT, spacing=1.1)
     if spec.get("support"):
-        text(ctx, slide, 0.9, 4.1, 6.2, 1.2, [spec["support"]], 16, sub)
-    steps = [s if isinstance(s, dict) else {"t": _s(s)} for s in spec.get("next", [])][:4]
+        text(ctx, slide, 0.9, top + 0.45 + ask_h + 0.15, 6.2, sup_h, [spec["support"]], 16, sub)
     if steps:
-        text(ctx, slide, 7.75, 0.9, 4.6, 0.4, ["다음 단계"], 14, _label_on(c, fill), bold=True)
-        sh = min(1.25, (H - 1.9) / len(steps) - 0.18)
+        text(ctx, slide, 7.75, top, 4.6, 0.4, ["다음 단계"], 14, _label_on(c, fill), bold=True)
         for i, s in enumerate(steps):
-            cy = 1.4 + i * (sh + 0.18)
+            cy = top + 0.5 + i * (sh + 0.18)
             box(slide, 7.75, cy, 4.95, sh, fill=mix(fill, fg, 0.08), radius=ctx.tone["shape"]["radius"] or None)
-            dot = box(slide, 7.97, cy + sh / 2 - 0.22, 0.44, 0.44, fill=c["accent"], shape=MSO_SHAPE.OVAL)
-            text(ctx, slide, 0, 0, 0.44, 0.44, [str(i + 1)], 14, "FFFFFF", bold=True, align=PP_ALIGN.CENTER,
+            dot_c = c["accent"] if not dark or not dark_color(c["accent"]) else "FFFFFF"  # black accent on black
+            dot = box(slide, 7.97, cy + sh / 2 - 0.22, 0.44, 0.44, fill=dot_c, shape=MSO_SHAPE.OVAL)
+            text(ctx, slide, 0, 0, 0.44, 0.44, [str(i + 1)], 14, on_color(dot_c), bold=True, align=PP_ALIGN.CENTER,
                  anchor=MSO_ANCHOR.MIDDLE, shape=dot)
             meta = ", ".join(str(s[k]) for k in ("who", "when") if s.get(k))
             text(ctx, slide, 8.6, cy + 0.1, 3.95, sh - 0.2, [s["t"]] + ([meta] if meta else []), 15, fg,
@@ -699,6 +748,9 @@ def p_process(ctx, spec):
     steps = [s if isinstance(s, dict) else {"title": _s(s)} for s in spec.get("steps", [])]
     sw = w / max(len(steps), 1)
     cy = y + 0.55
+    bpt = ctx.tone["density"]["body_pt"] - 1
+    need = max([1.0 + text_height(_lines_of(s_.get("desc", "")), sw - 0.5, bpt, gap_pt=4) + (0.6 if s_.get("note") else 0.3)
+                for s_ in steps] or [2.2])
     hline(slide, x + sw / 2, cy, sw * (len(steps) - 1), c["line"], 1.5)
     for i, s in enumerate(steps):
         cx = x + i * sw + sw / 2
@@ -710,7 +762,7 @@ def p_process(ctx, spec):
         else:
             text(ctx, slide, 0, 0, 0.8, 0.8, [f"{i + 1}"], 20, "FFFFFF" if hl else c["accent"], bold=True,
                  align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, shape=dot)
-        ch = max(2.2, (y + h * 0.88) - (cy + 0.6))  # each step sits on a card that reaches down the body
+        ch = min(max(2.2, (y + h * 0.88) - (cy + 0.6)), need)  # as tall as the longest step needs, not the body
         card(ctx, slide, cx - sw / 2 + 0.1, cy + 0.6, sw - 0.2, ch, fill=c["surface"] if hl else None,
              line=c["accent"] if hl else None, line_pt=1.75 if hl else None)
         text(ctx, slide, cx - sw / 2 + 0.2, cy + 0.8, sw - 0.4, 0.5, [s["title"]], 17, c["accent"] if hl else c["ink"],
@@ -844,7 +896,7 @@ def p_chart_table(ctx, spec):
         tbl["증감률"] = tbl.iloc[:, 0].pct_change() * 100
     elif spec.get("growth") and len(wide.columns) >= 2 and data.is_time(list(wide.columns)):  # periods as series
         tbl["증감률"] = (wide.iloc[:, -1] / wide.iloc[:, 0] - 1).values * 100
-    tbl.index.name = _label(ctx, spec, spec["x"])
+    tbl.index.name = _label(ctx, spec, spec.get("x") or "구분")  # inline `values:` have no x column
     if not timed and spec.get("agg", "sum") == "sum" and not _is_share(spec) and len(tbl) > 2:  # regions: a total row
         tot = wide.sum()
         row = [tot[c] for c in wide.columns]
@@ -1107,7 +1159,7 @@ def _table(ctx, slide, x, y, w, h, part, body, heat, has_total, spec, pct_cols=(
     nr, nc = len(part) + 1, len(part.columns) + 1
     rh = min(0.55 if nr <= 7 else 0.42, h / nr)  # short tables get roomier rows
     first_w = min(2.2, w * 0.24)
-    gt = slide.shapes.add_table(nr, nc, Inches(x), Inches(y), Inches(w), Inches(rh * nr))
+    gt = plain_table(slide.shapes.add_table(nr, nc, Inches(x), Inches(y), Inches(w), Inches(rh * nr)))
     ctx.tables += 1
     tb = gt.table
     tb.horz_banding = tb.first_row = False
@@ -1122,7 +1174,8 @@ def _table(ctx, slide, x, y, w, h, part, body, heat, has_total, spec, pct_cols=(
     part = part.rename(index=lambda i: _label(ctx, spec, i) if str(i) != "합계" else i)  # 2026 -> 2026(잠정)
     body = body.rename(index=lambda i: _label(ctx, spec, i) if str(i) != "합계" else i)
     head_fill, head_fg = {"dark": (c["dark"], "FFFFFF"), "accent": (c["accent"], "FFFFFF")}.get(
-        "dark" if public else ctx.st["table_head"], (c["card"], c["ink"]))
+        "dark" if public else ctx.st["table_head"], (c["surface"] if ctx.st["table_head"] == "plain" else c["card"],
+                                                    c["ink"]))  # plain: no fill, the bold rule below does the work
     zebra = ctx.st["table_head"] != "card" and not heat
 
     def cell(i, j, val, fill, color, bold=False, align=PP_ALIGN.RIGHT):

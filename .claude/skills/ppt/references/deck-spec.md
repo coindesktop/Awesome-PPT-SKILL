@@ -142,6 +142,9 @@ charts, values labeled, recessive axes and grid.
 ## Designs
 
 `pptkit design` lists looks: `corporate` (기업 보고, 기본), `executive` (컨설팅형 보고), `signal` (전략·IR),
-`forest` (고객 제안, friendly), `public` (공공 보고), `launch` (어두운 피칭), `bold` (밝은 피칭). A storyline sets a
+`forest` (고객 제안, friendly), `public` (공공 보고), `launch` (어두운 피칭), `bold` (밝은 피칭), `mono` (흑백,
+선과 여백만), `soft` (회색 바탕 위 흰 카드와 그림자). `pptkit design show <name>` builds a specimen deck (its
+tokens on slide 2, then the main components) to show the user a look before writing anything. A storyline sets a
 default design. KPI tiles take `spark: [..]` (a small trend line); section slides list all sections automatically. A user's own DESIGN.md in `~/.pptkit/designs/<name>.md` (same front-matter tokens as
-`pptkit/designs/executive.md`) is picked up automatically.
+`pptkit/designs/executive.md`; `shape.card: fill | outline | elevated` picks the card look) is picked up
+automatically, and a missing token is named when it loads.

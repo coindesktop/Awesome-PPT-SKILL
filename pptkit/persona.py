@@ -84,7 +84,35 @@ def load_design(name: str) -> dict:
     text = paths[name].read_text(encoding="utf-8")
     meta = yaml.safe_load(text.split("---", 2)[1])
     meta["name"] = name
+    _check_design(name, meta)
     return meta
+
+
+COLOR_ROLES = ("bg", "dark", "ink", "body", "muted", "accent", "card", "line", "neutral_series", "positive", "negative")
+
+
+def _check_design(name, d):
+    """A user DESIGN.md with a missing token fails here with the token's name, not deep inside a slide."""
+    import re
+    colors = d.get("colors") or {}
+    missing = [k for k in COLOR_ROLES if k not in colors]
+    bad = [k for k, v in colors.items() if not re.fullmatch(r"[0-9A-Fa-f]{6}", str(v))]
+    series = d.get("series") or []
+    shape = d.get("shape") or {}
+    problems = []
+    if missing:
+        problems.append(f"colors missing {missing}")
+    if bad:
+        problems.append(f"colors not 6-digit hex (no #) {bad}")
+    if len(series) < 4 or any(not re.fullmatch(r"[0-9A-Fa-f]{6}", str(v)) for v in series):
+        problems.append("series needs 4+ hex colours (validate them: adjacent pairs must differ for colour-blind readers)")
+    for k in ("type", "shape", "fonts", "cover"):
+        if k not in d:
+            problems.append(f"`{k}:` missing")
+    if shape.get("card", "fill") not in ("fill", "outline", "elevated"):
+        problems.append(f"shape.card '{shape.get('card')}' is not fill | outline | elevated")
+    if problems:
+        raise SystemExit(f"design '{name}': " + "; ".join(problems) + ". Compare with pptkit/designs/corporate.md")
 
 
 def _pick_design(prof: dict, brief: dict) -> str:

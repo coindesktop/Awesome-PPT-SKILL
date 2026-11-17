@@ -446,6 +446,37 @@ common: [모바일 기록, 자동 보고서]
     assert "formality=casual is not used" in summary
 
 
+def test_design_system_card_styles_specimen_and_validation():
+    from pptx.oxml.ns import qn
+    from pptkit import persona, specimen
+    d = Path(tempfile.mkdtemp())
+    looks = {}
+    for name in ("soft", "mono", "launch"):
+        msg = specimen.show(name, d / f"{name}.pptx")
+        assert msg.startswith("OK 11 slides") and "WARN" not in msg, msg
+        assert qa.check(d / f"{name}.pptx") == [], name
+        prs = Presentation(d / f"{name}.pptx")
+        kpi = prs.slides[4]  # the KPI tiles are cards
+        shapes = [s for s in kpi.shapes if s.shape_type == 1]
+        looks[name] = (any(s._element.spPr.find(qn("a:effectLst")) is not None for s in shapes),
+                       sum(1 for s in shapes if s.line.fill.type == 1))
+        tbl = next(s for s in prs.slides[5].shapes if s.has_table)
+        assert "2D5ABB26" in tbl._element.graphic.graphicData.tbl.tblPr.find(qn("a:tableStyleId")).text
+    assert looks["soft"][0] and not looks["mono"][0]  # elevated cards carry a shadow, outline cards do not
+    assert looks["mono"][1] >= 4  # four outlined tiles
+    assert {"mono", "soft"} <= set(persona.design_paths())
+    os.environ["PPTKIT_HOME"] = str(d / "home")
+    (d / "home" / "designs").mkdir(parents=True)
+    (d / "home" / "designs" / "broken.md").write_text("---\nname: broken\ncolors: {bg: FFFFFF}\n---\n", encoding="utf-8")
+    try:
+        persona.load_design("broken")
+        raise AssertionError("broken design accepted")
+    except SystemExit as e:
+        assert "colors missing" in str(e) and "accent" in str(e)
+    finally:
+        del os.environ["PPTKIT_HOME"]
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

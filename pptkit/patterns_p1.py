@@ -7,7 +7,8 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Inches
 
 from . import data
-from .render import (KEYS, PATTERNS, INFER, _callout, _s, box, card, content_slide, hline, mix, text, text_height,
+from .render import (KEYS, PATTERNS, INFER, _callout, _s, box, card, content_slide, hline, mix, plain_table, text,
+                     text_height,
                      text_width)
 from .render import rgb as _rgb
 
@@ -80,7 +81,7 @@ def p_compare_table(ctx, spec):
     nr, nc = len(crit) + 1, len(opts) + 1
     marks = any(str(v) in ("●", "◐", "○") for row in crit for v in row.get("values", []))
     rh = min(0.85, (h - (0.4 if marks else 0)) / nr)  # rows grow to use the body; room for the mark legend
-    gt = slide.shapes.add_table(nr, nc, Inches(x), Inches(y), Inches(w), Inches(rh * nr))
+    gt = plain_table(slide.shapes.add_table(nr, nc, Inches(x), Inches(y), Inches(w), Inches(rh * nr)))
     ctx.tables += 1
     tb = gt.table
     tb.horz_banding = tb.first_row = False

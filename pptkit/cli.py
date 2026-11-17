@@ -56,7 +56,10 @@ def main(argv=None):
                    help="waterfall input: change per row between two --cols values, printed as a values: line")
     p.add_argument("-o", "--out", help="also save the pivot as csv (nothing is written without it)")
 
-    sub.add_parser("design", help="list designs (DESIGN.md files; user ones in ~/.pptkit/designs override)")
+    p = sub.add_parser("design", help="list designs, or `design show <name>`: a specimen deck (tokens + components)")
+    p.add_argument("action", nargs="?", choices=["show"])
+    p.add_argument("name", nargs="?")
+    p.add_argument("-o", "--out", help="specimen file (default: <name>.specimen.pptx)")
 
     p = sub.add_parser("style", help="learn a personal design from a deck the user already made")
     p.add_argument("action", choices=["extract"])
@@ -220,6 +223,14 @@ def main(argv=None):
     elif a.cmd == "style":
         from . import style
         print(style.extract(a.pptx, a.name))
+    elif a.cmd == "design" and a.action == "show":
+        from . import specimen
+        if not a.name:
+            raise SystemExit(f"design show <name>. available: {', '.join(persona.design_paths())}")
+        msg = specimen.show(a.name, a.out)
+        print(msg)
+        issues = qa.check(Path(a.out or f"{a.name}.specimen.pptx"))
+        print("QA OK" if not issues else "\n".join(f"QA {i}" for i in issues))
     elif a.cmd == "design":
         for name in persona.design_paths():
             d = persona.load_design(name)

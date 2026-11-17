@@ -5,7 +5,7 @@
 - Claude는 짧은 텍스트 파일(`brief.yaml`, `deck.md`, `ops.yaml`)만 씁니다. 렌더링, 피벗, 검증, 편집은 미리 만든 CLI가 합니다. 그래서 토큰이 적게 들고, 같은 입력에서 같은 덱이 나옵니다.
 - 차트와 표는 PowerPoint 네이티브 객체라서 "데이터 편집"으로 숫자를 고칠 수 있습니다. 사진은 넣지 않습니다.
 - 덱 구성은 지어내지 않습니다. 목적(피칭, 고객 제안, 보고, 기획안, 교육)을 묻고, 검증된 구성안(VC 시드, Sequoia, 트랙션 우선, 데모데이, 정부지원사업 PSST 등)을 보여 주고, 사용자가 고른 구성으로 만듭니다.
-- 디자인은 DESIGN.md 파일 하나로 정의합니다. 기본 7종(기업 보고 corporate, executive, signal, forest, public, 피칭용 launch·bold)이 있고, 예전에 만든 덱에서 개인 디자인을 추출할 수도 있습니다.
+- 디자인은 DESIGN.md 파일 하나로 정의합니다. 기본 9종(기업 보고 corporate, executive, signal, forest, public, 피칭용 launch·bold, 흑백 mono, 카드형 soft)이 있고, `pptkit design show <이름>`으로 견본 덱을 만들어 볼 수 있습니다. 예전에 만든 덱에서 개인 디자인을 추출할 수도 있습니다. [디자인 갤러리](docs/designs.md)
 
 ## 설치 (Windows · macOS · Linux)
 
@@ -38,7 +38,7 @@ Claude Code에서 "이 CSV로 본부장 보고용 PPT 8장 만들어줘"처럼 �
 | 구분 | 내용 |
 |---|---|
 | 개인화 | Profile(사람) × Brief(이번 덱) → 디자인·문체·밀도·업종 관례. 프로필은 `~/.pptkit/`에 저장되어 다시 묻지 않음 |
-| 디자인 | `pptkit/designs/*.md` 4종 + 사용자 DESIGN.md(`~/.pptkit/designs/`), 회사 템플릿 위 렌더링(마스터·로고 유지) |
+| 디자인 | `pptkit/designs/*.md` 9종 + 사용자 DESIGN.md(`~/.pptkit/designs/`), 카드 표현 토큰(채움·외곽선·그림자), `pptkit design show`(토큰 장표가 든 견본), 회사 템플릿 위 렌더링(마스터·로고 유지) |
 | 구성안 | `pptkit/storylines.yaml`: 목적 5종 × 구성안 14개, 장표별 내용 질문 |
 | 아이콘 | Lucide 선 아이콘 136종을 편집 가능한 벡터 도형으로(`icon: rocket`), 사진 없음 |
 | 장표 패턴 | 36종: 피칭(pillars, traction, team, pricing, product-shot, funding-ask) 외 구조(표지·목차·섹션·요약·결론), 메시지, 비교(compare, compare-table, before-after, swot, matrix-2x2, logic-tree), 흐름(process, timeline, roadmap, gantt, funnel), 진척(progress, status-table), 데이터(chart-takeaway, chart-table, chart-pair, pivot, heatmap, kpi-tiles, big-number, market-size) |

@@ -9,7 +9,7 @@ from pptx.util import Inches, Pt
 
 from . import data
 from .render import (KEYS, PATTERNS, SPECIAL_CHARTS, _border, _callout, _no_fill, _s, box,
-                     content_slide, mix, on_color, rgb, text, text_height, text_width)
+                     content_slide, mix, on_color, plain_table, rgb, text, text_height, text_width)
 
 WARN_C = "D08A00"  # amber for 주의; status always carries a word, never colour alone
 
@@ -233,7 +233,7 @@ def p_status_table(ctx, spec):
     fixed = sum(widths.get(k, 0) for k in cols)
     nr, nc = len(rows) + 1, len(cols)
     rh = min(0.6, (h - 0.45) / nr)  # the status counts sit under the table
-    tb = slide.shapes.add_table(nr, nc, Inches(x), Inches(y), Inches(w), Inches(rh * nr)).table
+    tb = plain_table(slide.shapes.add_table(nr, nc, Inches(x), Inches(y), Inches(w), Inches(rh * nr))).table
     ctx.tables += 1
     tb.horz_banding = tb.first_row = False
     for j, k in enumerate(cols):
