@@ -250,6 +250,26 @@ def grade_run(eval_id, out: Path, peers: dict):
                 e += [ex("갱신본에 10월 매출 166.3이 나옴", "166.3" in prose, "166.3"),
                       ex("갱신본에 9월 수치·증가 서술이 남지 않음", not stale, stale or "none"),
                       ex("갱신본이 감소를 서술함", "감소" in prose or "하락" in prose, "감소/하락")]
+    elif eval_id == 11:
+        prs, e = common(out, p, 4, 6)
+        e.append(ex("첫 질문이 5개 이하", len(qs) <= 5, f"{len(qs)} questions"))
+        if prs:
+            tables = [s.table for sl in prs.slides for s in sl.shapes if s.has_table]
+            cells = [[c.text for c in r.cells] for t in tables for r in t.rows]
+            flat = [c for r in cells for c in r]
+            pl = all(k in flat for k in ("매출원가", "판매관리비", "영업이익")) and all(n in flat for n in ("286", "961", "127"))
+            total_bold = any(r.cells[0].text == "영업이익" and r.cells[0].text_frame.paragraphs[0].runs
+                             and r.cells[0].text_frame.paragraphs[0].runs[0].font.bold for t in tables for r in t.rows)
+            pics = [i + 1 for i, sl in enumerate(prs.slides) if any(s.shape_type == 13 for s in sl.shapes)]
+            content = list(prs.slides)[1:-1]
+            marked = sum(any(s.has_text_frame and "대외비" in s.text_frame.text for s in sl.shapes) for sl in content)
+            nested = any(p_.runs and p_._p.pPr is not None and int(p_._p.pPr.get("marL", 0)) > 400000
+                         for sl in prs.slides for s in sl.shapes if s.has_text_frame for p_ in s.text_frame.paragraphs)
+            e += [ex("손익표가 표로 그대로 들어감(항목 3개와 수치 286·961·127)", pl, f"{len(tables)} table(s)"),
+                  ex("영업이익 행이 굵게 강조됨", total_bold, "total row"),
+                  ex("화면 캡처가 이미지로 들어감", pics, f"picture slides {pics}"),
+                  ex("본문 장표마다 대외비 표시가 있음", content and marked == len(content), f"{marked}/{len(content)}"),
+                  ex("하위 근거를 다단계 글머리로 정리함", nested, "indented bullets")]
     passed = sum(x["passed"] for x in e)
     return {"expectations": e, "summary": {"passed": passed, "failed": len(e) - passed, "total": len(e),
                                            "pass_rate": round(passed / len(e), 2)}}

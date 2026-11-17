@@ -95,6 +95,16 @@
       "files": [
         "evals/data/monthly_template/monthly.csv"
       ]
+    },
+    {
+      "id": 11,
+      "name": "office-table-image",
+      "prompt": "pl_memo.md 내용이랑 대시보드 화면(screen.png)으로 팀장 보고용 4~5장 만들어줘. 손익표는 메모에 있는 그대로 넣고, 장표 아래에 '대외비' 표시도 넣어줘.",
+      "expected_output": "메모의 손익표를 표로 그대로 넣고(영업이익 행 강조), 화면 캡처를 이미지 장표로 넣으며, 본문 장표에 대외비 표시가 있다. 원가율 개선의 하위 근거는 다단계 글머리로 정리한다. 메모에 없는 수치를 만들지 않는다.",
+      "files": [
+        "evals/data/office/pl_memo.md",
+        "evals/data/office/screen.png"
+      ]
     }
   ]
 }
