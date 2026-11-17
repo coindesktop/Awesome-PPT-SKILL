@@ -70,7 +70,8 @@ If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awes
    (also with `--agg wmean`).
 6. **Deck** - complete `deck.md`. `pptkit spec <pattern|chart> ..` prints the keys of only the ones you use
    (`pptkit spec` alone: shared rules + names); open [references/deck-spec.md](references/deck-spec.md) only for
-   what spec does not answer (`pptkit icons` for icon names). Titles are conclusion
+   what spec does not answer (`pptkit icons` for icon names). Deck-wide marks go in the front matter:
+   `footer: 대외비 · 팀명` (every slide), `logo: logo.png`. Titles are conclusion
    sentences backed by numbers you got from pptkit. Pick patterns by the order below and vary them; when a
    slide holds one chart, prefer `chart-table` or `chart-pair` if a second view adds information.
 7. **Tone sample** - `pptkit build deck.md --sample` → give the user `deck.sample.pptx` (cover + one data

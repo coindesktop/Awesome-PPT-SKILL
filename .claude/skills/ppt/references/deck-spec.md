@@ -10,7 +10,7 @@ author: 사업기획팀
 eyebrow: 사업본부 월간 보고    # label above titles until the first section slide
 labels: {region: 지역, revenue_100m_krw: 매출}   # display names for data columns
 logo: logo.png               # optional: top-right of content slides, top-left of the cover (logo_on_dark: for dark slides)
-footer: 대외비 · 사업기획팀     # optional: the same mark at the bottom of every content slide
+footer: 대외비 · 사업기획팀     # optional: the same mark at the bottom of every slide (cover and closing too)
 ---
 
 # Slide title = conclusion sentence
@@ -52,7 +52,7 @@ bullets:
 | `chart-pair` | `charts: [{subtitle, chart keys}, {...}]`, shared `data`/`unit` | two views side by side; % charts keep `%` |
 | `pivot-table` | `data`, `rows`, `cols`, `val`, `agg`, `weight`, `top`, `where`, `unit`, `max_rows` | totals + 기타 for sum |
 | `heatmap-table` | same as pivot-table | needs `pattern: heatmap-table` |
-| `closing` | `ask`, `support`, `next: [{t, who, when}]` | headline is `ask`; a short `# 요청 사항` is the label above it (`eyebrow:` replaces it) |
+| `closing` | `ask`, `support`, `next: [{t, who, when}]` | headline is `ask`; a short `# 요청 사항` is the label above it (`eyebrow:` replaces it); `who`/`when` are optional and a step may be a plain string: never invent an owner or a date |
 | `two-column` | `columns: [{title, items}, {title, items}]` | must set `pattern: two-column` (else `compare`) |
 | `before-after` | `before: {title, items}`, `after: {title, items}` | |
 | `problem-solution` | `problems: [..]`, `solutions: [..]`, `problem_title`, `solution_title` | |
@@ -71,7 +71,7 @@ bullets:
 | `product-shot` | `features: [{title, desc}]` ≤4, `frame: phone`, `screen` | empty frame: the user pastes a screenshot |
 | `progress` | `items: [{label, actual, target}]` or `data` + `x`, `actual`, `target`; `unit`, `callout` | must set `pattern: progress`; bars to 120%, 목표 marker, 달성/근접/미달 by rate (≥100%, ≥90%) |
 | `status-table` | `rows: [{item, owner, due, status, note}]` or `data`; `columns`, `headers` | must set `pattern: status-table`; status green/amber/red/done (or 정상/주의/지연/완료) as dot + word, counts below |
-| `table` | `table:` a markdown table as a block string (`table: \|`), or `{columns, rows}`, or `data:` + `columns`, `where`, `max_rows`; `total: last`, `highlight: <first-cell text>`, `align: lrrr`, `widths: [3,1,1]`, `note`, `takeaways` | any table the user typed or pasted. In markdown: rows above `\|---\|` are header rows, `<` merges a cell into the one on its left, `^` into the one above, `---:` right-aligns, `**x**` bolds; figures starting with +/-/▲/▼ are coloured; type shrinks to fit and build warns when rows cannot fit |
+| `table` | `table:` a markdown table as a block string (`table: \|`), or `{columns, rows}`, or `data:` + `columns`, `where`, `max_rows`; `total: last`, `highlight: <first-cell text>`, `align: lrrr`, `widths: [3,1,1]`, `note`, `takeaways` | any table the user typed or pasted. In markdown: rows above `\|---\|` are header rows, `<` merges a cell into the one on its left, `^` into the one above, `---:` right-aligns, `**x**` bolds; figures starting with +/-/▲/▼ are coloured (`signed: false` when a minus is good news, e.g. costs); type shrinks to fit and build warns when rows cannot fit |
 | `image` | `image: file.png`, `caption`, `bullets` (text beside it), `side: left` (text on the left), `frame: false` | screenshot, diagram, org chart, photo: scaled to fit, never cropped; a missing file builds a "이미지 대기" placeholder with a WARN |
 | `funding-ask` | `amount`, `round`, `use: [{label, pct}]`, `milestones: [..]`, `milestones_title`, `use_title` | doughnut of use of funds; retitle for grants (`사업비 집행 계획`) |
 

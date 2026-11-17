@@ -496,7 +496,8 @@ def test_free_table_image_logo_footer_and_nested_bullets():
     assert last[0].text == "영업이익" and last[0].text_frame.paragraphs[0].runs[0].font.bold  # total: last
     assert str(last[-1].text_frame.paragraphs[0].runs[0].font.color.rgb) == "0F8A5F"  # +53.3% in the positive colour
     assert sum(1 for s in prs.slides[1].shapes if s.shape_type == 13) == 1  # the logo
-    assert any("대외비" in s.text_frame.text for s in prs.slides[1].shapes if s.has_text_frame)
+    assert all(any(s.has_text_frame and "대외비" in s.text_frame.text for s in sl.shapes) for sl in prs.slides)
+    assert any("출처" in s.text_frame.text for s in prs.slides[1].shapes if s.has_text_frame)  # typed table: deck source
     paras = [p_ for s in prs.slides[3].shapes if s.has_text_frame for p_ in s.text_frame.paragraphs
              if p_.text.startswith("남부 대리점")]
     assert paras and int(paras[0]._p.pPr.get("marL")) > 400000  # a second-level bullet is indented

@@ -482,7 +482,13 @@ def _meta_source(ctx, spec):
 
 
 def _has_data(spec):
-    return any(k in spec for k in ("data", "kpis", "charts"))
+    return any(k in spec for k in ("data", "kpis", "charts", "table"))
+
+
+def footer_mark(ctx, slide, x, y, w, color, align=PP_ALIGN.RIGHT):
+    """Deck `footer:` (대외비, 문서 번호) on slides that are not content slides: cover, section, closing."""
+    if ctx.meta.get("footer"):
+        text(ctx, slide, x, y, w, 0.3, [str(ctx.meta["footer"])], ctx.ty["small"], color, align=align, min_pt=8)
 
 
 def _dark_slide(ctx, kind):
@@ -554,8 +560,9 @@ def p_cover(ctx, spec):
     meta = " · ".join(str(v) for v in (spec.get("date") or ctx.meta.get("date"),
                                        spec.get("author") or ctx.meta.get("author")) if v)
     if meta:
-        text(ctx, slide, 0.9, 6.35, 8, 0.4, [meta], 13, meta_c)
+        text(ctx, slide, 0.9, 6.35, 7 if ctx.meta.get("footer") else 8, 0.4, [meta], 13, meta_c)
     place_logo(ctx, slide, 0.9, 0.6, 0.5, dark=dark)
+    footer_mark(ctx, slide, W - 0.9 - 4, 6.4, 4, meta_c)
 
 
 def p_section(ctx, spec):
@@ -573,6 +580,7 @@ def p_section(ctx, spec):
     ttl = slide.shapes.title
     ttl.left, ttl.top, ttl.width, ttl.height = Inches(0.9), Inches(3.45), Inches(11.5), Inches(1.1)
     text(ctx, slide, 0, 0, 11.5, 1.1, [spec["title"]], 36, fg, bold=True, shape=ttl, min_pt=24, align=PP_ALIGN.LEFT)
+    footer_mark(ctx, slide, W - MX - 4, H - 0.5, 4, mix(fill, fg, 0.5))
     lone = bool(tag) and len(ctx.sections) <= 1 and not ctx.template
     if spec.get("subtitle"):
         text(ctx, slide, 0.9, 4.6, 5.6 if lone else 7, 0.6, [spec["subtitle"]], 16, mix(fill, fg, 0.7))
@@ -673,6 +681,7 @@ def p_closing(ctx, spec):
             text(ctx, slide, 8.6, cy + 0.1, 3.95, sh - 0.2, [s["t"]] + ([meta] if meta else []), 15, fg,
                  anchor=MSO_ANCHOR.MIDDLE, gap=2)
     text(ctx, slide, W - MX - 1, H - 0.5, 1, 0.3, [str(ctx.page)], ctx.ty["small"], sub, align=PP_ALIGN.RIGHT)
+    footer_mark(ctx, slide, W - MX - 4.6, H - 0.5, 3.5, sub)
     if spec.get("notes"):
         slide.notes_slide.notes_text_frame.text = str(spec["notes"])
 
