@@ -477,6 +477,34 @@ def test_design_system_card_styles_specimen_and_validation():
         del os.environ["PPTKIT_HOME"]
 
 
+def test_free_table_image_logo_footer_and_nested_bullets():
+    import shutil
+    from pptx.oxml.ns import qn
+    d = Path(tempfile.mkdtemp())
+    for f in (ROOT / "examples" / "quarterly-review").iterdir():
+        if f.suffix in (".md", ".png", ".csv"):
+            shutil.copy(f, d / f.name)
+    (d / "screen.png").unlink()  # the image slide must fall back to a placeholder
+    msg = render.build(d / "deck.md")
+    assert msg.startswith("OK 6 slides, 0 charts, 2 tables") and "image 'screen.png' not found" in msg, msg
+    assert qa.check(d / "deck.pptx") == []
+    prs = Presentation(d / "deck.pptx")
+    tb = next(s for s in prs.slides[1].shapes if s.has_table).table
+    assert tb.cell(0, 1).is_merge_origin and tb.cell(0, 1).span_width == 2  # "2025 | <"
+    assert tb.cell(0, 0).is_merge_origin and tb.cell(0, 0).span_height == 2  # "구분" over "^"
+    last = [tb.cell(len(tb.rows) - 1, j) for j in range(len(tb.columns))]
+    assert last[0].text == "영업이익" and last[0].text_frame.paragraphs[0].runs[0].font.bold  # total: last
+    assert str(last[-1].text_frame.paragraphs[0].runs[0].font.color.rgb) == "0F8A5F"  # +53.3% in the positive colour
+    assert sum(1 for s in prs.slides[1].shapes if s.shape_type == 13) == 1  # the logo
+    assert any("대외비" in s.text_frame.text for s in prs.slides[1].shapes if s.has_text_frame)
+    paras = [p_ for s in prs.slides[3].shapes if s.has_text_frame for p_ in s.text_frame.paragraphs
+             if p_.text.startswith("남부 대리점")]
+    assert paras and int(paras[0]._p.pPr.get("marL")) > 400000  # a second-level bullet is indented
+    assert any("이미지 대기: screen.png" in s.text_frame.text for s in prs.slides[4].shapes if s.has_text_frame)
+    _, slides = render.parse("# t\nbullets:\n  - 가:\n      - 나\n  - 다\n  - - 라\n")
+    assert slides[0]["bullets"] == ["가", "\t나", "다", "\t라"]
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

@@ -41,7 +41,7 @@ Claude Code에서 "이 CSV로 본부장 보고용 PPT 8장 만들어줘"처럼 �
 | 디자인 | `pptkit/designs/*.md` 9종 + 사용자 DESIGN.md(`~/.pptkit/designs/`), 카드 표현 토큰(채움·외곽선·그림자), `pptkit design show`(토큰 장표가 든 견본), 회사 템플릿 위 렌더링(마스터·로고 유지) |
 | 구성안 | `pptkit/storylines.yaml`: 목적 5종 × 구성안 14개, 장표별 내용 질문 |
 | 아이콘 | Lucide 선 아이콘 136종을 편집 가능한 벡터 도형으로(`icon: rocket`), 사진 없음 |
-| 장표 패턴 | 36종: 피칭(pillars, traction, team, pricing, product-shot, funding-ask) 외 구조(표지·목차·섹션·요약·결론), 메시지, 비교(compare, compare-table, before-after, swot, matrix-2x2, logic-tree), 흐름(process, timeline, roadmap, gantt, funnel), 진척(progress, status-table), 데이터(chart-takeaway, chart-table, chart-pair, pivot, heatmap, kpi-tiles, big-number, market-size) |
+| 장표 패턴 | 38종: 피칭(pillars, traction, team, pricing, product-shot, funding-ask) 외 구조(표지·목차·섹션·요약·결론), 메시지, 비교(compare, compare-table, before-after, swot, matrix-2x2, logic-tree), 흐름(process, timeline, roadmap, gantt, funnel), 진척(progress, status-table), 자유 표·이미지(table: 마크다운 표·셀 병합, image), 다단계 글머리, 로고·바닥글 표시, 데이터(chart-takeaway, chart-table, chart-pair, pivot, heatmap, kpi-tiles, big-number, market-size) |
 | 차트 | column-trend, line-trend, bar-ranked, stacked, stacked-share, waterfall(증감 요인), donut(구성비) (검증된 팔레트, 단일 강조색, 이중 축 없음) |
 | 데이터 | CSV/XLSX, KOSIS 다운로드 형식 자동 정리, 피벗(합계·상위 N+기타·가중 평균) |
 | 통계 | World Bank(키 없음), KOSIS(사용자 키, 터미널에서 직접 등록), 캐시와 출처 자동 각주 |
@@ -70,7 +70,7 @@ Claude Code에서 "이 CSV로 본부장 보고용 PPT 8장 만들어줘"처럼 �
 ```
 pptkit/                CLI (render, patterns_p1, edit, qa, data, persona, style, sources) + designs/ + catalog.yaml
 .claude/skills/ppt/    배포되는 스킬 (pptkit install-skill 이 복사)
-examples/              예제 덱 11종: 보고(매출·월간·마케팅·인사·프로젝트), 제안(신사업·고객), 피칭(VC·PSST), 교육, 패턴 모음
+examples/              예제 덱 12종: 보고(매출·월간·분기 검토·마케팅·인사·프로젝트), 제안(신사업·고객), 피칭(VC·PSST), 교육, 패턴 모음
 evals/                 평가 시나리오, 가상 데이터, 채점기
 references/            참고한 MIT 스킬·DESIGN.md 원본 (비활성)
 .claude/skills/        개발 세션용 스킬들 (ppt 외에는 개발 보조용)

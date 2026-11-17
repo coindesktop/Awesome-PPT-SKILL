@@ -23,6 +23,7 @@ cover: {bg: light, decor: none}
 section: tint
 closing: light
 bullet: "○"
+bullets: ["□", "○", "-"]
 message_box: true
 section_numerals: roman
 style: {header: rule, chart: tint, table_head: dark, callout: card, kpi: strip}

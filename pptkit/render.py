@@ -301,8 +301,10 @@ def text(ctx, slide, x, y, w, h, paras, pt, color=None, bold=False, align=None, 
          bullets=False, min_pt=None, shape=None, gap=4, spacing=None):
     """paras: list of str. Font size shrinks to fit (down to min_pt); still too long -> warning."""
     paras = [_s(p) for p in (paras if isinstance(paras, list) else [paras])]
+    levels = [len(t) - len(t.lstrip("\t")) for t in paras]  # nested bullets arrive as leading tabs
+    paras = [t.lstrip("\t") for t in paras]
     min_pt = min_pt or max(10, pt - 4)
-    tw = (w - (0.24 if bullets else 0)) * (0.88 if bold and pt >= 24 else 1)  # big bold glyphs run wider
+    tw = (w - (0.24 if bullets else 0) - 0.28 * max(levels, default=0)) * (0.88 if bold and pt >= 24 else 1)
     size = pt
     while size > min_pt and text_height(paras, tw, size, gap_pt=gap) > h:
         size -= 1
@@ -317,16 +319,20 @@ def text(ctx, slide, x, y, w, h, paras, pt, color=None, bold=False, align=None, 
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         r = p.add_run()
         r.text = t
-        r.font.size, r.font.bold = Pt(size), bold
-        r.font.color.rgb = rgb(color or ctx.c["body"])
-        if i < len(paras) - 1:
-            p.space_after = Pt(gap)
+        lv = levels[i]
+        r.font.size, r.font.bold = Pt(max(size - lv, 9)), bold
+        r.font.color.rgb = rgb(ctx.c["body"] if lv and bullets else color or ctx.c["body"])
+        if i < len(paras) - 1:  # children sit closer to their parent than parents to each other
+            p.space_after = Pt(gap if not bullets or levels[i + 1] == 0 else max(2, gap * 0.45))
         if spacing:
             p.line_spacing = spacing
         if align:
             p.alignment = align
         if bullets:
-            _bullet(p, ctx.tone.get("bullet", "•"), ctx.c["accent"])
+            chars = ctx.tone.get("bullets") or [ctx.tone.get("bullet", "•"), "–", "·"]
+            p_ = p._p.get_or_add_pPr()
+            _bullet(p, chars[min(lv, len(chars) - 1)], ctx.c["accent"] if lv == 0 else ctx.c["muted"])
+            p_.set("marL", str(Inches(0.24 + 0.28 * lv)))
     return s
 
 
@@ -385,6 +391,32 @@ def _apply_theme(prs, tone):
     part._blob = etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
 
 
+def picture(slide, path, x, y, w, h, align="center"):
+    """Image scaled to fit inside the box, aspect kept. Returns the picture shape."""
+    from PIL import Image
+    with Image.open(path) as im:
+        iw, ih = im.size
+    k = min(w / iw, h / ih)
+    pw, ph = iw * k, ih * k
+    px = x + {"left": 0, "right": w - pw}.get(align, (w - pw) / 2)
+    return slide.shapes.add_picture(str(path), Inches(px), Inches(y + (h - ph) / 2), Inches(pw), Inches(ph))
+
+
+def place_logo(ctx, slide, x, y, height, right=False, dark=False):
+    """Deck `logo:` (png/jpg next to deck.md); `logo_on_dark:` is used on dark slides when given.
+    Skipped on a company template, whose master carries its own."""
+    logo = (ctx.meta.get("logo_on_dark") if dark else None) or ctx.meta.get("logo")
+    if not logo or ctx.template:
+        return None
+    path = ctx.base / str(logo)
+    if not path.exists():
+        if not getattr(ctx, "_logo_warned", False):
+            ctx._logo_warned = True
+            ctx.warnings.append(f"logo '{logo}' not found next to deck.md: slides built without it")
+        return None
+    return picture(slide, path, x - 2.2 if right else x, y, 2.2, height, align="right" if right else "left")
+
+
 def content_slide(ctx, spec):
     """Header rhythm on every content slide: eyebrow -> title -> message -> body -> source + page."""
     ctx.page += 1
@@ -425,8 +457,13 @@ def content_slide(ctx, spec):
     if src:
         label = "자료" if ctx.tone["name"] == "public" else "출처"
         src = re.sub(r"^\s*(자료|출처|source)\s*[:：]\s*", "", str(src), flags=re.I)  # the label is added here
-        text(ctx, slide, MX, ctx.footer_y, 9, 0.3, [f"{label}: {src}"], ty["small"], c["muted"], min_pt=8)
+        text(ctx, slide, MX, ctx.footer_y, 7.3 if ctx.meta.get("footer") else 9, 0.3, [f"{label}: {src}"],
+             ty["small"], c["muted"], min_pt=8)
     text(ctx, slide, W - MX - 1, ctx.footer_y, 1, 0.3, [str(ctx.page)], ty["small"], c["muted"], align=PP_ALIGN.RIGHT)
+    if ctx.meta.get("footer"):  # 대외비, 문서 번호, 부서: the same mark on every content slide
+        text(ctx, slide, W - MX - 4.6, ctx.footer_y, 3.5, 0.3, [str(ctx.meta["footer"])], ty["small"], c["muted"],
+             align=PP_ALIGN.RIGHT, min_pt=8)
+    place_logo(ctx, slide, W - MX, 0.36, 0.34, right=True)
     if spec.get("notes"):
         slide.notes_slide.notes_text_frame.text = str(spec["notes"])
     ctx.body = (slide, len(slide.shapes), y, ctx.footer_y - 0.25)
@@ -518,6 +555,7 @@ def p_cover(ctx, spec):
                                        spec.get("author") or ctx.meta.get("author")) if v)
     if meta:
         text(ctx, slide, 0.9, 6.35, 8, 0.4, [meta], 13, meta_c)
+    place_logo(ctx, slide, 0.9, 0.6, 0.5, dark=dark)
 
 
 def p_section(ctx, spec):
@@ -1283,6 +1321,22 @@ _Yaml.add_implicit_resolver("tag:yaml.org,2002:bool", re.compile(r"^(?:true|True
                             list("tTfF"))
 
 
+def _nest(items, level=0):
+    """Nested bullets -> flat strings, one leading tab per level (text() reads the tabs back as indent).
+    `- 매출 현황: [수도권 65%, 비수도권 35%]` or a list right after an item both mean children."""
+    out = []
+    for it in items:
+        if isinstance(it, list):
+            out += _nest(it, min(level + 1, 2))
+        elif isinstance(it, dict) and len(it) == 1 and isinstance(next(iter(it.values())), list):
+            k, kids = next(iter(it.items()))
+            out.append("\t" * level + str(k))
+            out += _nest(kids, min(level + 1, 2))
+        else:
+            out.append("\t" * level + _s(it))
+    return out
+
+
 def parse(md: str):
     meta = {}
     if md.lstrip().startswith("---"):
@@ -1296,6 +1350,9 @@ def parse(md: str):
             spec = {"bullets": spec}
         spec = dict(spec or {})
         spec["title"] = title.strip()
+        for k in ("bullets", "callout", "takeaways"):  # □ → ○ → - hierarchies
+            if isinstance(spec.get(k), list):
+                spec[k] = _nest(spec[k])
         spec.setdefault("pattern", next((p for k, p in INFER if k in spec), "bullets-callout"))
         slides.append(spec)
     return meta, slides
@@ -1358,9 +1415,12 @@ def lint(ctx, spec):
         odd = [i for i, v in enumerate(items, 1) if not isinstance(v, (str, int, float))]
         if odd:
             ctx.warn(f"{key} item(s) {odd} parsed as structured YAML: quote the sentence")
-        if len(items) > d["max_bullets"]:
-            ctx.warn(f"{key} {len(items)}>{d['max_bullets']} items")
-        long = [i for i in map(_s, items) if len(i) > d["max_chars"]]
+        tops = [i for i in items if not str(i).startswith("\t")]  # nested lines count towards 2x, not the limit
+        if len(tops) > d["max_bullets"] or len(items) > 2 * d["max_bullets"]:
+            ctx.warn(f"{key} {len(tops)}>{d['max_bullets']} items" if len(tops) == len(items) else
+                     f"{key} {len(tops)} items, {len(items)} lines: at most {d['max_bullets']} items and "
+                     f"{2 * d['max_bullets']} lines with sub-points")
+        long = [i for i in (_s(v).lstrip("\t") for v in items) if len(i) > d["max_chars"]]
         if long:  # name the items so the author can fix them without counting
             ctx.warn(f"{key} {len(long)} item(s) >{d['max_chars']}자: " + "; ".join(f"'{i[:14]}…' {len(i)}자" for i in long[:3]))
         if voice == "gaejosik":
@@ -1442,3 +1502,4 @@ def build(md_path, out=None, sample=False, design=None):
 from . import patterns_p1  # noqa: E402,F401  (registers the P1 patterns)
 from . import patterns_pitch  # noqa: E402,F401  (registers the pitch patterns)
 from . import patterns_report  # noqa: E402,F401  (registers report visuals)
+from . import patterns_office  # noqa: E402,F401  (registers table and image)

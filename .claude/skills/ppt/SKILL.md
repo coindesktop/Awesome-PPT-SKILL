@@ -113,7 +113,9 @@ you cannot resolve from its message.
 5. 3-4 headline numbers → `kpi-tiles`; one number → `big-number`; market → `market-size`;
    growth with headline metrics → `traction`; 3-4 strengths/reasons → `pillars`; people → `team`;
    plans and prices → `pricing`; product with features → `product-shot`; money and its use → `funding-ask`
-6. one sentence → `key-message` 7. otherwise `bullets-callout` (two lists → `two-column`)
+6. a table the user typed or pasted (손익표, 일정표, 비교표) → `table` with the markdown table as-is; a
+   screenshot, diagram or photo file → `image`
+7. one sentence → `key-message` 8. otherwise `bullets-callout` (two lists → `two-column`; sub-points → nested bullets)
 Structure: `cover`, `agenda`, `section` (sets the eyebrow of following slides), `exec-summary`, `closing`.
 
 Slide order comes from the storyline the user picked (`pptkit plan`), not from this list.
