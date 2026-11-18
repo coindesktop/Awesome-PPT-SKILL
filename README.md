@@ -12,6 +12,8 @@
 
 [같은 씨앗도서관 운영안을 세 양식으로 비교한 사례](docs/studio/field-checks.md)
 
+[추가 디자인 피드백 없이 만든 온보딩 세 컨셉 원샷 결과](docs/evals/onboarding-one-shot-2026-11-18.md)
+
 ## 설치 (Windows · macOS · Linux)
 
 ```bash
