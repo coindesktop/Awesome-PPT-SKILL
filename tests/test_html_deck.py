@@ -85,6 +85,28 @@ def test_letter_spacing_and_cover_keep_editable_objects(tmp_path):
     assert picture.image.size == (200,100)
 
 
+@pytest.mark.parametrize('kind',['bar','column','line'])
+def test_chart_category_reading_order_preserves_source_and_workbook(tmp_path,kind):
+    from pptx.enum.chart import XL_AXIS_CROSSES
+    spec={'type':kind,'categories':['1주 말','4주 말'],
+          'series':[{'name':'계획 목표','values':[18,16]}],'source':'계획 가정'}
+    source=html(tmp_path,'<div data-pptx="chart" data-source="goals" style="width:800px;height:400px"></div>'
+                +'<script id="goals" type="application/json">'+json.dumps(spec,ensure_ascii=False)+'</script>')
+    out=tmp_path/'goals.pptx'
+    html_deck._assemble(html_deck._measure(source),out)
+    chart=next(s.chart for s in Presentation(out).slides[0].shapes if s.has_chart)
+    assert [c.label for c in chart.plots[0].categories]==spec['categories']
+    assert list(chart.series[0].values)==[18,16]
+    assert chart.part.chart_workbook.xlsx_part.blob
+    # Horizontal categories must read first-to-last from top to bottom in PowerPoint.
+    # Column and line categories retain their original left-to-right direction.
+    assert chart.category_axis.reverse_order is (kind=='bar')
+    if kind=='bar':
+        assert chart.value_axis._element.crosses.val==XL_AXIS_CROSSES.MAXIMUM
+        # The category axis must still cross at zero, not the maximum value.
+        assert chart.value_axis.crosses==XL_AXIS_CROSSES.AUTOMATIC
+
+
 @pytest.mark.parametrize('design',['editorial','product','strategy'])
 def test_portable_studio_init_can_export_without_source_tree(tmp_path,design):
     source=tmp_path/'한글 경로 100%'/(design+' 견본.html')

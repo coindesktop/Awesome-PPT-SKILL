@@ -42,6 +42,21 @@ PPT 렌더에는 Windows PowerPoint 또는 LibreOffice가 필요하다.
 `pptkit profile`의 기존 선호와 `pptkit plan <purpose>`의 구성안을 참고한다.
 사용자가 정한 구조를 우선한다. 임시로 추정한 직무·취향을 영구 프로필에 저장하지 않는다.
 `brief.yaml`에 목적·독자·요청 행동·분량·문체를 기록하고 `pptkit tone --brief brief.yaml`을 참고한다.
+`tone`·`design` 키는 기존 CLI 디자인 이름이다. 자유 문체나 Studio 방향을 그 키에 넣으면 오류가 난다.
+Studio 방향은 `studio_design`, 문체 설명은 `writing_style`에 기록한다. 최소 예:
+
+```yaml
+purpose: proposal
+reader: 운영 승인자
+ask: 시범운영 범위와 예산 승인
+mode: balanced
+formality: neutral
+slides: 8
+studio_design: product
+writing_style: 간결한 한국어 설명체
+```
+
+`mode`는 `present` / `handout` / `balanced` 중 선택한다. tone의 기존 테마 추천은 참고용이며 Studio 방향을 덮어쓰지 않는다.
 실행 기획안이면 [운영 가능한 제안서](references/practical-proposals.md)를 읽고 대상·일정·물량·예산·담당·예외를 서로 맞춘다.
 
 ### 2. 디자인 방향과 에셋을 정한다

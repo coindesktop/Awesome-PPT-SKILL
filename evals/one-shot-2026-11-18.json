@@ -1,0 +1,94 @@
+{
+  "skill_name": "ppt",
+  "source_commit": "160f153db9804c09394c2ff960a269dab41877b1",
+  "published_merge_commit": "f7b13a04e2a7f54e6755812cbb7351fdedaee2e7",
+  "recorded_at": "2026-11-18T04:13:40.714350+00:00",
+  "scope": "같은 기획안 1개 × editorial/product/strategy 각 1회. 총 3개.",
+  "one_shot_definition": "사용자 요청 1회, 후속 디자인 피드백 0회. 스킬에 따른 내부 검수·수정은 허용하고 기록한다. 문자 그대로 코드 생성 1회 성공과는 구분한다.",
+  "isolation": "세 실행은 fork_turns=none으로 시작. 공통 콘텐츠 파일과 스킬 스냅샷만 전달. 다른 실행 결과·기존 프로젝트는 열람 금지.",
+  "runner": "Codex 독립 서브에이전트 3개. 별도 모델 오버라이드 없음. 정확한 모델 버전·토큰 수는 도구가 제공할 때만 기록.",
+  "qa": "HTML 검수는 각 실행, Windows PowerPoint 렌더·COM QA는 충돌 방지를 위해 부모가 순차 실행. 부모의 디자인 수정은 하지 않는다.",
+  "baseline": "사용자가 세 컨셉 결과만 요청하여 스킬 미사용/구버전 대조군은 실행하지 않는다. 개선 효과나 일반 사용자 성공률은 추정하지 않는다.",
+  "input_sha256": {
+    "budget.csv": "7d72e539d253dc6602cd872c07c78901656a89980a4e5df8cdd5278da2b1038b",
+    "plan.md": "149124b60471d9562789670bac3bdf852961b9afe7dc63b06d706b79cc5ccde4",
+    "staff-hours.csv": "650c981b600c60e0ed4d333f545600dd5663453821261767f11f70a43623228b"
+  },
+  "evals": [
+    {
+      "eval_id": 1,
+      "eval_name": "onboarding-editorial",
+      "prompt": "첨부한 첫 달 온보딩 기획안으로 8장 PPT를 만들어줘. editorial 컨셉으로 해줘. 추가 질문 없이 진행하고, PPT와 편집 원본·미리보기를 함께 줘.",
+      "files": [
+        "inputs/plan.md",
+        "inputs/budget.csv",
+        "inputs/staff-hours.csv"
+      ],
+      "input_sha256": {
+        "budget.csv": "7d72e539d253dc6602cd872c07c78901656a89980a4e5df8cdd5278da2b1038b",
+        "plan.md": "149124b60471d9562789670bac3bdf852961b9afe7dc63b06d706b79cc5ccde4",
+        "staff-hours.csv": "650c981b600c60e0ed4d333f545600dd5663453821261767f11f70a43623228b"
+      },
+      "assertions": [
+        "8장 PPT와 재변환 가능한 HTML·로컬 에셋이 있다",
+        "20명·4주·담당 총 24시간·예산안 40만 원을 정확히 전달한다",
+        "인사 11시간·버디 합계 13시간과 비용 항목이 기준 자료와 맞는다",
+        "18명·16명을 실제 성과가 아닌 목표로 표시한다",
+        "버디 미확보·권한 미완료·시간이나 예산 초과에 대한 운영 조치가 있다",
+        "핵심 텍스트·도형·표·지원 차트가 PPT에서 편집 가능하다",
+        "PPT 실제 렌더에서 의미를 가리는 넘침·잘림·충돌이 없다",
+        "최초 전체 HTML과 최초 성공 PPT, 자체 수정 내역을 보존했다"
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "onboarding-product",
+      "prompt": "첨부한 첫 달 온보딩 기획안으로 8장 PPT를 만들어줘. product 컨셉으로 해줘. 추가 질문 없이 진행하고, PPT와 편집 원본·미리보기를 함께 줘.",
+      "files": [
+        "inputs/plan.md",
+        "inputs/budget.csv",
+        "inputs/staff-hours.csv"
+      ],
+      "input_sha256": {
+        "budget.csv": "7d72e539d253dc6602cd872c07c78901656a89980a4e5df8cdd5278da2b1038b",
+        "plan.md": "149124b60471d9562789670bac3bdf852961b9afe7dc63b06d706b79cc5ccde4",
+        "staff-hours.csv": "650c981b600c60e0ed4d333f545600dd5663453821261767f11f70a43623228b"
+      },
+      "assertions": [
+        "8장 PPT와 재변환 가능한 HTML·로컬 에셋이 있다",
+        "20명·4주·담당 총 24시간·예산안 40만 원을 정확히 전달한다",
+        "인사 11시간·버디 합계 13시간과 비용 항목이 기준 자료와 맞는다",
+        "18명·16명을 실제 성과가 아닌 목표로 표시한다",
+        "버디 미확보·권한 미완료·시간이나 예산 초과에 대한 운영 조치가 있다",
+        "핵심 텍스트·도형·표·지원 차트가 PPT에서 편집 가능하다",
+        "PPT 실제 렌더에서 의미를 가리는 넘침·잘림·충돌이 없다",
+        "최초 전체 HTML과 최초 성공 PPT, 자체 수정 내역을 보존했다"
+      ]
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "onboarding-strategy",
+      "prompt": "첨부한 첫 달 온보딩 기획안으로 8장 PPT를 만들어줘. strategy 컨셉으로 해줘. 추가 질문 없이 진행하고, PPT와 편집 원본·미리보기를 함께 줘.",
+      "files": [
+        "inputs/plan.md",
+        "inputs/budget.csv",
+        "inputs/staff-hours.csv"
+      ],
+      "input_sha256": {
+        "budget.csv": "7d72e539d253dc6602cd872c07c78901656a89980a4e5df8cdd5278da2b1038b",
+        "plan.md": "149124b60471d9562789670bac3bdf852961b9afe7dc63b06d706b79cc5ccde4",
+        "staff-hours.csv": "650c981b600c60e0ed4d333f545600dd5663453821261767f11f70a43623228b"
+      },
+      "assertions": [
+        "8장 PPT와 재변환 가능한 HTML·로컬 에셋이 있다",
+        "20명·4주·담당 총 24시간·예산안 40만 원을 정확히 전달한다",
+        "인사 11시간·버디 합계 13시간과 비용 항목이 기준 자료와 맞는다",
+        "18명·16명을 실제 성과가 아닌 목표로 표시한다",
+        "버디 미확보·권한 미완료·시간이나 예산 초과에 대한 운영 조치가 있다",
+        "핵심 텍스트·도형·표·지원 차트가 PPT에서 편집 가능하다",
+        "PPT 실제 렌더에서 의미를 가리는 넘침·잘림·충돌이 없다",
+        "최초 전체 HTML과 최초 성공 PPT, 자체 수정 내역을 보존했다"
+      ]
+    }
+  ]
+}

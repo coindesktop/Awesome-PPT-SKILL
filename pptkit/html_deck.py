@@ -19,7 +19,7 @@ from urllib.request import url2pathname
 from pptx import Presentation
 from pptx.chart.data import CategoryChartData
 from pptx.dml.color import RGBColor
-from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION, XL_TICK_MARK, XL_LEGEND_POSITION
+from pptx.enum.chart import XL_CHART_TYPE, XL_LABEL_POSITION, XL_TICK_MARK, XL_LEGEND_POSITION, XL_AXIS_CROSSES
 from pptx.enum.shapes import MSO_CONNECTOR, MSO_SHAPE
 from pptx.enum.text import MSO_ANCHOR, MSO_AUTO_SIZE, PP_ALIGN
 from pptx.oxml.xmlchemy import OxmlElement
@@ -264,6 +264,13 @@ def _chart(slide, entry):
         axis.minor_tick_mark=XL_TICK_MARK.NONE
         axis.format.line.fill.background()
     chart.category_axis.has_major_gridlines=False
+    if spec['type']=='bar':
+        # Chart.js shows the first category at the top; PowerPoint defaults to bottom.
+        # Keep the source/workbook order and move the horizontal axis below the bars.
+        chart.category_axis.reverse_order=True
+        # ValueAxis.crosses changes the *category* axis crossing (the bar baseline).
+        # Set valAx's own crossing so labels remain below without moving zero.
+        chart.value_axis._element.get_or_add_crosses().val=XL_AXIS_CROSSES.MAXIMUM
     chart.value_axis.has_major_gridlines=True
     chart.value_axis.major_gridlines.format.line.color.rgb=RGBColor.from_string(spec.get('gridColor','E1E5E0').lstrip('#'))
     chart.value_axis.major_gridlines.format.line.width=Pt(0.5)

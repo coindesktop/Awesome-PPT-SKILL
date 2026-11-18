@@ -1,0 +1,210 @@
+{
+  "metadata": {
+    "skill_name": "ppt",
+    "timestamp": "2026-11-18T04:24:46.099253+00:00",
+    "evals_run": [
+      1,
+      2,
+      3
+    ],
+    "runs_per_configuration": 1,
+    "source_commit": "160f153db9804c09394c2ff960a269dab41877b1",
+    "baseline": "실행하지 않음",
+    "scope": "같은 기획안의 3개 컨셉, 각각 1회"
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "eval_name": "onboarding-editorial",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "pass_rate": 1.0
+      },
+      "expectations": [
+        {
+          "text": "8장 PPT와 재변환 가능한 HTML·로컬 에셋이 있다",
+          "passed": true,
+          "evidence": "8개 native PPT 슬라이드와 deck.html, deck.assets를 확인했다."
+        },
+        {
+          "text": "20명·4주·담당 총 24시간·예산안 40만 원을 정확히 전달한다",
+          "passed": true,
+          "evidence": "표지·일정·자원·마지막 승인 요청에서 참가자 20명, 4주, 운영자 총 24시간, 현금 예산안 40만 원을 확인했다."
+        },
+        {
+          "text": "인사 11시간·버디 합계 13시간과 비용 항목이 기준 자료와 맞는다",
+          "passed": true,
+          "evidence": "PPT native 표에서 비용 [80000,240000,40000,40000,400000]과 작업별 인사/버디 시간 및 합계 11/13/24를 추출하여 입력 CSV와 대조했다."
+        },
+        {
+          "text": "18명·16명을 실제 성과가 아닌 목표로 표시한다",
+          "passed": true,
+          "evidence": "18/20과 16/20은 완료 목표로 명시했고 실제 달성값이 아니라는 문구가 있다."
+        },
+        {
+          "text": "버디 미확보·권한 미완료·시간이나 예산 초과에 대한 운영 조치가 있다",
+          "passed": true,
+          "evidence": "버디 4명 미만·권한 미완료·24시간/40만 원 초과의 조치와 종료 판단을 설명한다."
+        },
+        {
+          "text": "핵심 텍스트·도형·표·지원 차트가 PPT에서 편집 가능하다",
+          "passed": true,
+          "evidence": "객체 {'shape': 29, 'text': 110, 'table': 2}. 임시 사본에서 제목·표 셀을 수정 후 재저장했고 차트가 있는 경우 값 수정과 워크북도 검증했다."
+        },
+        {
+          "text": "PPT 실제 렌더에서 의미를 가리는 넘침·잘림·충돌이 없다",
+          "passed": true,
+          "evidence": "전체 PowerPoint 축소판과 복잡한 장표를 확인했다. COM QA OK. 의미를 가리는 잘림이나 겹침을 발견하지 못했다."
+        },
+        {
+          "text": "최초 전체 HTML과 최초 성공 PPT, 자체 수정 내역을 보존했다",
+          "passed": true,
+          "evidence": "first-pass의 전체 HTML·에셋·최초 성공 PPT와 run-notes.md를 확인했다. 부모의 평가 전후 최종 PPT 해시도 동일하다."
+        }
+      ],
+      "notes": [
+        "큰 문장·넓은 여백·안내지 확대가 중심. 사진 없이 문장 중심으로 해석했다.",
+        "5·6장의 큰 수치+표 구도가 연속되어 약간 반복된다.",
+        "자체 레이아웃 수정 2회: 대표 장표 단계 1회, 전체 8장 이후 1회."
+      ]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "onboarding-product",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "pass_rate": 1.0
+      },
+      "expectations": [
+        {
+          "text": "8장 PPT와 재변환 가능한 HTML·로컬 에셋이 있다",
+          "passed": true,
+          "evidence": "8개 native PPT 슬라이드와 deck.html, deck.assets를 확인했다."
+        },
+        {
+          "text": "20명·4주·담당 총 24시간·예산안 40만 원을 정확히 전달한다",
+          "passed": true,
+          "evidence": "표지·일정·자원·마지막 승인 요청에서 참가자 20명, 4주, 운영자 총 24시간, 현금 예산안 40만 원을 확인했다."
+        },
+        {
+          "text": "인사 11시간·버디 합계 13시간과 비용 항목이 기준 자료와 맞는다",
+          "passed": true,
+          "evidence": "PPT native 표에서 비용 [80000,240000,40000,40000,400000]과 작업별 인사/버디 시간 및 합계 11/13/24를 추출하여 입력 CSV와 대조했다."
+        },
+        {
+          "text": "18명·16명을 실제 성과가 아닌 목표로 표시한다",
+          "passed": true,
+          "evidence": "18/20과 16/20은 완료 목표로 명시했고 실제 달성값이 아니라는 문구가 있다."
+        },
+        {
+          "text": "버디 미확보·권한 미완료·시간이나 예산 초과에 대한 운영 조치가 있다",
+          "passed": true,
+          "evidence": "버디 4명 미만·권한 미완료·24시간/40만 원 초과의 조치와 종료 판단을 설명한다."
+        },
+        {
+          "text": "핵심 텍스트·도형·표·지원 차트가 PPT에서 편집 가능하다",
+          "passed": true,
+          "evidence": "객체 {'text': 120, 'shape': 26, 'table': 3}. 임시 사본에서 제목·표 셀을 수정 후 재저장했고 차트가 있는 경우 값 수정과 워크북도 검증했다."
+        },
+        {
+          "text": "PPT 실제 렌더에서 의미를 가리는 넘침·잘림·충돌이 없다",
+          "passed": true,
+          "evidence": "전체 PowerPoint 축소판과 복잡한 장표를 확인했다. COM QA OK. 의미를 가리는 잘림이나 겹침을 발견하지 못했다."
+        },
+        {
+          "text": "최초 전체 HTML과 최초 성공 PPT, 자체 수정 내역을 보존했다",
+          "passed": true,
+          "evidence": "first-pass의 전체 HTML·에셋·최초 성공 PPT와 run-notes.md를 확인했다. 부모의 평가 전후 최종 PPT 해시도 동일하다."
+        }
+      ],
+      "notes": [
+        "안내지·체크리스트·질문 문서·회고지를 실제 사용하는 흐름으로 보여준다.",
+        "세 결과 중 이용 경험이 가장 구체적으로 드러났다.",
+        "자체 문구 수정 1회, 레이아웃 수정 0회."
+      ]
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "onboarding-strategy",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "passed": 7,
+        "failed": 1,
+        "total": 8,
+        "pass_rate": 0.875
+      },
+      "expectations": [
+        {
+          "text": "8장 PPT와 재변환 가능한 HTML·로컬 에셋이 있다",
+          "passed": true,
+          "evidence": "8개 native PPT 슬라이드와 deck.html, deck.assets를 확인했다."
+        },
+        {
+          "text": "20명·4주·담당 총 24시간·예산안 40만 원을 정확히 전달한다",
+          "passed": true,
+          "evidence": "표지·일정·자원·마지막 승인 요청에서 참가자 20명, 4주, 운영자 총 24시간, 현금 예산안 40만 원을 확인했다."
+        },
+        {
+          "text": "인사 11시간·버디 합계 13시간과 비용 항목이 기준 자료와 맞는다",
+          "passed": true,
+          "evidence": "PPT native 표에서 비용 [80000,240000,40000,40000,400000]과 작업별 인사/버디 시간 및 합계 11/13/24를 추출하여 입력 CSV와 대조했다."
+        },
+        {
+          "text": "18명·16명을 실제 성과가 아닌 목표로 표시한다",
+          "passed": true,
+          "evidence": "18/20과 16/20은 완료 목표로 명시했고 실제 달성값이 아니라는 문구가 있다."
+        },
+        {
+          "text": "버디 미확보·권한 미완료·시간이나 예산 초과에 대한 운영 조치가 있다",
+          "passed": true,
+          "evidence": "버디 4명 미만·권한 미완료·24시간/40만 원 초과의 조치와 종료 판단을 설명한다."
+        },
+        {
+          "text": "핵심 텍스트·도형·표·지원 차트가 PPT에서 편집 가능하다",
+          "passed": true,
+          "evidence": "객체 {'text': 94, 'shape': 14, 'chart': 1, 'table': 5}. 임시 사본에서 제목·표 셀을 수정 후 재저장했고 차트가 있는 경우 값 수정과 워크북도 검증했다."
+        },
+        {
+          "text": "PPT 실제 렌더에서 의미를 가리는 넘침·잘림·충돌이 없다",
+          "passed": false,
+          "evidence": "PowerPoint COM QA는 OK지만 2장 가로막대의 위아래 순서가 HTML과 반대다. 오른쪽 1주/4주 설명과 시각적 행 대응이 어긋난다. 원샷 결과의 미통과로 기록한다."
+        },
+        {
+          "text": "최초 전체 HTML과 최초 성공 PPT, 자체 수정 내역을 보존했다",
+          "passed": true,
+          "evidence": "first-pass의 전체 HTML·에셋·최초 성공 PPT와 run-notes.md를 확인했다. 부모의 평가 전후 최종 PPT 해시도 동일하다."
+        }
+      ],
+      "notes": [
+        "같은 축의 표와 승인 조건을 빠르게 비교하기 좋다.",
+        "3~7장의 표 중심 구도가 이어져 전개 리듬은 상대적으로 단조롭다.",
+        "자체 수정 2회. 부모의 렌더에서 차트 범주 순서 차이를 추가 발견했다."
+      ]
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 0.9583333333333334,
+        "stddev": 0.07216878364870322,
+        "min": 0.875,
+        "max": 1.0
+      }
+    }
+  },
+  "notes": [
+    "사용자 후속 디자인 지시 0회. 스킬 내부 자체 검수·수정은 포함한다.",
+    "모델별 토큰 수·실행 시간은 도구가 제공하지 않아 미기재.",
+    "원샷 strategy의 차트 순서 문제는 실패로 유지하며, 이후 변환기 수정 재출력은 별도 after-fix 폴더다.",
+    "이 수치는 디자인 점수나 구버전 대비 개선율이 아니다."
+  ]
+}
