@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HTML에서 설계하는 편집 가능한 프레젠테이션</title>
+<style>
+:root { --paper:#F3F1EA; --ink:#182126; --muted:#526168; --accent:#315EF5; --line:#D7DDD9; --white:#FFFFFF; }
+* { box-sizing:border-box; }
+body { margin:0; background:#CDD1D4; color:var(--ink); font-family:"Malgun Gothic",sans-serif; }
+.slide { width:1280px; height:720px; position:relative; margin:0 auto 24px; background:var(--paper); overflow:hidden; }
+p,h1,h2,h3 { margin:0; }
+[data-pptx="text"] { position:absolute; line-height:1.25; }
+[data-pptx="shape"] { position:absolute; }
+.eyebrow { left:64px; top:42px; font-size:14px; font-weight:700; color:var(--muted); }
+.page { right:64px; bottom:30px; font-size:14px; color:var(--muted); }
+.rule { left:64px; top:83px; width:1152px; height:1px; background:var(--line); }
+.title { left:64px; top:125px; width:1120px; font-size:48px; font-weight:700; }
+.body { font-size:22px; color:var(--muted); }
+.small { font-size:16px; color:var(--muted); }
+.tag { font-size:15px; font-weight:700; color:var(--accent); }
+[data-notes] { display:none; }
+table { border-collapse:collapse; table-layout:fixed; }
+th,td { padding:12px; text-align:left; font-size:21px; line-height:1.25; }
+th { color:white; background:var(--ink); font-weight:700; }
+td { background:#FFFFFF; }
+tr:nth-child(odd) td { background:#E5E9E4; }
+</style>
+</head>
+<body>
+
+<!-- 시작 예제입니다. 내용·레이아웃·색을 실제 주제에 맞게 다시 설계하세요. -->
+<section class="slide">
+  <p data-pptx="text" class="eyebrow">PPTKIT / DESIGN METHOD</p>
+  <div data-pptx="shape" class="rule"></div>
+  <p data-pptx="text" class="tag" style="left:64px;top:152px">HTML FIRST · EDITABLE DELIVERY</p>
+  <h1 data-pptx="text" style="left:60px;top:207px;width:730px;font-size:76px;line-height:1.25;font-weight:700">생각은 HTML에서.<br>전달은 PPT로.</h1>
+  <p data-pptx="text" class="body" style="left:64px;top:423px;width:640px">브라우저에서 구도를 다듬고,<br>편집 가능한 요소로 전달합니다.</p>
+  <div data-pptx="shape" style="left:850px;top:171px;width:300px;height:350px;background:#DDE3F4"></div>
+  <div data-pptx="shape" style="left:814px;top:207px;width:300px;height:350px;background:#315EF5"></div>
+  <p data-pptx="text" style="left:844px;top:239px;font-size:14px;font-weight:700;color:white">DESIGN SOURCE</p>
+  <p data-pptx="text" style="left:840px;top:291px;font-size:54px;font-weight:700;color:white">Aa</p>
+  <div data-pptx="shape" style="left:844px;top:386px;width:210px;height:5px;background:#B5C4FC"></div>
+  <div data-pptx="shape" style="left:844px;top:409px;width:155px;height:5px;background:#B5C4FC"></div>
+  <p data-pptx="text" style="left:844px;top:482px;font-size:18px;color:white">문자 · 도형 · 데이터</p>
+  <p data-pptx="text" class="small" style="left:64px;bottom:41px">편집형 HTML 템플릿 / 내용과 레이아웃을 함께 바꾸는 시작점</p>
+  <p data-pptx="text" class="page">01</p>
+  <aside data-notes>HTML은 디자인 원본이고 PPT는 편집 가능한 전달물입니다. 이 예제의 구도를 그대로 반복하지 말고 실제 메시지에 맞춰 레이아웃을 선택합니다.</aside>
+</section>
+
+<section class="slide">
+  <p data-pptx="text" class="eyebrow">01 / VISUAL THINKING</p>
+  <div data-pptx="shape" class="rule"></div>
+  <h2 data-pptx="text" class="title">메시지에 맞는 장면을 먼저 설계합니다</h2>
+  <p data-pptx="text" class="body" style="left:64px;top:210px;width:990px">설명할 관계가 정해지면 레이아웃과 필요한 에셋도 정해집니다.</p>
+  <div data-pptx="shape" style="left:64px;top:322px;width:1152px;height:2px;background:#B6C1C6"></div>
+  <p data-pptx="text" class="tag" style="left:64px;top:283px">A / 핵심 주장</p>
+  <p data-pptx="text" class="tag" style="left:469px;top:283px">B / 시각적 근거</p>
+  <p data-pptx="text" class="tag" style="left:874px;top:283px">C / 다음 행동</p>
+  <div data-pptx="shape" style="left:64px;top:315px;width:16px;height:16px;background:#315EF5;border-radius:50%"></div>
+  <div data-pptx="shape" style="left:469px;top:315px;width:16px;height:16px;background:#315EF5;border-radius:50%"></div>
+  <div data-pptx="shape" style="left:874px;top:315px;width:16px;height:16px;background:#315EF5;border-radius:50%"></div>
+  <h3 data-pptx="text" style="left:64px;top:361px;width:330px;font-size:32px">무엇을 이해할까</h3>
+  <h3 data-pptx="text" style="left:469px;top:361px;width:330px;font-size:32px">어떤 근거를 볼까</h3>
+  <h3 data-pptx="text" style="left:874px;top:361px;width:342px;font-size:32px">무엇을 결정할까</h3>
+  <p data-pptx="text" class="body" style="left:64px;top:451px;width:330px">핵심 주장을 제목에 담고<br>보조 설명의 양을 줄입니다.</p>
+  <p data-pptx="text" class="body" style="left:469px;top:451px;width:330px">비교·변화·관계에 맞춰<br>도표나 실제 화면을 고릅니다.</p>
+  <p data-pptx="text" class="body" style="left:874px;top:451px;width:342px">판단에 필요한 조건과<br>다음 행동을 함께 보여줍니다.</p>
+  <p data-pptx="text" class="small" style="left:64px;top:603px">같은 색과 서체를 유지하면서, 메시지에 따라 장표의 구도는 달라집니다.</p>
+  <p data-pptx="text" class="page">02</p>
+  <aside data-notes>주장을 정하고 가장 직접적인 시각적 근거를 선택합니다. 장식을 추가하기 전에 관객이 무엇을 읽고 무엇을 비교해야 하는지부터 정합니다.</aside>
+</section>
+
+<section class="slide">
+  <p data-pptx="text" class="eyebrow">02 / EDITABILITY</p>
+  <div data-pptx="shape" class="rule"></div>
+  <h2 data-pptx="text" class="title">고칠 내용은 PPT에서도 고칠 수 있게</h2>
+  <p data-pptx="text" class="body" style="left:64px;top:210px;width:1090px">에셋의 역할을 구분하면 편집성과 시각적 품질을 함께 관리할 수 있습니다.</p>
+  <table data-pptx="table" id="asset-rules" style="position:absolute;left:64px;top:290px;width:1152px;height:280px">
+    <colgroup><col style="width:26%"><col style="width:37%"><col style="width:37%"></colgroup>
+    <tr><th>표현할 내용</th><th>HTML 원본</th><th>PowerPoint 결과</th></tr>
+    <tr><td>제목·설명·강조 숫자</td><td>독립된 텍스트 요소</td><td>편집 가능한 텍스트 상자</td></tr>
+    <tr><td>과정·비교·구조</td><td>단색 면·선·원과 텍스트</td><td>편집 가능한 기본 도형</td></tr>
+    <tr><td>데이터·비교 기준</td><td>출처가 있는 데이터·표</td><td>네이티브 차트·표</td></tr>
+    <tr><td>제품 화면·사진</td><td>로컬 원본 이미지</td><td>교체 가능한 이미지</td></tr>
+  </table>
+  <p data-pptx="text" class="small" style="left:64px;top:610px">변환이 어려운 효과는 구성부터 단순화하고, 본문을 이미지로 굳히지 않습니다.</p>
+  <p data-pptx="text" class="page">03</p>
+  <aside data-notes>이 표는 실제 PowerPoint 표로 변환됩니다. 사진과 제품 화면은 원본 이미지를 사용하고, 문구와 데이터는 수정 가능한 요소로 유지합니다.</aside>
+</section>
+
+<section class="slide" style="background:#182126">
+  <p data-pptx="text" class="eyebrow" style="color:#AFBEC7">03 / QUALITY GATE</p>
+  <div data-pptx="shape" class="rule" style="background:#445259"></div>
+  <h2 data-pptx="text" style="left:64px;top:146px;width:1130px;font-size:62px;line-height:1.25;color:#F3F1EA">완료 기준은<br>열었을 때의 품질입니다.</h2>
+  <div data-pptx="shape" style="left:64px;top:370px;width:5px;height:199px;background:#9BB1FF"></div>
+  <p data-pptx="text" style="left:94px;top:375px;width:1080px;font-size:26px;color:#FFFFFF">HTML에서 주장과 근거가 한눈에 읽히는가</p>
+  <p data-pptx="text" style="left:94px;top:447px;width:1080px;font-size:26px;color:#FFFFFF">PPT에서 한글 줄바꿈과 시각적 순서가 유지되는가</p>
+  <p data-pptx="text" style="left:94px;top:519px;width:1080px;font-size:26px;color:#FFFFFF">텍스트·도형·표를 실제로 수정할 수 있는가</p>
+  <p data-pptx="text" class="small" style="left:64px;top:625px;color:#AFBEC7">검사 로그와 함께 HTML 원본, PPT 렌더 이미지, 편집형 PPT를 남깁니다.</p>
+  <p data-pptx="text" class="page" style="color:#AFBEC7">04</p>
+  <aside data-notes>구조 검사와 시각 검수는 구분합니다. HTML과 PowerPoint 결과를 모두 열어 본 뒤, 편집 가능한 형태가 보존됐는지 확인하고 전달합니다.</aside>
+</section>
+</body>
+</html>

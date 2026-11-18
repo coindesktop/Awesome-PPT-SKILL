@@ -1,24 +1,62 @@
 # Awesome-PPT-SKILL
 
-**사람을 먼저 파악하고, 그 사람에게 맞는 톤앤매너로 PPT를 만들고 고치는 Claude 스킬 + CLI(`pptkit`).**
+**HTML에서 디자인하고, 눈으로 검수한 뒤, 편집 가능한 PowerPoint로 전달하는 스킬 + CLI(`pptkit`).**
 
-- Claude는 짧은 텍스트 파일(`brief.yaml`, `deck.md`, `ops.yaml`)만 씁니다. 렌더링, 피벗, 검증, 편집은 미리 만든 CLI가 합니다. 그래서 토큰이 적게 들고, 같은 입력에서 같은 덱이 나옵니다.
-- 차트와 표는 PowerPoint 네이티브 객체라서 "데이터 편집"으로 숫자를 고칠 수 있습니다. 사진은 넣지 않습니다.
+- 새 자료는 HTML/CSS로 구도를 만들고 브라우저에서 확인한 뒤 PPT로 변환합니다. 텍스트·기본 도형·표·지원 차트는 네이티브 객체로 남습니다. 전체 장표 이미지로의 자동 대체는 없습니다.
+- 사진·제품 화면은 로컬 원본 에셋으로 사용합니다. 설명·라벨·수치는 별도 편집형 요소로 유지합니다. 반복 보고는 기존 `deck.md` 경로를 계속 사용할 수 있습니다.
 - 덱 구성은 지어내지 않습니다. 목적(피칭, 고객 제안, 보고, 기획안, 교육)을 묻고, 검증된 구성안(VC 시드, Sequoia, 트랙션 우선, 데모데이, 정부지원사업 PSST 등)을 보여 주고, 사용자가 고른 구성으로 만듭니다.
-- 디자인은 DESIGN.md 파일 하나로 정의합니다. 기본 9종(기업 보고 corporate, executive, signal, forest, public, 피칭용 launch·bold, 흑백 mono, 카드형 soft)이 있고, `pptkit design show <이름>`으로 견본 덱을 만들어 볼 수 있습니다. 예전에 만든 덱에서 개인 디자인을 추출할 수도 있습니다. [디자인 갤러리](docs/designs.md)
+- 새 자료에는 **PPTKIT Studio**의 세 방향을 적용합니다. 편집형·제품형·전략형은 색뿐 아니라 타이포 비율·정보 밀도·구도·에셋 사용법이 다릅니다. 실제 HTML 견본 18장과 토큰·서체·차트 도구를 함께 제공합니다. [디자인 시스템](DESIGN.md)
+- 서비스·교육 제안은 **이용자가 실제로 받거나 쓰는 것**부터 찾습니다. 안내지·기록지·검토지·실행 조건표의 편집형 예제 3장을 추가로 제공하며, 운영안의 인원·물량·예산·담당을 맞추는 기준도 스킬에 포함합니다.
+
+**[세 방향의 실제 PPT 견본 보기 →](docs/studio.md)**
+
+[같은 씨앗도서관 운영안을 세 양식으로 비교한 사례](docs/studio/field-checks.md)
 
 ## 설치 (Windows · macOS · Linux)
 
 ```bash
-uv tool install git+https://github.com/coindesktop/Awesome-PPT-SKILL   # Python이 없어도 uv가 준비합니다
-pptkit install-skill                                                  # ~/.claude/skills/ppt 에 스킬 복사
+uv tool install "pptkit[html] @ git+https://github.com/coindesktop/Awesome-PPT-SKILL"
+pptkit html setup                                                     # Chromium 설치
+pptkit install-skill                                                  # ~/.claude/skills/ppt
+# Codex: pptkit install-skill --dest ~/.codex/skills/ppt
 ```
 
 개발용: `git clone` 후 `./scripts/setup.sh` (의존성, `pip install -e .`, 렌더 확인용 LibreOffice·한국어 폰트).
 
-## 쓰는 법
+## HTML 우선 제작
+
+```bash
+pptkit html designs
+pptkit html init deck.html --design editorial  # product / strategy도 선택 가능
+# 내용·시각 방향·구도 수정
+pptkit html preview deck.html
+# 실제 미리보기를 열어 검수
+pptkit html build deck.html -o deck.pptx
+pptkit html render deck.pptx
+# HTML과 PPT 결과 비교 후 전달
+```
+
+PPT 렌더는 Windows PowerPoint 또는 다른 OS의 LibreOffice가 필요합니다.
+`deck.assets/`에 토큰·CSS·구도 선택 기준·Pretendard·견본 에셋이 복사됩니다.
+`deck.assets/components/working-artifacts.html`에는 다른 주제에도 응용할 수 있는 편집형 사용물 예제가 있습니다.
+이 파일도 `pptkit html preview`와 `pptkit html build`의 입력으로 사용할 수 있습니다.
+`deck.assets/showcase/`에는 씨앗도서관 세 양식의 실제 PPT 미리보기와 출처·가정 기록도 포함됩니다.
+PPT를 여는 PC에도 Pretendard를 설치해야 합니다. 글꼴 자동 임베딩은 지원하지 않습니다.
+견본의 가상 수치·서비스·생성 비주얼은 실제 내용으로 교체합니다.
+HTML 구조 검사는 시각적 품질을 평가하지 않습니다. 실제 렌더 이미지를 확인해야 합니다.
+텍스트 보존 결과와 편집형 요소 수는 `deck.editable.json`에 기록됩니다.
+
+배포 스킬에 [Studio 사용법](.claude/skills/ppt/references/studio-system.md), [디자인 방법](.claude/skills/ppt/references/html-first-design.md)과
+[지원 HTML 규칙](.claude/skills/ppt/references/html-contract.md)을 포함합니다.
+[사용물 중심 에셋](.claude/skills/ppt/references/working-artifacts.md)과 [실행 기획 기준](.claude/skills/ppt/references/practical-proposals.md)은 해당 자료를 만들 때 읽습니다.
+v1은 1280×720px, 명시적인 `data-pptx` 요소를 받습니다. 임의 웹페이지의 완전한 변환은 지원하지 않습니다.
+로컬 개발은 `uv pip install -e ".[html]"`. HTML 없이 기존 보고 기능만 쓰려면 `[html]` 없이 설치할 수 있습니다.
+
+## 기존 Markdown 보고 제작
 
 Claude Code에서 "이 CSV로 본부장 보고용 PPT 8장 만들어줘"처럼 요청하면 `ppt` 스킬이 아래 순서로 진행합니다.
+
+이 경로는 수치를 반복 갱신하는 기존 `deck.md` 보고용입니다. 기존 9종 테마와 `pptkit design show`는 유지합니다.
 
 | 단계 | 명령 | Claude가 읽는 양 |
 |---|---|---|
@@ -58,6 +96,8 @@ Claude Code에서 "이 CSV로 본부장 보고용 PPT 8장 만들어줘"처럼 �
 ## 검증
 
 - 테스트: `python tests/test_pptkit.py`
+- HTML 변환·편집성: `python -m pytest tests/test_html_deck.py -q`
+- 디자인 전이 평가 시나리오: [`evals/html-first.json`](evals/html-first.json). 같은 대화의 사용자 선호 기록과 독립 평가를 구분합니다.
 - 평가: [`evals/evals.json`](evals/evals.json) 5개 시나리오, 채점 [`evals/grade.py`](evals/grade.py), 결과 [`docs/evals/`](docs/evals/)
 
 ## 문서

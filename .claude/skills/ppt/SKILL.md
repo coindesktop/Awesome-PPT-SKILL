@@ -1,135 +1,122 @@
 ---
 name: ppt
 description: >-
-  Build or revise PowerPoint decks tailored to who the user is and what they are making, with native
-  (editable) charts and pivot tables from CSV/XLSX, at minimal token cost via the prebuilt `pptkit` CLI.
-  Use whenever the user wants a PPT, 피피티, PPT 만들어줘, 장표, 발표자료, 보고 자료, 보고서 슬라이드, 덱,
-  제안서, IR/피치덱, 교육 자료, presentation, slides, or wants charts, 피벗, 통계, KPI put into slides, or wants
-  to fix/update an existing .pptx (숫자 바꿔줘, 겹친 거 정리, 장표 수정), even if no file format is named.
-  Prefer this over hand-writing python-pptx or pptxgenjs code.
+  Create and revise PowerPoint decks with HTML-first visual design, browser previews,
+  and editable native PowerPoint text, shapes, tables and charts. Use for presentations,
+  proposals, reports, pitches, education and edits to .pptx files. Includes pptkit data
+  analysis and a separate repeatable Markdown report workflow.
 ---
 
 # ppt
 
-`pptkit` renders and edits everything. **You only write small text files: `brief.yaml`, `deck.md`, or a
-patch `ops.yaml`.** Never write Python/JS to draw slides or compute numbers, never unzip slide XML, never print
-raw data files. Every pptkit command prints a short result written for you; act on it. If pptkit cannot do
-something, say so plainly instead of coding around it.
+목표는 **다른 사용자가 별도의 디자인 지시를 하지 않아도 읽기 좋고 편집 가능한 PPT를 얻는 것**이다.
+새 자료는 **HTML 디자인 → 브라우저 검수 → 편집형 PPT 변환 → PPT 시각 검수**로 만든다.
+구조 검사 통과와 디자인 품질은 다른 결과다. `QA OK`만 보고 완성됐다고 말하지 않는다.
 
-If `pptkit` is missing: `uv tool install git+https://github.com/coindesktop/Awesome-PPT-SKILL`
-(or `pip install -e <repo>`), then `pptkit install-skill`.
+## 작업 경로
 
-## New deck (personalize first, then build)
+- **새 자료·디자인 개선:** [Studio 디자인 시스템](references/studio-system.md)과 [디자인 방법](references/html-first-design.md)을 먼저 읽고 아래 흐름을 따른다.
+- **수치만 갱신하는 반복 보고·기존 deck.md 유지:** [Markdown 보고 흐름](references/markdown-workflow.md).
+- **기존 HTML 수정:** HTML을 수정하고 변환·검수를 반복한다. PPT만 고치고 원본을 방치하지 않는다.
+- **외부 PPT 일부 수정:** `pptkit map` → `pptkit read` → `pptkit patch`. [편집 문법](references/editing.md).
+  기존 구도를 보존하고 수정한 장표를 렌더해 확인한다.
 
-1. **Who** - `pptkit profile`. `PROFILE OK` → ask nothing. `PROFILE MISSING` → infer each field from the
-   request first; ask only what you cannot infer. `ASSUME` fields are never asked: use them, mention them in one
-   line. Save with `pptkit profile set role=.. industry=.. org_culture=.. audiences=a,b brand=none`.
-   If the user has an old deck they like, `pptkit style extract old.pptx` learns its colors, fonts, density and
-   voice (and uses it as the template when it is 16:9) → then `pptkit profile set design=<name> org_culture=..`.
-2. **Purpose → structure (ask, then let the user choose)** - Do not invent the deck's structure.
-   - Purpose unclear from the request → ask it first (`pptkit plan` lists purposes: pitch, sales, report,
-     proposal, education).
-   - `pptkit plan <purpose>` lists proven storylines (pitch: VC seed, Sequoia, traction-first, demo day,
-     정부지원사업 PSST, ...; report: 결론 먼저, SCR, 목표 대비 실적, 프로젝트 진척). Show them to the user as choices (AskUserQuestion if you have it), your
-     recommendation first with one reason. Skip the choice only if the user already named a structure.
-   - `pptkit plan <id> -o deck.md` writes the skeleton (one slide per step, `TODO`s) and prints the content
-     questions. Ask the ones the request and files do not answer, in one message, together with any step 1 or
-     brief questions. If the user says "알아서", draft from what you know and label invented figures `(예시)`.
-   - Fill every `TODO` (build warns on leftovers); delete steps the user does not need or merge two to reach
-     the requested length (build notes a mismatch with `length`).
-   - Ask at most 5 questions in that first message. Anything with a safe default (mode → balanced, a provisional
-     year → mark "(잠정)", column meanings) is not asked: state the default in one line instead.
-3. **What** - write `brief.yaml` in the work folder:
-   ```yaml
-   purpose: report        # report | proposal | pitch | ir | sales | education | review
-   storyline: report/exec-report   # the id the user picked; sets mode and design defaults
-   audience: 사업본부장
-   ask: 영업 인력 2명 증원 승인   # what the audience must decide/do after this deck
-   mode: balanced         # present | balanced | handout
-   formality: formal      # formal | neutral | friendly ("딱딱하지 않게", "친근하게" → friendly)
-   length: 8
-   # design: forest       # optional override; `pptkit design` lists them
-   ```
-   `ask` and `mode` drive quality most. If you cannot infer them, ask (bundle with step 1 questions).
-4. **Tone** - `pptkit tone --brief brief.yaml`. It picks a DESIGN (look) and prints `VOICE` and `RULES`;
-   obey them in every sentence you write (`friendly` overrides the profile's report shorthand for this deck).
-   A `BRIEF MISSING` block means ask first.
-5. **Data** - `pptkit data a.csv b.xlsx` summarizes every file in one call (KOSIS and World Bank web downloads are normalized automatically).
-   Every number in a title or bullet comes from `pptkit pivot <file> --rows .. [--cols ..] --val ..`: totals and
-   CAGR are printed; `--pct row|col` gives shares, `--pct growth` the change vs the previous period;
-   `--where year=2025,2026` filters, `--group 수도권=서울,경기,인천` merges rows (combined shares);
-   `--agg wmean --weight <col>` gives weighted averages (e.g. revenue-weighted margin) with weighted totals.
-   `--pct diff` gives net adds; `--cols year --bridge 2025,2026 [--top 5]` prints the `values:` line of a
-   `chart: waterfall` (start, changes largest first, the rest as 기타, end) and each change's share of the total
-   change. Do not do arithmetic on pivot output yourself.
-   For a pitch, derived metrics persuade: growth rate, net adds, revenue per customer, ARR. Get growth and net
-   adds from pivot (`--pct growth`, `--pct diff`, multiples are printed), revenue per customer from
-   `--val mrr --per customers`; a plain unit conversion like ARR = MRR×12 is fine if the slide says so.
-   Achievement rates (목표 달성률): `--val actual --per target --percent` gives 100.7 per row and in total;
-   the shortfall in money: `--val actual --minus target`. Fractions (margin 0.3617) print as % with `--percent`
-   (also with `--agg wmean`).
-6. **Deck** - complete `deck.md`. `pptkit spec <pattern|chart> ..` prints the keys of only the ones you use
-   (`pptkit spec` alone: shared rules + names); open [references/deck-spec.md](references/deck-spec.md) only for
-   what spec does not answer (`pptkit icons` for icon names). Deck-wide marks go in the front matter:
-   `footer: 대외비 · 팀명` (every slide), `logo: logo.png`. Titles are conclusion
-   sentences backed by numbers you got from pptkit. Pick patterns by the order below and vary them; when a
-   slide holds one chart, prefer `chart-table` or `chart-pair` if a second view adds information.
-7. **Tone sample** - `pptkit build deck.md --sample` → give the user `deck.sample.pptx` (cover + one data
-   slide) and ask if the look and voice fit. Compare looks with `--design <name>`; when the user asks what
-   designs exist or wants to pick one first, `pptkit design show <name>` gives a specimen deck of that look. Lasting preferences go to
-   `pptkit profile set ...` (e.g. `design=forest`, `brand=0B5E7A`, `dislikes=..`); deck-only ones to `brief.yaml`.
-8. **Build** - `pptkit build deck.md` (`-o 이름.pptx` names the file). It prints `WARN` lines about content (keys,
-   length, voice) and `QA` lines about layout (overflow, overlap, `sparse`) in the same call. Fix both by editing
-   deck.md and rebuilding until it prints `QA OK` and no WARN (on Windows with PowerPoint, `qa --com` measures text
-   exactly). Do not render slides to images to check them: it costs more than the whole build; `pptkit read
-   deck.pptx -s N` shows what a slide says.
-9. **Deliver** the .pptx path (in a cloud/app session, send the file).
+## 준비
 
-## Recurring reports (월간·분기 보고)
+```bash
+uv tool install --force "pptkit[html] @ git+https://github.com/coindesktop/Awesome-PPT-SKILL"
+pptkit html setup
+pptkit install-skill
+```
 
-When the user says the deck repeats (매월, 분기마다, 주간), write it once with `vars:` and period words
-(`where: {month: latest}`, `growth: {month: [prev, latest]}`, waterfall `bridge:`) instead of typed figures, and
-make claims live as well: `$x.dir` for 증가/감소, `by: team, pick: min` for "the lowest team" (`pptkit spec vars`). Next time: replace the data file, `pptkit build deck.md`, and
-fix the sentences the `VARS ... -> ...` lines point to (always on `SIGN FLIPPED`; write `$x.abs 감소`) and check
-the slides listed as "text without $vars" against `pptkit pivot`: qualitative claims ("영남팀만 목표 초과"),
-names and dates there do not move with the data. Last period's deck is kept as `deck.<period>.pptx`.
+개발 중에는 저장소에서 `uv pip install -e ".[html]"`로 설치한다. Chromium은 `html setup`이 준비한다.
+PPT 렌더에는 Windows PowerPoint 또는 LibreOffice가 필요하다.
+의존성이 없으면 설치 방법과 가능한 검수 범위를 알린다. 전체 장표 이미지로 우회하지 않는다.
 
-## Edit an existing deck (any .pptx, ours or not)
+## 새 자료 제작
 
-A pptkit deck: change `deck.md` and rebuild. Any other deck: `pptkit map deck.pptx` (one line per slide with
-shape ids, qa warnings and `read=L1|L2|L3`) → `pptkit read deck.pptx -s 3,5 -l <that level>` for only the slides
-you will touch → write `ops.yaml` → `pptkit patch deck.pptx ops.yaml` (keeps formatting, saves a `.bak` once,
-re-checks only touched slides). Syntax: [references/editing.md](references/editing.md). After edits,
-`pptkit map deck.pptx --changed` shows only what changed. Look at rendered images only if qa reports something
-you cannot resolve from its message.
+### 1. 전달할 내용을 정한다
 
-## Pattern selection order
+요청과 첨부 자료에서 목적, 독자, 핵심 주장, 분량, 발표용/배포용을 파악한다.
+결과를 바꿀 만큼 중요한 정보만 묻는다. 샘플 요청이나 위임받은 작업은 가정을 짧게 밝히고 진행한다.
+`pptkit profile`의 기존 선호와 `pptkit plan <purpose>`의 구성안을 참고한다.
+사용자가 정한 구조를 우선한다. 임시로 추정한 직무·취향을 영구 프로필에 저장하지 않는다.
+`brief.yaml`에 목적·독자·요청 행동·분량·문체를 기록하고 `pptkit tone --brief brief.yaml`을 참고한다.
+실행 기획안이면 [운영 가능한 제안서](references/practical-proposals.md)를 읽고 대상·일정·물량·예산·담당·예외를 서로 맞춘다.
 
-1. sequence → `process` (dates → `timeline`, task bars → `gantt`, phases × workstreams → `roadmap`)
-2. alternatives → `compare` (many criteria → `compare-table`), change → `before-after` / `problem-solution`
-3. two-axis judgment → `matrix-2x2`; internal/external analysis → `swot`; causes → `logic-tree`
-4. data file → change from A to B by factor `chart: waterfall`, parts of one total `chart: donut`, target vs actual
-   `progress`, task/RAG status `status-table`, time series `chart-takeaway`/`chart-table`, composition `chart: stacked-share`,
-   category × category `heatmap-table`/`pivot-table`, two related views `chart-pair`, conversion → `funnel`
-5. 3-4 headline numbers → `kpi-tiles`; one number → `big-number`; market → `market-size`;
-   growth with headline metrics → `traction`; 3-4 strengths/reasons → `pillars`; people → `team`;
-   plans and prices → `pricing`; product with features → `product-shot`; money and its use → `funding-ask`
-6. a table the user typed or pasted (손익표, 일정표, 비교표) → `table` with the markdown table as-is; a
-   screenshot, diagram or photo file → `image`
-7. one sentence → `key-message` 8. otherwise `bullets-callout` (two lists → `two-column`; sub-points → nested bullets)
-Structure: `cover`, `agenda`, `section` (sets the eyebrow of following slides), `exec-summary`, `closing`.
+### 2. 디자인 방향과 에셋을 정한다
 
-Slide order comes from the storyline the user picked (`pptkit plan`), not from this list.
+Studio의 세 방향 중 목적에 맞는 하나를 선택한다. 편집형 `editorial`은 사진·큰 문장·비대칭,
+제품형 `product`는 사용자가 받거나 쓰는 것·사용 흐름·행동, 전략형 `strategy`는 지표·차트·비교·결정이 중심이다.
+각 방향은 토큰·정보 밀도·대표 구도가 다르다. 색만 바꾼 같은 덱 세 개를 만들지 않는다.
+사용자 브랜드에 맞게 의미 토큰과 에셋을 바꾸되, 구도의 비율과 읽는 순서는 유지한다.
 
-## Numbers you did not compute
+HTML 작성 전에 `design.md`에 독자가 결정할 일, 서체·배경·강조색·정보 밀도,
+장표별 주장·근거·구도, 필요한 에셋의 역할·출처·편집 여부를 짧게 기록한다.
+사용자 레퍼런스에서는 크기 비율·정렬·여백·이미지 처리 방식을 추출한다.
+문구와 브랜딩을 복제하지 않는다. 레퍼런스가 없어도 주제와 독자에 맞춰 방향을 정한다.
+판단 기준과 에셋 제작 예시는 [디자인 방법](references/html-first-design.md)에 있다.
+먼저 이용자가 실제로 받거나 쓰는 것, 또는 주장을 입증하는 근거를 찾는다.
+서비스·교육·프로그램의 대표 비주얼은 [사용물 중심 에셋](references/working-artifacts.md)의 선택 기준을 따른다.
+추상적인 장식보다 안내지·기록지·실물·화면처럼 내용을 설명하는 대상을 크게 보여준다.
 
-Only put numbers on slides that come from the user's files or from pptkit (`data`, `pivot`, `fetch`). When a
-storyline step has no source (e.g. market size not ready), ask for it; if the user cannot supply it, delete
-that slide rather than fill it with `(예시)` placeholders (build lists any that remain). A `data:` file that is
-not there yet builds as a "데이터 대기" placeholder slide with a WARN; tell the user which file it waits for. Never
-fill a chart with figures from memory or loose web snippets: they differ run to run. Public statistics:
-`pptkit fetch wb <indicator> --country KOR,JPN --years 2021-2025` needs no key (World Bank); if it reports the
-network is unreachable, ask the user to download the table as CSV (KOSIS, e-나라지표, 한국은행) and use
-`pptkit data` (fetch prints the download page). If the user said where a slide goes ("맨 앞"), put it right
-after the cover. KOSIS API needs the user's own key: they run `pptkit key set kosis` themselves; never ask for a
-key in chat. `fetch` writes provenance that becomes the slide footnote; mark provisional years "(잠정)".
+### 3. HTML을 만든다
+
+```bash
+pptkit html designs
+pptkit html init deck.html --design editorial
+```
+
+생성된 파일은 선택한 디자인 시스템의 6장 견본이다. 함께 복사된 `deck.assets/layouts.json`에서
+주장에 맞는 구도를 고르고 견본의 문구·가상 데이터·이미지를 사용자 자료로 바꾼다.
+견본의 타이포 비율·여백·대비는 기준으로 삼고 장수·순서는 내용에 맞춰 구성한다.
+`deck.assets/components/working-artifacts.html`에는 안내지·기록지, 교육 검토지, 실행 조건표의 편집형 예제 3장이 있다.
+필요한 장표의 구조를 가져오고 내용·색·서체는 현재 덱에 맞춘다. 모든 덱에 사용물을 억지로 만들지는 않는다.
+브라우저용 Pretendard 서체가 포함된다. PPT를 여는 PC에는 같은 서체를 설치해야 한다.
+각 `section.slide`는 1280×720px 고정 크기다. 공통 색·서체는 CSS 변수로 관리하고,
+[HTML 변환 규칙](references/html-contract.md)에 맞춰 `data-pptx`를 표시한다.
+HTML/CSS와 로컬 에셋을 직접 작성할 수 있다.
+
+본문·기본 도형·관계도는 편집 가능한 요소로 유지한다. 사진·일러스트·화면은 이미지로 넣는다.
+이미지에 제목·데이터 라벨을 함께 굳히지 않는다. 변환을 방해하는 장식은 표현을 단순화한다.
+수치는 사용자 자료 또는 `pptkit data/pivot/fetch` 결과에서 가져온다. 빈 공간을 채우려고 수치를 만들지 않는다.
+출처·단위·기간을 표시한다. 목업과 검증용 가상 자료는 명확히 구분한다.
+
+### 4. HTML을 눈으로 검수한다
+
+```bash
+pptkit html preview deck.html
+```
+
+표지·핵심 근거·가장 복잡한 장표를 먼저 만든 뒤 실제 PNG를 열어 본다. 방향을 다듬고 나머지를 확장한다.
+사용자 선택이 필요한 경우만 의견을 묻는다. 모든 작업에 별도 시안 승인을 강제하지 않는다.
+전체 contact sheet로 구도 반복과 정보 밀도를 보고, 개별 장표로 한글 줄바꿈·작은 글자·정렬·누락을 본다.
+주장, 먼저 보이는 요소, 이를 뒷받침하는 근거가 명확해야 한다. DOM 검사만으로 이 단계를 대신하지 않는다.
+
+### 5. 편집 가능한 PPT로 변환한다
+
+```bash
+pptkit html build deck.html -o deck.pptx
+pptkit html render deck.pptx
+```
+
+텍스트는 text box, 단색 면·선·원은 native shape, 표는 native table이다.
+지원되는 데이터 차트는 embedded workbook을 가진 native chart다.
+미지원 표현은 오류로 알리며 전체 장표 이미지로 대체하지 않는다.
+`deck.editable.json`의 텍스트 보존 결과와 이미지 개수를 확인한다.
+
+### 6. PPT 결과까지 확인하고 전달한다
+
+- 같은 장표의 HTML과 PPT 렌더를 비교한다. 누락·줄바꿈·깨진 한글·겹침·시각적 위계 변화를 고친다.
+- 요구한 편집성이 남았는지 확인한다. 벡터 그림과 데이터 편집 가능한 차트는 구분한다.
+- Windows에서는 `pptkit qa deck.pptx --com`으로 실제 글자 높이도 확인한다.
+- 여백 경고는 시각적으로 판단한다. 여백을 없애려고 불필요한 내용을 추가하지 않는다.
+- 수정은 HTML에 반영하고 다시 변환·렌더한다. 미지원 표현은 지원 범위 안에서 재설계한다.
+- 렌더를 실행할 수 없으면 `시각 검수 미완료`라고 전달한다.
+
+최종 `.pptx`, 편집 원본 `.html`, 사용 에셋, 미리보기 경로를 제공한다.
+직접 확인한 범위와 실제 남은 제약을 짧게 적는다.
+
+사용자 선호와 업무 맥락을 존중한다. 모든 자료를 같은 색·사진 스타일로 만들지 않는다.
+HTML은 디자인 원본이며, 같은 원본을 재변환하면 수정 사항이 반영되어야 한다.
+정확성·시각적 전달력·편집성을 각각 확인한다.

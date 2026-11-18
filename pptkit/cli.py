@@ -16,6 +16,8 @@ def fmt_s(s, f):
 def main(argv=None):
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")  # Windows consoles default to cp949
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(prog="pptkit")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
@@ -72,6 +74,18 @@ def main(argv=None):
     p.add_argument("--sample", action="store_true", help="cover + one slide, for tone approval")
     p.add_argument("--design", help="override the design for this build (compare looks quickly)")
 
+    p = sub.add_parser("html", help="HTML 시안 → 브라우저 검수 → 편집 가능한 PPT")
+    hs = p.add_subparsers(dest="html_action", required=True)
+    hs.add_parser("setup", help="Chromium 설치 ([html] 추가 의존성 필요)")
+    hs.add_parser("designs", help="Studio 디자인 시스템의 세 방향")
+    hp = hs.add_parser("init", help="HTML 디자인 시작 파일 복사")
+    hp.add_argument("out")
+    hp.add_argument("--design",choices=["editorial","product","strategy"],default="editorial")
+    for action in ("preview", "build", "render"):
+        hp = hs.add_parser(action)
+        hp.add_argument("input")
+        hp.add_argument("-o", "--out")
+
     p = sub.add_parser("qa", help="failures only")
     p.add_argument("pptx")
     p.add_argument("-s", "--slides", help="e.g. 3,5")
@@ -121,7 +135,14 @@ def main(argv=None):
     a = ap.parse_args(argv)
     from . import data, edit, persona, qa, render  # lazy: keep `pptkit -h` fast
 
-    if a.cmd == "profile":
+    if a.cmd == "html":
+        from . import html_deck
+        try:
+            print(html_deck.run(a))
+        except (ValueError, FileNotFoundError, RuntimeError) as exc:
+            print(f"HTML ERROR: {exc}", file=sys.stderr)
+            return 1
+    elif a.cmd == "profile":
         if a.action == "set":
             persona.set_profile(a.pairs)
         elif a.action == "reset":

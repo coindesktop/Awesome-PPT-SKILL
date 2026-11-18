@@ -1,0 +1,34 @@
+{
+  "schema":"pptkit-studio-layouts-v1",
+  "canvas":"1280x720",
+  "rules":["제목·본문·데이터는 편집형 요소","입력보다 작은 글씨로 억지 수용하지 않음","그림과 수치는 실제 근거 또는 명확한 예시","한 덱 안에서 하나의 기본 방향"],
+  "editorial":[
+    {"id":"split-photo-cover","specimen_slide":1,"use":"관점·브랜딩 소개","slots":"왼쪽 제목 2줄 + 부제, 오른쪽 576x720 사진","overflow":"제목을 짧게 다듬거나 독립 문장 장표로 분리"},
+    {"id":"thesis-aside","specimen_slide":2,"use":"주장과 해석","slots":"왼쪽 720px 큰 문장, 오른쪽 340px 논평","overflow":"근거는 다음 장으로 분리"},
+    {"id":"metric-evidence","specimen_slide":3,"use":"핵심 수치와 추세","slots":"왼쪽 지표, 오른쪽 넓은 차트","overflow":"기간을 의미 있게 집계하고 원본은 부록"},
+    {"id":"photo-essay","specimen_slide":4,"use":"맥락·현장·사례","slots":"사진 절반 + 3줄 제목·설명","overflow":"사진 위에 장문을 올리지 않음"},
+    {"id":"editorial-table","specimen_slide":5,"use":"기준 비교","slots":"짧은 제목 + 3열 비교표","overflow":"비교 기준으로 여러 장에 분리"},
+    {"id":"statement-close","specimen_slide":6,"use":"핵심 메시지 마무리","slots":"대형 문장 + 짧은 다음 생각","overflow":"본문 반복 생략"}
+  ],
+  "product":[
+    {"id":"hero-object","specimen_slide":1,"use":"제품의 약속","slots":"왼쪽 핵심 문구 + 오른쪽 브랜드 비주얼","overflow":"기능 설명은 다음 장"},
+    {"id":"screen-story","specimen_slide":2,"use":"실제 사용 장면","slots":"왼쪽 효용 설명 + 오른쪽 606x455 제품 화면","overflow":"화면 전체를 축소하지 말고 필요한 부분을 확대"},
+    {"id":"numbered-flow","specimen_slide":3,"use":"3단계 사용 흐름","slots":"번호·행동명·한 줄 설명","overflow":"단계가 많으면 2장으로 분리"},
+    {"id":"traction-metric","specimen_slide":4,"use":"성장 근거","slots":"넓은 차트 + 대표 지표","overflow":"추가 지표는 별도 근거 장표"},
+    {"id":"pricing-columns","specimen_slide":5,"use":"요금제 비교","slots":"같은 기준의 두 요금제","overflow":"세부 조건은 부록 표"},
+    {"id":"action-close","specimen_slide":6,"use":"다음 행동","slots":"대형 문장 + 요청 하나","overflow":"동급 CTA를 추가하지 않음"}
+  ],
+  "working_artifacts":[
+    {"id":"guide-and-record","example_file":"components/working-artifacts.html","example_slide":1,"use":"이용자가 받는 안내지·기록지를 보여주는 서비스 제안","slots":"왼쪽 효용 + 오른쪽 안내지·기록지","overflow":"사용법 상세는 다음 장으로 분리","native":"text + shape"},
+    {"id":"review-worksheet","example_file":"components/working-artifacts.html","example_slide":2,"use":"원문·판단 기준·수정란으로 교육 실습 설명","slots":"왼쪽 학습 행동 + 오른쪽 크게 보이는 검토지","overflow":"실습별로 장표 분리","native":"text + shape"},
+    {"id":"operating-gate","example_file":"components/working-artifacts.html","example_slide":3,"use":"운영 전 확인할 조건과 미충족 시 조치","slots":"결론 + 조건·확인 자료·조치의 3열 표","overflow":"핵심 조건만 본문, 상세 조건은 부록","native":"table + text"}
+  ],
+  "strategy":[
+    {"id":"review-cover","specimen_slide":1,"use":"기간별 검토","slots":"결론형 제목 + 기간 + 검토 범위","overflow":"요약은 다음 장"},
+    {"id":"executive-strip","specimen_slide":2,"use":"핵심 요약","slots":"지표 3개 + 해석 3행","overflow":"지표를 우선순위로 선택"},
+    {"id":"trend-analysis","specimen_slide":3,"use":"기간별 변화","slots":"넓은 차트 + 마지막 값·해석","overflow":"계열이 많으면 비교 질문별로 분리"},
+    {"id":"decision-table","specimen_slide":4,"use":"지표·질문·다음 검증","slots":"4열 표, 한 행 강조","overflow":"열을 줄이거나 질문별로 분리"},
+    {"id":"workstream-matrix","specimen_slide":5,"use":"작업과 단계 연결","slots":"3단계 × 3작업 흐름","overflow":"작업군별로 분리"},
+    {"id":"decision-close","specimen_slide":6,"use":"승인·결정 요청","slots":"큰 제안 + 결정 조건","overflow":"보조 근거는 앞 장으로 이동"}
+  ]
+}
