@@ -5,6 +5,9 @@ description = "Personalized, token-lean PowerPoint generation CLI (Claude skill 
 requires-python = ">=3.10"
 dependencies = ["python-pptx>=1.0", "pandas>=2", "openpyxl", "pyyaml", "lxml"]
 
+[project.optional-dependencies]
+html = ["playwright>=1.40,<2", "pymupdf>=1.24,<2"]
+
 [project.scripts]
 pptkit = "pptkit.cli:main"
 
@@ -17,3 +20,6 @@ packages = ["pptkit"]
 
 [tool.hatch.build.targets.wheel.force-include]
 ".claude/skills/ppt" = "pptkit/skill"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,21 @@
+{
+  "purpose": "같은 씨앗도서관 운영안의 세 방향을 비교하는 시각 참고. 이미지를 완성 장표로 삽입하지 않는다.",
+  "created": "2026-11-18",
+  "render_engine": "Windows PowerPoint",
+  "status": "같은 사용자와 이어진 대화에서 받은 선호 피드백. 독립 사용자·새 주제의 품질 검증을 대신하지 않음.",
+  "planning_assumptions": "특정 기관 없음. 성인 24명, 8주, 30키트, 담당 30시간, 예산안 100만 원. 실제 운영·지출·성과가 아님. 새 기획의 기본값이 아님.",
+  "files": [
+    {"file":"seed-strategy.png","slides":[1,7,9,11],"focus":"운영 범위·자원·발주 조건·예외 조치","feedback":"나쁘진 않은데"},
+    {"file":"seed-editorial.png","slides":[1,2,9,10],"focus":"경험·사진의 큰 크롭·대형 숫자·문장","feedback":"좋다"},
+    {"file":"seed-product.png","slides":[1,4,6,11],"focus":"받는 안내지·쓰는 관찰지·이용 흐름","feedback":"예쁜데?"}
+  ],
+  "photo_credit": {
+    "subject":"상추 주제 사진. 실제 수확·참가자 기록·특정 품종의 근거가 아님.",
+    "author":"Engin Akyurt",
+    "source":"https://unsplash.com/photos/a-close-up-of-a-green-leafy-plant-6djmntSYfoE",
+    "license":"https://unsplash.com/license",
+    "applies_to":["seed-editorial.png","seed-product.png"],
+    "checked_in_original_project":"2026-11-18"
+  },
+  "rights_scope":"이 발췌에는 판매자 상품 사진을 포함하지 않음. 안내지·관찰지·도식은 제작한 제안 양식."
+}
